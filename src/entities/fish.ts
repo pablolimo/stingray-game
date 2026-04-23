@@ -5,8 +5,8 @@ import { FISH_SCORE } from '../constants';
 export class Fish implements Entity {
   x: number;
   y: number;
-  width: number = 12;
-  height: number = 8;
+  width: number = 24;
+  height: number = 16;
   colorVariant: 0 | 1 | 2;
   animFrame: number = 0;
   animTimer: number = 0;

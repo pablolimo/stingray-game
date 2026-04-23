@@ -5,8 +5,8 @@ import { CANVAS_WIDTH } from '../constants';
 export class Shark implements Entity {
   x: number;
   y: number;
-  width: number = 20;
-  height: number = 12;
+  width: number = 80;
+  height: number = 48;
   private sprite: HTMLCanvasElement;
   private speedMultiplier: number;
   private angle: number;
