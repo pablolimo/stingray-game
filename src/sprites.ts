@@ -60,7 +60,7 @@ export function createStingraySprites(): HTMLCanvasElement[] {
     for (let x = 6; x <= 17; x++) px(ctx, body, x, 11);
     // Row 12: wings narrowing
     for (let x = 3; x <= 20; x++) px(ctx, wing, x, 12 + wo);
-    for (let x = 7; x <= 16; x++) px(ctx, body, x, 12);
+    for (let x = 7; x <= 16; x++) px(ctx, body, x, 12 + wo);
     // Row 13: 
     for (let x = 4; x <= 19; x++) px(ctx, wing, x, 13);
     for (let x = 8; x <= 15; x++) px(ctx, body, x, 13);

@@ -12,7 +12,7 @@ export class Spawner {
   private jellyfishTimer: number = 0;
   private sharkTimer: number = 0;
 
-  update(dt: number, scrollSpeed: number, playerX: number): Entity[] {
+  update(dt: number, _scrollSpeed: number, playerX: number): Entity[] {
     this.time += dt;
     const spawned: Entity[] = [];
 
@@ -58,9 +58,6 @@ export class Spawner {
       const x = Math.random() * CANVAS_WIDTH;
       spawned.push(new Shark(x, CANVAS_HEIGHT + 20, playerX));
     }
-
-    // Use scrollSpeed to satisfy TS (it influences difficulty implicitly via time)
-    void scrollSpeed;
 
     return spawned;
   }
