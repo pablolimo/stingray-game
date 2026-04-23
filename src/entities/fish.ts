@@ -27,7 +27,7 @@ export class Fish implements Entity {
   }
 
   update(dt: number, scrollSpeed: number): void {
-    this.y -= scrollSpeed * dt;
+    this.y += scrollSpeed * dt;
     this.driftAngle += dt * 2;
     this.x += Math.sin(this.driftAngle) * this.driftSpeed * dt;
 
