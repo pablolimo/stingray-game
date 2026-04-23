@@ -5,8 +5,8 @@ import { CANVAS_WIDTH } from '../constants';
 export class Shark implements Entity {
   x: number;
   y: number;
-  width: number = 80;
-  height: number = 48;
+  width: number = 120;
+  height: number = 72;
   private sprite: HTMLCanvasElement;
   private speedMultiplier: number;
   private angle: number;
@@ -18,11 +18,11 @@ export class Shark implements Entity {
     this.speedMultiplier = 1.5;
     // Slight angle toward target
     const dx = targetX - x;
-    this.angle = Math.atan2(-1, dx / CANVAS_WIDTH) * 0.3;
+    this.angle = Math.atan2(1, dx / CANVAS_WIDTH) * 0.3;
   }
 
   update(dt: number, scrollSpeed: number): void {
-    this.y -= scrollSpeed * this.speedMultiplier * dt;
+    this.y += scrollSpeed * this.speedMultiplier * dt;
     this.x += Math.sin(this.angle) * scrollSpeed * 0.3 * dt;
   }
 

@@ -8,6 +8,7 @@ import { Fish } from './entities/fish';
 import { Starfish } from './entities/starfish';
 import { Jellyfish } from './entities/jellyfish';
 import { Shark } from './entities/shark';
+import { TreasureChest } from './entities/treasure';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
@@ -77,8 +78,8 @@ export class Game {
         const newEntities = this.spawner.update(dt, this.scrollSpeed, this.player.x);
         this.entities.push(...newEntities);
 
-        // Remove off-screen
-        this.entities = this.entities.filter(e => e.y > -60 && e.y < CANVAS_HEIGHT + 100);
+        // Remove off-screen (entities move top to bottom)
+        this.entities = this.entities.filter(e => e.y > -100 && e.y < CANVAS_HEIGHT + 100);
 
         // Collisions
         const playerBounds = this.player.getBounds();
@@ -96,6 +97,13 @@ export class Game {
               e.collected = true;
               this.score += e.score;
               this.spawnParticles(e.x, e.y, '#e8612a', 12);
+            }
+          } else if (e instanceof TreasureChest && !e.collected) {
+            const bounds = e.getBounds();
+            if (aabb(playerBounds, bounds)) {
+              e.collected = true;
+              this.score += e.score;
+              this.spawnParticles(e.x, e.y, '#ffd700', 16);
             }
           } else if (e instanceof Jellyfish) {
             if (!this.player.isInvincible()) {
@@ -120,6 +128,7 @@ export class Game {
         this.entities = this.entities.filter(e => {
           if (e instanceof Fish && e.collected) return false;
           if (e instanceof Starfish && e.collected) return false;
+          if (e instanceof TreasureChest && e.collected) return false;
           return true;
         });
 
@@ -242,6 +251,8 @@ export class Game {
     ctx.fillText('Arrow Keys / WASD to move', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70);
     ctx.fillText('Collect fish for points!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 90);
     ctx.fillText('Avoid jellyfish and sharks!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 110);
+    ctx.fillStyle = '#fd5';
+    ctx.fillText('Float over treasure chests for 100pts!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 130);
     ctx.restore();
   }
 

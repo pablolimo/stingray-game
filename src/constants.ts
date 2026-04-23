@@ -8,6 +8,7 @@ export const MAX_SCROLL_SPEED = 300;
 export const SCROLL_SPEED_INCREMENT = 5;
 export const FISH_SCORE = 10;
 export const STARFISH_SCORE = 25;
+export const TREASURE_SCORE = 100;
 export const PLAYER_MAX_HP = 3;
 export const INVINCIBILITY_DURATION = 1.0;
 export const SCREEN_SHAKE_DURATION = 0.3;

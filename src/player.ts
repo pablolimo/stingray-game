@@ -11,8 +11,8 @@ export class Player {
   invincibleTimer: number = 0;
   animFrame: number = 0;
   animTimer: number = 0;
-  width: number = 60;
-  height: number = 60;
+  width: number = 120;
+  height: number = 120;
 
   private sprites: HTMLCanvasElement[];
 

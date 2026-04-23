@@ -2,7 +2,8 @@ import { Fish } from './entities/fish';
 import { Starfish } from './entities/starfish';
 import { Jellyfish } from './entities/jellyfish';
 import { Shark } from './entities/shark';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants';
+import { TreasureChest } from './entities/treasure';
+import { CANVAS_WIDTH } from './constants';
 import { Entity } from './types';
 
 export class Spawner {
@@ -11,6 +12,7 @@ export class Spawner {
   private starfishTimer: number = 0;
   private jellyfishTimer: number = 0;
   private sharkTimer: number = 0;
+  private treasureTimer: number = 0;
 
   update(dt: number, _scrollSpeed: number, playerX: number): Entity[] {
     this.time += dt;
@@ -28,7 +30,7 @@ export class Spawner {
       for (let i = 0; i < count; i++) {
         const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
         const variant = Math.floor(Math.random() * 3) as 0 | 1 | 2;
-        spawned.push(new Fish(x, CANVAS_HEIGHT + 20, variant));
+        spawned.push(new Fish(x, -20, variant));
       }
     }
 
@@ -38,7 +40,7 @@ export class Spawner {
     if (this.starfishTimer >= starfishInterval) {
       this.starfishTimer -= starfishInterval;
       const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
-      spawned.push(new Starfish(x, CANVAS_HEIGHT + 20));
+      spawned.push(new Starfish(x, -20));
     }
 
     // Jellyfish: start at 4s, decrease to 1.5s
@@ -47,7 +49,7 @@ export class Spawner {
     if (this.jellyfishTimer >= jellyfishInterval) {
       this.jellyfishTimer -= jellyfishInterval;
       const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
-      spawned.push(new Jellyfish(x, CANVAS_HEIGHT + 30));
+      spawned.push(new Jellyfish(x, -30));
     }
 
     // Shark: start at 10s, decrease to 4s
@@ -56,7 +58,16 @@ export class Spawner {
     if (this.sharkTimer >= sharkInterval) {
       this.sharkTimer -= sharkInterval;
       const x = Math.random() * CANVAS_WIDTH;
-      spawned.push(new Shark(x, CANVAS_HEIGHT + 20, playerX));
+      spawned.push(new Shark(x, -20, playerX));
+    }
+
+    // Treasure chests: every 12s decreasing to 7s
+    const treasureInterval = 12.0 - diff * 5.0;
+    this.treasureTimer += dt;
+    if (this.treasureTimer >= treasureInterval) {
+      this.treasureTimer -= treasureInterval;
+      const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
+      spawned.push(new TreasureChest(x, -30));
     }
 
     return spawned;
@@ -68,5 +79,6 @@ export class Spawner {
     this.starfishTimer = 0;
     this.jellyfishTimer = 0;
     this.sharkTimer = 0;
+    this.treasureTimer = 0;
   }
 }

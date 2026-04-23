@@ -5,8 +5,8 @@ import { STARFISH_SCORE } from '../constants';
 export class Starfish implements Entity {
   x: number;
   y: number;
-  width: number = 16;
-  height: number = 16;
+  width: number = 48;
+  height: number = 48;
   collected: boolean = false;
   score: number = STARFISH_SCORE;
   private rotation: number = 0;
@@ -19,7 +19,7 @@ export class Starfish implements Entity {
   }
 
   update(dt: number, scrollSpeed: number): void {
-    this.y -= scrollSpeed * dt;
+    this.y += scrollSpeed * dt;
     this.rotation += dt * 1.5;
   }
 

@@ -4,8 +4,8 @@ import { createJellyfishSprites } from '../sprites';
 export class Jellyfish implements Entity {
   x: number;
   y: number;
-  width: number = 16;
-  height: number = 20;
+  width: number = 48;
+  height: number = 60;
   private sprites: HTMLCanvasElement[];
   private animFrame: number = 0;
   private animTimer: number = 0;
@@ -21,7 +21,7 @@ export class Jellyfish implements Entity {
   }
 
   update(dt: number, scrollSpeed: number): void {
-    this.y -= scrollSpeed * dt;
+    this.y += scrollSpeed * dt;
     this.driftAngle += dt * 1.5;
     this.x += Math.sin(this.driftAngle) * this.driftAmplitude * dt;
 

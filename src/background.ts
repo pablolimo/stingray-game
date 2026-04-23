@@ -55,7 +55,7 @@ export class Background {
     const ctx = c.getContext('2d')!;
 
     // Pebbles
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 25; i++) {
       const x = Math.random() * CANVAS_WIDTH;
       const y = Math.random() * this.LAYER_HEIGHT;
       const r = 2 + Math.random() * 4;
@@ -79,7 +79,7 @@ export class Background {
     }
 
     // Dark sand patches
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 5; i++) {
       const x = Math.random() * CANVAS_WIDTH;
       const y = Math.random() * this.LAYER_HEIGHT;
       ctx.fillStyle = 'rgba(120,80,30,0.2)';
@@ -98,7 +98,7 @@ export class Background {
     const ctx = c.getContext('2d')!;
 
     // Seaweed
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 8; i++) {
       const x = Math.random() * CANVAS_WIDTH;
       const baseY = Math.random() * this.LAYER_HEIGHT;
       ctx.strokeStyle = `rgba(${40 + Math.random() * 30},${120 + Math.random() * 60},${30 + Math.random() * 20},0.8)`;
@@ -119,7 +119,7 @@ export class Background {
     }
 
     // Small rocks
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < 8; i++) {
       const x = Math.random() * CANVAS_WIDTH;
       const y = Math.random() * this.LAYER_HEIGHT;
       const r = 3 + Math.random() * 6;
@@ -130,7 +130,7 @@ export class Background {
     }
 
     // Coral bits
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 5; i++) {
       const x = Math.random() * CANVAS_WIDTH;
       const y = Math.random() * this.LAYER_HEIGHT;
       ctx.fillStyle = `rgba(${200 + Math.random() * 55},${80 + Math.random() * 60},${60 + Math.random() * 40},0.7)`;
@@ -143,7 +143,7 @@ export class Background {
   }
 
   private initBubbles(): void {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 8; i++) {
       this.bubbles.push({
         x: Math.random() * CANVAS_WIDTH,
         y: Math.random() * CANVAS_HEIGHT,
@@ -179,8 +179,16 @@ export class Background {
     this.drawLayer(ctx, this.layer2, this.offset2);
     this.drawLayer(ctx, this.layer3, this.offset3);
 
-    // Water blue tint
-    ctx.fillStyle = 'rgba(30, 100, 180, 0.08)';
+    // Water blue tint - deep underwater feel
+    ctx.fillStyle = 'rgba(10, 60, 140, 0.30)';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // Deeper blue gradient at the top (sunlight fading with depth)
+    const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    gradient.addColorStop(0, 'rgba(0, 30, 100, 0.35)');
+    gradient.addColorStop(0.5, 'rgba(0, 60, 130, 0.15)');
+    gradient.addColorStop(1, 'rgba(0, 20, 60, 0.05)');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     // Caustics
