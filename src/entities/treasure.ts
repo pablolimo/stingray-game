@@ -58,8 +58,8 @@ function createTreasureChestSprite(): HTMLCanvasElement {
 export class TreasureChest implements Entity {
   x: number;
   y: number;
-  width: number = 32;
-  height: number = 24;
+  width: number = 64;
+  height: number = 48;
   collected: boolean = false;
   score: number = TREASURE_SCORE;
 
