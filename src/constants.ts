@@ -13,3 +13,7 @@ export const PLAYER_MAX_HP = 3;
 export const INVINCIBILITY_DURATION = 1.0;
 export const SCREEN_SHAKE_DURATION = 0.3;
 export const SCREEN_SHAKE_MAGNITUDE = 6;
+export const SHINY_CHEST_SCORE = 200;
+export const POWERUP_DURATION = 15;
+export const LASER_DURATION = 7;
+export const GAUGE_PER_EAT = 0.1;

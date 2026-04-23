@@ -9,10 +9,12 @@ import { Starfish } from './entities/starfish';
 import { Jellyfish } from './entities/jellyfish';
 import { Shark } from './entities/shark';
 import { TreasureChest } from './entities/treasure';
+import { PowerupChest } from './entities/powerupchest';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
   SCREEN_SHAKE_DURATION, SCREEN_SHAKE_MAGNITUDE,
+  POWERUP_DURATION, LASER_DURATION, GAUGE_PER_EAT,
 } from './constants';
 
 function aabb(
@@ -41,6 +43,12 @@ export class Game {
   private shakeTimer: number = 0;
   private spaceWasDown: boolean = false;
   private titleAnimTime: number = 0;
+  private powerupActive: boolean = false;
+  private powerupTimer: number = 0;
+  private gaugeLevel: number = 0;
+  private laserActive: boolean = false;
+  private laserTimer: number = 0;
+  private laserAnimTime: number = 0;
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
@@ -69,6 +77,23 @@ export class Game {
         this.background.update(dt, this.scrollSpeed);
         this.player.update(dt, this.input);
 
+        // Powerup timers
+        if (this.powerupActive) {
+          this.powerupTimer -= dt;
+          if (this.powerupTimer <= 0) {
+            this.deactivatePowerup();
+          }
+        }
+        if (this.laserActive) {
+          this.laserTimer -= dt;
+          this.laserAnimTime += dt;
+          if (this.laserTimer <= 0) {
+            this.laserActive = false;
+            this.laserTimer = 0;
+            this.gaugeLevel = 0;
+          }
+        }
+
         // Update entities
         for (const e of this.entities) {
           e.update(dt, this.scrollSpeed);
@@ -81,6 +106,20 @@ export class Game {
         // Remove off-screen (entities move top to bottom)
         this.entities = this.entities.filter(e => e.y > -100 && e.y < CANVAS_HEIGHT + 100);
 
+        // Laser beam – destroy enemies in its path each frame while active
+        if (this.laserActive) {
+          const laserBeamHalfWidth = 20;
+          this.entities = this.entities.filter(e => {
+            if (e instanceof Jellyfish || e instanceof Shark) {
+              if (Math.abs(e.x - this.player.x) < laserBeamHalfWidth + e.width / 2 && e.y < this.player.y) {
+                this.spawnParticles(e.x, e.y, '#00e5ff', 10);
+                return false;
+              }
+            }
+            return true;
+          });
+        }
+
         // Collisions
         const playerBounds = this.player.getBounds();
         for (const e of this.entities) {
@@ -90,6 +129,7 @@ export class Game {
               e.collected = true;
               this.score += e.score;
               this.spawnParticles(e.x, e.y, '#f4721a', 8);
+              this.incrementLaserGauge();
             }
           } else if (e instanceof Starfish && !e.collected) {
             const bounds = e.getBounds();
@@ -97,6 +137,7 @@ export class Game {
               e.collected = true;
               this.score += e.score;
               this.spawnParticles(e.x, e.y, '#e8612a', 12);
+              this.incrementLaserGauge();
             }
           } else if (e instanceof TreasureChest && !e.collected) {
             const bounds = e.getBounds();
@@ -104,6 +145,19 @@ export class Game {
               e.collected = true;
               this.score += e.score;
               this.spawnParticles(e.x, e.y, '#ffd700', 16);
+              this.incrementLaserGauge();
+            }
+          } else if (e instanceof PowerupChest && !e.collected) {
+            const bounds = e.getBounds();
+            if (aabb(playerBounds, bounds)) {
+              e.collected = true;
+              this.score += e.score;
+              this.spawnParticles(e.x, e.y, '#00e5ff', 20);
+              this.powerupActive = true;
+              this.powerupTimer = POWERUP_DURATION;
+              this.gaugeLevel = 0;
+              this.laserActive = false;
+              this.laserTimer = 0;
             }
           } else if (e instanceof Jellyfish) {
             if (!this.player.isInvincible()) {
@@ -111,6 +165,7 @@ export class Game {
               if (aabb(playerBounds, bounds)) {
                 this.player.takeDamage();
                 this.shakeTimer = SCREEN_SHAKE_DURATION;
+                if (this.powerupActive) this.deactivatePowerup();
               }
             }
           } else if (e instanceof Shark) {
@@ -119,6 +174,7 @@ export class Game {
               if (aabb(playerBounds, bounds)) {
                 this.player.takeDamage();
                 this.shakeTimer = SCREEN_SHAKE_DURATION;
+                if (this.powerupActive) this.deactivatePowerup();
               }
             }
           }
@@ -129,6 +185,7 @@ export class Game {
           if (e instanceof Fish && e.collected) return false;
           if (e instanceof Starfish && e.collected) return false;
           if (e instanceof TreasureChest && e.collected) return false;
+          if (e instanceof PowerupChest && e.collected) return false;
           return true;
         });
 
@@ -170,6 +227,29 @@ export class Game {
     this.score = 0;
     this.scrollSpeed = INITIAL_SCROLL_SPEED;
     this.spawner.reset();
+    this.powerupActive = false;
+    this.powerupTimer = 0;
+    this.gaugeLevel = 0;
+    this.laserActive = false;
+    this.laserTimer = 0;
+    this.laserAnimTime = 0;
+  }
+
+  private incrementLaserGauge(): void {
+    if (!this.powerupActive || this.laserActive) return;
+    this.gaugeLevel = Math.min(1, this.gaugeLevel + GAUGE_PER_EAT);
+    if (this.gaugeLevel >= 1) {
+      this.laserActive = true;
+      this.laserTimer = LASER_DURATION;
+      this.laserAnimTime = 0;
+    }
+  }
+
+  private deactivatePowerup(): void {
+    this.powerupActive = false;
+    this.gaugeLevel = 0;
+    this.laserActive = false;
+    this.laserTimer = 0;
   }
 
   private spawnParticles(x: number, y: number, color: string, count: number): void {
@@ -274,8 +354,55 @@ export class Game {
     }
     ctx.globalAlpha = 1;
 
+    // Powerup glow around the stingray
+    if (this.powerupActive) {
+      ctx.save();
+      const glowPulse = 0.25 + Math.sin(Date.now() / 120) * 0.1;
+      ctx.globalAlpha = glowPulse;
+      const glowGrad = ctx.createRadialGradient(
+        this.player.x, this.player.y, this.player.width * 0.2,
+        this.player.x, this.player.y, this.player.width * 0.75,
+      );
+      glowGrad.addColorStop(0, 'rgba(0,229,255,0.9)');
+      glowGrad.addColorStop(1, 'rgba(0,100,255,0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.ellipse(this.player.x, this.player.y, this.player.width * 0.75, this.player.height * 0.65, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Laser beam (blue vertical blast forward/upward from stingray)
+    if (this.laserActive) {
+      ctx.save();
+      const beamW = 40;
+      const bx = this.player.x;
+      const by = this.player.y - this.player.height / 2;
+
+      // Core beam gradient
+      const laserGrad = ctx.createLinearGradient(bx - beamW / 2, 0, bx + beamW / 2, 0);
+      laserGrad.addColorStop(0, 'rgba(0,100,255,0)');
+      laserGrad.addColorStop(0.35, 'rgba(0,229,255,0.6)');
+      laserGrad.addColorStop(0.5, 'rgba(255,255,255,0.95)');
+      laserGrad.addColorStop(0.65, 'rgba(0,229,255,0.6)');
+      laserGrad.addColorStop(1, 'rgba(0,100,255,0)');
+
+      // Outer glow
+      const outerAlpha = 0.15 + Math.sin(this.laserAnimTime * 10) * 0.05;
+      ctx.globalAlpha = outerAlpha;
+      ctx.fillStyle = '#00e5ff';
+      ctx.fillRect(bx - beamW, 0, beamW * 2, by);
+
+      // Inner beam
+      ctx.globalAlpha = 0.85 + Math.sin(this.laserAnimTime * 15) * 0.1;
+      ctx.fillStyle = laserGrad;
+      ctx.fillRect(bx - beamW / 2, 0, beamW, by);
+
+      ctx.restore();
+    }
+
     this.player.render(ctx);
-    this.hud.render(ctx, this.score, this.player.hp);
+    this.hud.render(ctx, this.score, this.player.hp, this.powerupActive, this.gaugeLevel, this.laserActive);
   }
 
   private renderGameOver(): void {
