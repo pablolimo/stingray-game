@@ -1,5 +1,5 @@
 import { createHeartSprite } from './sprites';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SHIELD_DURATION } from './constants';
 
 export class HUD {
   private heartSprite: HTMLCanvasElement;
@@ -15,6 +15,8 @@ export class HUD {
     powerupActive: boolean = false,
     gaugeLevel: number = 0,
     laserActive: boolean = false,
+    shieldActive: boolean = false,
+    shieldTimer: number = 0,
   ): void {
     // Score
     ctx.save();
@@ -29,6 +31,25 @@ export class HUD {
       ctx.drawImage(this.heartSprite, CANVAS_WIDTH - 12 - (hp - i) * 14, 8, 12, 12);
     }
     ctx.restore();
+
+    // Shield timer bar (below hearts, only when shield is active)
+    if (shieldActive) {
+      const shW = hp * 14 + 4;
+      const shX = CANVAS_WIDTH - 12 - shW;
+      const shY = 22;
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = '#330000';
+      ctx.fillRect(shX, shY, shW, 4);
+      ctx.globalAlpha = 0.9;
+      const shieldFrac = Math.max(0, shieldTimer / SHIELD_DURATION);
+      const grad = ctx.createLinearGradient(shX, 0, shX + shW * shieldFrac, 0);
+      grad.addColorStop(0, '#ff2222');
+      grad.addColorStop(1, '#ff8888');
+      ctx.fillStyle = grad;
+      ctx.fillRect(shX, shY, shW * shieldFrac, 4);
+      ctx.restore();
+    }
 
     // Laser gauge bar (bottom of screen, only when powerup is active)
     if (powerupActive) {
@@ -47,11 +68,15 @@ export class HUD {
         ctx.shadowColor = '#00e5ff';
         ctx.shadowBlur = 8;
         ctx.fillText('LASER ACTIVE!', barX, barY - 4);
-      } else {
+      } else if (gaugeLevel > 0) {
         ctx.fillStyle = '#aef';
         ctx.shadowColor = 'rgba(0,229,255,0.5)';
         ctx.shadowBlur = 4;
         ctx.fillText('LASER GAUGE', barX, barY - 4);
+      } else {
+        ctx.fillStyle = '#89c';
+        ctx.shadowBlur = 0;
+        ctx.fillText('LASER GAUGE – eat to recharge!', barX, barY - 4);
       }
 
       // Bar background

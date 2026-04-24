@@ -4,6 +4,7 @@ import { Jellyfish } from './entities/jellyfish';
 import { Shark } from './entities/shark';
 import { TreasureChest } from './entities/treasure';
 import { PowerupChest } from './entities/powerupchest';
+import { RedTreasure } from './entities/redtreasure';
 import { CANVAS_WIDTH } from './constants';
 import { Entity } from './types';
 
@@ -15,6 +16,7 @@ export class Spawner {
   private sharkTimer: number = 0;
   private treasureTimer: number = 0;
   private shinyChestTimer: number = 0;
+  private redTreasureTimer: number = 0;
 
   update(dt: number, _scrollSpeed: number, playerX: number): Entity[] {
     this.time += dt;
@@ -81,6 +83,15 @@ export class Spawner {
       spawned.push(new PowerupChest(x, -30));
     }
 
+    // Red treasure: every 40s decreasing to 25s
+    const redTreasureInterval = 40.0 - diff * 15.0;
+    this.redTreasureTimer += dt;
+    if (this.redTreasureTimer >= redTreasureInterval) {
+      this.redTreasureTimer -= redTreasureInterval;
+      const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
+      spawned.push(new RedTreasure(x, -30));
+    }
+
     return spawned;
   }
 
@@ -92,5 +103,6 @@ export class Spawner {
     this.sharkTimer = 0;
     this.treasureTimer = 0;
     this.shinyChestTimer = 0;
+    this.redTreasureTimer = 0;
   }
 }

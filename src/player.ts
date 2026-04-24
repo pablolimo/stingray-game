@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT, PLAYER_MAX_SPEED, PLAYER_ACCELERATION, PLAYER_DAMPING, INVINCIBILITY_DURATION } from './constants';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, PLAYER_MAX_SPEED, PLAYER_ACCELERATION, PLAYER_DAMPING, INVINCIBILITY_DURATION, PLAYER_MAX_HP, SHIELD_DURATION } from './constants';
 import { InputHandler } from './input';
 import { createStingraySprites } from './sprites';
 
@@ -9,6 +9,8 @@ export class Player {
   vy: number = 0;
   hp: number = 3;
   invincibleTimer: number = 0;
+  shieldActive: boolean = false;
+  shieldTimer: number = 0;
   animFrame: number = 0;
   animTimer: number = 0;
   width: number = 96;
@@ -60,12 +62,35 @@ export class Player {
     if (this.invincibleTimer > 0) {
       this.invincibleTimer -= dt;
     }
+
+    // Shield timer
+    if (this.shieldTimer > 0) {
+      this.shieldTimer -= dt;
+      if (this.shieldTimer <= 0) {
+        this.shieldActive = false;
+        this.shieldTimer = 0;
+      }
+    }
   }
 
-  takeDamage(): void {
-    if (this.invincibleTimer > 0) return;
+  takeDamage(): boolean {
+    if (this.invincibleTimer > 0) return false;
+    if (this.shieldActive) {
+      // Shield absorbs the hit without consuming it immediately
+      return false;
+    }
     this.hp -= 1;
     this.invincibleTimer = INVINCIBILITY_DURATION;
+    return true;
+  }
+
+  activateShield(): void {
+    this.shieldActive = true;
+    this.shieldTimer = SHIELD_DURATION;
+  }
+
+  healHp(): void {
+    this.hp = Math.min(this.hp + 1, PLAYER_MAX_HP);
   }
 
   isInvincible(): boolean {

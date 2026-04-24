@@ -25,8 +25,8 @@ export class Background {
     c.height = this.LAYER_HEIGHT;
     const ctx = c.getContext('2d')!;
 
-    // Sandy base
-    ctx.fillStyle = '#d4a76a';
+    // Caribbean sandy base – lighter, warmer
+    ctx.fillStyle = '#e8d59a';
     ctx.fillRect(0, 0, CANVAS_WIDTH, this.LAYER_HEIGHT);
 
     // Grain texture - random dots
@@ -34,14 +34,14 @@ export class Background {
       const x = Math.random() * CANVAS_WIDTH;
       const y = Math.random() * this.LAYER_HEIGHT;
       const light = Math.random() > 0.5;
-      ctx.fillStyle = light ? 'rgba(255,220,160,0.4)' : 'rgba(100,70,30,0.3)';
+      ctx.fillStyle = light ? 'rgba(255,240,190,0.5)' : 'rgba(160,120,60,0.25)';
       ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
     }
 
     // Subtle color variation bands
     for (let y = 0; y < this.LAYER_HEIGHT; y += 40) {
       const alpha = (Math.sin(y * 0.05) + 1) * 0.03;
-      ctx.fillStyle = `rgba(180,130,60,${alpha})`;
+      ctx.fillStyle = `rgba(200,165,90,${alpha})`;
       ctx.fillRect(0, y, CANVAS_WIDTH, 20);
     }
 
@@ -66,8 +66,8 @@ export class Background {
       ctx.fill();
     }
 
-    // Sand ripples
-    ctx.strokeStyle = 'rgba(150,110,50,0.3)';
+    // Sand ripples – lighter, caribbean
+    ctx.strokeStyle = 'rgba(180,150,80,0.25)';
     ctx.lineWidth = 1;
     for (let y = 30; y < this.LAYER_HEIGHT; y += 50 + Math.random() * 30) {
       ctx.beginPath();
@@ -82,13 +82,107 @@ export class Background {
     for (let i = 0; i < 5; i++) {
       const x = Math.random() * CANVAS_WIDTH;
       const y = Math.random() * this.LAYER_HEIGHT;
-      ctx.fillStyle = 'rgba(120,80,30,0.2)';
+      ctx.fillStyle = 'rgba(160,120,60,0.15)';
       ctx.beginPath();
       ctx.ellipse(x, y, 20 + Math.random() * 30, 10 + Math.random() * 15, Math.random() * Math.PI, 0, Math.PI * 2);
       ctx.fill();
     }
 
+    // Decorative pineapples (3-5 scattered)
+    const pineappleCount = 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < pineappleCount; i++) {
+      const px = 20 + Math.random() * (CANVAS_WIDTH - 40);
+      const py = 20 + Math.random() * (this.LAYER_HEIGHT - 40);
+      this.drawPineapple(ctx, px, py);
+    }
+
+    // Decorative pink starfish (3-5 scattered)
+    const sfCount = 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < sfCount; i++) {
+      const sx = 15 + Math.random() * (CANVAS_WIDTH - 30);
+      const sy = 15 + Math.random() * (this.LAYER_HEIGHT - 30);
+      const sr = 6 + Math.random() * 5;
+      const angle = Math.random() * Math.PI * 2;
+      this.drawPinkStarfish(ctx, sx, sy, sr, angle);
+    }
+
     return c;
+  }
+
+  private drawPineapple(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    const scale = 0.55 + Math.random() * 0.35;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = 0.72;
+
+    // Body
+    ctx.fillStyle = '#c9a227';
+    ctx.beginPath();
+    ctx.ellipse(0, 4, 6, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Diamond pattern
+    ctx.strokeStyle = '#8b6914';
+    ctx.lineWidth = 0.8;
+    for (let row = -2; row <= 2; row++) {
+      for (let col = -1; col <= 1; col++) {
+        const ox = col * 4 + (row % 2 === 0 ? 0 : 2);
+        const oy = row * 4 + 4;
+        ctx.beginPath();
+        ctx.moveTo(ox, oy - 2);
+        ctx.lineTo(ox + 2, oy);
+        ctx.lineTo(ox, oy + 2);
+        ctx.lineTo(ox - 2, oy);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+
+    // Leaves
+    ctx.fillStyle = '#2e7d32';
+    const leaves = [
+      { lx: 0, ly: -6, rot: 0 },
+      { lx: -3, ly: -4, rot: -0.7 },
+      { lx: 3, ly: -4, rot: 0.7 },
+      { lx: -2, ly: -8, rot: -0.3 },
+      { lx: 2, ly: -8, rot: 0.3 },
+    ];
+    for (const lf of leaves) {
+      ctx.save();
+      ctx.translate(lf.lx, lf.ly);
+      ctx.rotate(lf.rot);
+      ctx.beginPath();
+      ctx.ellipse(0, -5, 2, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  private drawPinkStarfish(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rotation: number): void {
+    ctx.save();
+    ctx.globalAlpha = 0.68;
+    ctx.fillStyle = '#f48fb1';
+    ctx.strokeStyle = '#e91e63';
+    ctx.lineWidth = 0.7;
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    ctx.beginPath();
+    const innerR = r * 0.42;
+    for (let i = 0; i < 10; i++) {
+      const angle = (i * Math.PI / 5) - Math.PI / 2;
+      const radius = i % 2 === 0 ? r : innerR;
+      const sx = radius * Math.cos(angle);
+      const sy = radius * Math.sin(angle);
+      if (i === 0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
   }
 
   private createLayer3(): HTMLCanvasElement {
@@ -179,15 +273,15 @@ export class Background {
     this.drawLayer(ctx, this.layer2, this.offset2);
     this.drawLayer(ctx, this.layer3, this.offset3);
 
-    // Water blue tint - deep underwater feel
-    ctx.fillStyle = 'rgba(10, 60, 140, 0.30)';
+    // Water tint – caribbean turquoise
+    ctx.fillStyle = 'rgba(0, 140, 160, 0.28)';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Deeper blue gradient at the top (sunlight fading with depth)
+    // Turquoise gradient (sunlight from above)
     const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-    gradient.addColorStop(0, 'rgba(0, 30, 100, 0.35)');
-    gradient.addColorStop(0.5, 'rgba(0, 60, 130, 0.15)');
-    gradient.addColorStop(1, 'rgba(0, 20, 60, 0.05)');
+    gradient.addColorStop(0, 'rgba(0, 100, 140, 0.30)');
+    gradient.addColorStop(0.5, 'rgba(0, 140, 150, 0.12)');
+    gradient.addColorStop(1, 'rgba(0, 80, 100, 0.04)');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
