@@ -10,11 +10,12 @@ import { Jellyfish } from './entities/jellyfish';
 import { Shark } from './entities/shark';
 import { TreasureChest } from './entities/treasure';
 import { PowerupChest } from './entities/powerupchest';
+import { RedTreasure } from './entities/redtreasure';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
   SCREEN_SHAKE_DURATION, SCREEN_SHAKE_MAGNITUDE,
-  POWERUP_DURATION, LASER_DURATION, GAUGE_PER_EAT,
+  LASER_DURATION, LASER_DRAIN_RATE, GAUGE_PER_EAT,
 } from './constants';
 
 function aabb(
@@ -44,11 +45,10 @@ export class Game {
   private spaceWasDown: boolean = false;
   private titleAnimTime: number = 0;
   private powerupActive: boolean = false;
-  private powerupTimer: number = 0;
   private gaugeLevel: number = 0;
   private laserActive: boolean = false;
-  private laserTimer: number = 0;
   private laserAnimTime: number = 0;
+  private shieldAnimTime: number = 0;
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
@@ -79,19 +79,20 @@ export class Game {
 
         // Powerup timers
         if (this.powerupActive) {
-          this.powerupTimer -= dt;
-          if (this.powerupTimer <= 0) {
-            this.deactivatePowerup();
-          }
+          // no time-based expiry – powerup lasts until damaged
         }
         if (this.laserActive) {
-          this.laserTimer -= dt;
           this.laserAnimTime += dt;
-          if (this.laserTimer <= 0) {
-            this.laserActive = false;
-            this.laserTimer = 0;
+          // Drain the gauge while the laser is firing
+          this.gaugeLevel -= LASER_DRAIN_RATE * dt;
+          if (this.gaugeLevel <= 0) {
             this.gaugeLevel = 0;
+            this.laserActive = false;
+            // powerupActive stays true – can be recharged
           }
+        }
+        if (this.player.shieldActive) {
+          this.shieldAnimTime += dt;
         }
 
         // Update entities
@@ -153,28 +154,47 @@ export class Game {
               e.collected = true;
               this.score += e.score;
               this.spawnParticles(e.x, e.y, '#00e5ff', 20);
-              this.powerupActive = true;
-              this.powerupTimer = POWERUP_DURATION;
-              this.gaugeLevel = 0;
-              this.laserActive = false;
-              this.laserTimer = 0;
+              if (this.powerupActive) {
+                // Already have the gauge – fill it to 100% and start laser
+                this.gaugeLevel = 1;
+                this.laserActive = true;
+                this.laserAnimTime = 0;
+              } else {
+                // First time picking up
+                this.powerupActive = true;
+                this.gaugeLevel = 0;
+                this.laserActive = false;
+              }
+            }
+          } else if (e instanceof RedTreasure && !e.collected) {
+            const bounds = e.getBounds();
+            if (aabb(playerBounds, bounds)) {
+              e.collected = true;
+              this.score += e.score;
+              this.spawnParticles(e.x, e.y, '#ff2222', 20);
+              this.player.healHp();
+              this.player.activateShield();
             }
           } else if (e instanceof Jellyfish) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
-                this.player.takeDamage();
-                this.shakeTimer = SCREEN_SHAKE_DURATION;
-                if (this.powerupActive) this.deactivatePowerup();
+                const tookDamage = this.player.takeDamage();
+                if (tookDamage) {
+                  this.shakeTimer = SCREEN_SHAKE_DURATION;
+                  this.deactivatePowerup();
+                }
               }
             }
           } else if (e instanceof Shark) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
-                this.player.takeDamage();
-                this.shakeTimer = SCREEN_SHAKE_DURATION;
-                if (this.powerupActive) this.deactivatePowerup();
+                const tookDamage = this.player.takeDamage();
+                if (tookDamage) {
+                  this.shakeTimer = SCREEN_SHAKE_DURATION;
+                  this.deactivatePowerup();
+                }
               }
             }
           }
@@ -186,6 +206,7 @@ export class Game {
           if (e instanceof Starfish && e.collected) return false;
           if (e instanceof TreasureChest && e.collected) return false;
           if (e instanceof PowerupChest && e.collected) return false;
+          if (e instanceof RedTreasure && e.collected) return false;
           return true;
         });
 
@@ -228,19 +249,17 @@ export class Game {
     this.scrollSpeed = INITIAL_SCROLL_SPEED;
     this.spawner.reset();
     this.powerupActive = false;
-    this.powerupTimer = 0;
     this.gaugeLevel = 0;
     this.laserActive = false;
-    this.laserTimer = 0;
     this.laserAnimTime = 0;
+    this.shieldAnimTime = 0;
   }
 
   private incrementLaserGauge(): void {
-    if (!this.powerupActive || this.laserActive) return;
+    if (!this.powerupActive) return;
     this.gaugeLevel = Math.min(1, this.gaugeLevel + GAUGE_PER_EAT);
-    if (this.gaugeLevel >= 1) {
+    if (this.gaugeLevel >= 1 && !this.laserActive) {
       this.laserActive = true;
-      this.laserTimer = LASER_DURATION;
       this.laserAnimTime = 0;
     }
   }
@@ -249,7 +268,6 @@ export class Game {
     this.powerupActive = false;
     this.gaugeLevel = 0;
     this.laserActive = false;
-    this.laserTimer = 0;
   }
 
   private spawnParticles(x: number, y: number, color: string, count: number): void {
@@ -354,6 +372,24 @@ export class Game {
     }
     ctx.globalAlpha = 1;
 
+    // Red shield aura
+    if (this.player.shieldActive) {
+      ctx.save();
+      const shieldPulse = 0.25 + Math.sin(this.shieldAnimTime * 10) * 0.1;
+      ctx.globalAlpha = shieldPulse;
+      const shieldGrad = ctx.createRadialGradient(
+        this.player.x, this.player.y, this.player.width * 0.2,
+        this.player.x, this.player.y, this.player.width * 0.85,
+      );
+      shieldGrad.addColorStop(0, 'rgba(255,60,60,0.9)');
+      shieldGrad.addColorStop(1, 'rgba(200,0,0,0)');
+      ctx.fillStyle = shieldGrad;
+      ctx.beginPath();
+      ctx.ellipse(this.player.x, this.player.y, this.player.width * 0.85, this.player.height * 0.75, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     // Powerup glow around the stingray
     if (this.powerupActive) {
       ctx.save();
@@ -402,7 +438,7 @@ export class Game {
     }
 
     this.player.render(ctx);
-    this.hud.render(ctx, this.score, this.player.hp, this.powerupActive, this.gaugeLevel, this.laserActive);
+    this.hud.render(ctx, this.score, this.player.hp, this.powerupActive, this.gaugeLevel, this.laserActive, this.player.shieldActive, this.player.shieldTimer);
   }
 
   private renderGameOver(): void {
