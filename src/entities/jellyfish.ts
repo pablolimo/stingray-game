@@ -11,18 +11,20 @@ export class Jellyfish implements Entity {
   private animTimer: number = 0;
   private driftAngle: number;
   private driftAmplitude: number;
+  private speedMultiplier: number;
 
-  constructor(x: number, y: number) {
+  constructor(x: number, y: number, speedMultiplier: number = 1.0) {
     this.x = x;
     this.y = y;
     this.sprites = createJellyfishSprites();
     this.driftAngle = Math.random() * Math.PI * 2;
     this.driftAmplitude = 30 + Math.random() * 30;
+    this.speedMultiplier = speedMultiplier;
   }
 
   update(dt: number, scrollSpeed: number): void {
-    this.y += scrollSpeed * dt;
-    this.driftAngle += dt * 1.5;
+    this.y += scrollSpeed * this.speedMultiplier * dt;
+    this.driftAngle += dt * 1.5 * this.speedMultiplier;
     this.x += Math.sin(this.driftAngle) * this.driftAmplitude * dt;
 
     this.animTimer += dt;

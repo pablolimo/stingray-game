@@ -260,6 +260,61 @@ export function createSharkSprite(): HTMLCanvasElement {
   return c;
 }
 
+export function createSquidSprites(): HTMLCanvasElement[] {
+  const frames: HTMLCanvasElement[] = [];
+  for (let f = 0; f < 2; f++) {
+    const c = makeCanvas(18, 22);
+    const ctx = c.getContext('2d')!;
+
+    // Mantle – teardrop pointing upward
+    ctx.fillStyle = 'rgba(155, 30, 75, 0.92)';
+    ctx.beginPath();
+    ctx.moveTo(9, 0); // tip
+    ctx.bezierCurveTo(15, 1, 17, 6, 15, 11);
+    ctx.lineTo(3, 11);
+    ctx.bezierCurveTo(1, 6, 3, 1, 9, 0);
+    ctx.fill();
+
+    // Inner highlight
+    ctx.fillStyle = 'rgba(220, 80, 140, 0.55)';
+    ctx.beginPath();
+    ctx.ellipse(9, 5, 3, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = '#ffe000';
+    ctx.beginPath();
+    ctx.arc(6, 9, 1.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(12, 9, 1.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(6, 9, 0.7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(12, 9, 0.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tentacles (8), alternating long/short with frame offset for animation
+    ctx.strokeStyle = 'rgba(130, 20, 65, 0.9)';
+    ctx.lineWidth = 1;
+    const tentXs = [2, 4, 6, 8, 10, 12, 14, 16];
+    for (let i = 0; i < tentXs.length; i++) {
+      const long = i % 2 === 0;
+      const waveDelta = f === 0 ? (long ? 1 : 0) : (long ? 0 : 1);
+      ctx.beginPath();
+      ctx.moveTo(tentXs[i], 11);
+      ctx.lineTo(tentXs[i] + (i < 4 ? -waveDelta : waveDelta), long ? 21 : 17 - waveDelta);
+      ctx.stroke();
+    }
+
+    frames.push(c);
+  }
+  return frames;
+}
+
 export function createHeartSprite(): HTMLCanvasElement {
   const c = makeCanvas(8, 8);
   const ctx = c.getContext('2d')!;
