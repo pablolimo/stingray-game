@@ -2,6 +2,7 @@ import { Fish } from './entities/fish';
 import { Starfish } from './entities/starfish';
 import { Jellyfish } from './entities/jellyfish';
 import { Shark } from './entities/shark';
+import { Squid } from './entities/squid';
 import { TreasureChest } from './entities/treasure';
 import { PowerupChest } from './entities/powerupchest';
 import { RedTreasure } from './entities/redtreasure';
@@ -17,8 +18,10 @@ export class Spawner {
   private treasureTimer: number = 0;
   private shinyChestTimer: number = 0;
   private redTreasureTimer: number = 0;
+  private squidTimer: number = 0;
+  private squidInterval: number = 8.0 + Math.random() * 4.0;
 
-  update(dt: number, _scrollSpeed: number, playerX: number): Entity[] {
+  update(dt: number, _scrollSpeed: number, playerX: number, level: number = 1): Entity[] {
     this.time += dt;
     const spawned: Entity[] = [];
 
@@ -47,13 +50,14 @@ export class Spawner {
       spawned.push(new Starfish(x, -20));
     }
 
-    // Jellyfish: start at 4s, decrease to 1.5s
+    // Jellyfish: start at 4s, decrease to 1.5s; level 2 = 1.5x speed
     const jellyfishInterval = 4.0 - diff * 2.5;
+    const jellyfishSpeed = level >= 2 ? 1.5 : 1.0;
     this.jellyfishTimer += dt;
     if (this.jellyfishTimer >= jellyfishInterval) {
       this.jellyfishTimer -= jellyfishInterval;
       const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
-      spawned.push(new Jellyfish(x, -30));
+      spawned.push(new Jellyfish(x, -30, jellyfishSpeed));
     }
 
     // Shark: start at 10s, decrease to 4s
@@ -92,6 +96,17 @@ export class Spawner {
       spawned.push(new RedTreasure(x, -30));
     }
 
+    // Squid: level 2 only, every 8-12s
+    if (level >= 2) {
+      this.squidTimer += dt;
+      if (this.squidTimer >= this.squidInterval) {
+        this.squidTimer = 0;
+        this.squidInterval = 8.0 + Math.random() * 4.0;
+        const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
+        spawned.push(new Squid(x, -30, playerX));
+      }
+    }
+
     return spawned;
   }
 
@@ -104,5 +119,7 @@ export class Spawner {
     this.treasureTimer = 0;
     this.shinyChestTimer = 0;
     this.redTreasureTimer = 0;
+    this.squidTimer = 0;
+    this.squidInterval = 8.0 + Math.random() * 4.0;
   }
 }

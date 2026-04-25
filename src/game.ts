@@ -8,6 +8,7 @@ import { Fish } from './entities/fish';
 import { Starfish } from './entities/starfish';
 import { Jellyfish } from './entities/jellyfish';
 import { Shark } from './entities/shark';
+import { Squid } from './entities/squid';
 import { TreasureChest } from './entities/treasure';
 import { PowerupChest } from './entities/powerupchest';
 import { RedTreasure } from './entities/redtreasure';
@@ -16,6 +17,7 @@ import {
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
   SCREEN_SHAKE_DURATION, SCREEN_SHAKE_MAGNITUDE,
   LASER_DURATION, LASER_DRAIN_RATE, GAUGE_PER_EAT,
+  LEVEL2_SCORE_THRESHOLD,
 } from './constants';
 
 function aabb(
@@ -40,6 +42,8 @@ export class Game {
   private entities: Entity[] = [];
   private particles: Particle[] = [];
   private score: number = 0;
+  private level: number = 1;
+  private levelUpBannerTimer: number = 0;
   private scrollSpeed: number = INITIAL_SCROLL_SPEED;
   private shakeTimer: number = 0;
   private spaceWasDown: boolean = false;
@@ -97,21 +101,27 @@ export class Game {
 
         // Update entities
         for (const e of this.entities) {
+          if (e instanceof Squid) {
+            e.targetX = this.player.x;
+          }
           e.update(dt, this.scrollSpeed);
         }
 
         // Spawn
-        const newEntities = this.spawner.update(dt, this.scrollSpeed, this.player.x);
+        const newEntities = this.spawner.update(dt, this.scrollSpeed, this.player.x, this.level);
         this.entities.push(...newEntities);
 
-        // Remove off-screen (entities move top to bottom)
-        this.entities = this.entities.filter(e => e.y > -100 && e.y < CANVAS_HEIGHT + 100);
+        // Remove off-screen or expired squids
+        this.entities = this.entities.filter(e => {
+          if (e instanceof Squid && e.expired) return false;
+          return e.y > -100 && e.y < CANVAS_HEIGHT + 100;
+        });
 
         // Laser beam – destroy enemies in its path each frame while active
         if (this.laserActive) {
           const laserBeamHalfWidth = 20;
           this.entities = this.entities.filter(e => {
-            if (e instanceof Jellyfish || e instanceof Shark) {
+            if (e instanceof Jellyfish || e instanceof Shark || e instanceof Squid) {
               if (Math.abs(e.x - this.player.x) < laserBeamHalfWidth + e.width / 2 && e.y < this.player.y) {
                 this.spawnParticles(e.x, e.y, '#00e5ff', 10);
                 return false;
@@ -197,7 +207,27 @@ export class Game {
                 }
               }
             }
+          } else if (e instanceof Squid) {
+            if (!this.player.isInvincible()) {
+              const bounds = e.getBounds();
+              if (aabb(playerBounds, bounds)) {
+                const tookDamage = this.player.takeDamage();
+                if (tookDamage) {
+                  this.shakeTimer = SCREEN_SHAKE_DURATION;
+                  this.deactivatePowerup();
+                }
+              }
+            }
           }
+        }
+
+        // Level progression
+        if (this.level < 2 && this.score >= LEVEL2_SCORE_THRESHOLD) {
+          this.level = 2;
+          this.levelUpBannerTimer = 2.5;
+        }
+        if (this.levelUpBannerTimer > 0) {
+          this.levelUpBannerTimer -= dt;
         }
 
         // Remove collected
@@ -246,6 +276,8 @@ export class Game {
     this.entities = [];
     this.particles = [];
     this.score = 0;
+    this.level = 1;
+    this.levelUpBannerTimer = 0;
     this.scrollSpeed = INITIAL_SCROLL_SPEED;
     this.spawner.reset();
     this.powerupActive = false;
@@ -439,6 +471,35 @@ export class Game {
 
     this.player.render(ctx);
     this.hud.render(ctx, this.score, this.player.hp, this.powerupActive, this.gaugeLevel, this.laserActive, this.player.shieldActive, this.player.shieldTimer);
+
+    // Level indicator (top-right, below score area)
+    if (this.level >= 2) {
+      ctx.save();
+      ctx.font = 'bold 12px monospace';
+      ctx.fillStyle = '#ff6ed8';
+      ctx.shadowColor = '#ff6ed8';
+      ctx.shadowBlur = 6;
+      ctx.fillText(`LVL ${this.level}`, 10, 44);
+      ctx.restore();
+    }
+
+    // Level-up banner
+    if (this.levelUpBannerTimer > 0) {
+      const alpha = Math.min(1, this.levelUpBannerTimer / 0.4);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 36px monospace';
+      ctx.fillStyle = '#ff6ed8';
+      ctx.shadowColor = '#ff00cc';
+      ctx.shadowBlur = 24;
+      ctx.fillText('LEVEL 2!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
+      ctx.font = '14px monospace';
+      ctx.fillStyle = '#ffccf0';
+      ctx.shadowBlur = 8;
+      ctx.fillText('Squid attackers incoming!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 16);
+      ctx.restore();
+    }
   }
 
   private renderGameOver(): void {
