@@ -4,6 +4,15 @@ import { InputHandler } from './input';
 import { Spawner } from './spawner';
 import { HUD } from './hud';
 import { Entity, GameState, Particle } from './types';
+
+interface ShockwaveRing {
+  x: number;
+  y: number;
+  radius: number;
+  maxRadius: number;
+  life: number;
+  maxLife: number;
+}
 import { Fish } from './entities/fish';
 import { Starfish } from './entities/starfish';
 import { Jellyfish } from './entities/jellyfish';
@@ -63,6 +72,7 @@ export class Game {
   private shieldAnimTime: number = 0;
   private orbitalPearls: OrbitalPearl[] = [];
   private orbitalPearlAngle: number = 0;
+  private shockwaveRings: ShockwaveRing[] = [];
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
@@ -180,9 +190,9 @@ export class Game {
                 this.laserActive = true;
                 this.laserAnimTime = 0;
               } else {
-                // First time picking up
+                // First time picking up – start at 50%
                 this.powerupActive = true;
-                this.gaugeLevel = 0;
+                this.gaugeLevel = 0.5;
                 this.laserActive = false;
               }
             }
@@ -200,11 +210,13 @@ export class Game {
             if (aabb(playerBounds, bounds)) {
               e.collected = true;
               this.spawnParticles(e.x, e.y, '#44ff88', 24);
-              // Grant 3 orbital pearls (reset if already active)
+              // Grant 5 orbital pearls (reset if already active)
               this.orbitalPearls = [
-                { angleOffset: 0, killsRemaining: 2, glowTimer: 0 },
-                { angleOffset: (Math.PI * 2) / 3, killsRemaining: 2, glowTimer: Math.PI / 2 },
-                { angleOffset: (Math.PI * 4) / 3, killsRemaining: 2, glowTimer: Math.PI },
+                { angleOffset: 0,                      killsRemaining: 2, glowTimer: 0 },
+                { angleOffset: (Math.PI * 2) / 5,      killsRemaining: 2, glowTimer: Math.PI * 0.4 },
+                { angleOffset: (Math.PI * 4) / 5,      killsRemaining: 2, glowTimer: Math.PI * 0.8 },
+                { angleOffset: (Math.PI * 6) / 5,      killsRemaining: 2, glowTimer: Math.PI * 1.2 },
+                { angleOffset: (Math.PI * 8) / 5,      killsRemaining: 2, glowTimer: Math.PI * 1.6 },
               ];
             }
           } else if (e instanceof Jellyfish) {
@@ -263,7 +275,8 @@ export class Game {
               const dy = e.y - py;
               if (Math.sqrt(dx * dx + dy * dy) < PEARL_HIT_RADIUS + e.width * 0.4) {
                 pearl.killsRemaining -= 1;
-                this.spawnParticles(e.x, e.y, '#88ffcc', 10);
+                this.spawnExplosion(e.x, e.y);
+                this.shakeTimer = Math.max(this.shakeTimer, SCREEN_SHAKE_DURATION * 0.6);
                 return false;
               }
             }
@@ -301,6 +314,13 @@ export class Game {
           p.life -= dt;
         }
         this.particles = this.particles.filter(p => p.life > 0);
+
+        // Update shockwave rings
+        for (const ring of this.shockwaveRings) {
+          ring.radius += (ring.maxRadius / ring.maxLife) * dt;
+          ring.life -= dt;
+        }
+        this.shockwaveRings = this.shockwaveRings.filter(r => r.life > 0);
 
         // Screen shake
         if (this.shakeTimer > 0) {
@@ -341,6 +361,7 @@ export class Game {
     this.shieldAnimTime = 0;
     this.orbitalPearls = [];
     this.orbitalPearlAngle = 0;
+    this.shockwaveRings = [];
   }
 
   private incrementLaserGauge(): void {
@@ -372,6 +393,27 @@ export class Game {
         size: 2 + Math.random() * 2,
       });
     }
+  }
+
+  private spawnExplosion(x: number, y: number): void {
+    const colors = ['#88ffcc', '#ffffff', '#ffff66', '#44ffaa', '#ff8844'];
+    const count = 40;
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 80 + Math.random() * 200;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const maxLife = 0.5 + Math.random() * 0.5;
+      this.particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: maxLife,
+        maxLife,
+        color,
+        size: 3 + Math.random() * 4,
+      });
+    }
+    this.shockwaveRings.push({ x, y, radius: 4, maxRadius: 60, life: 0.4, maxLife: 0.4 });
   }
 
   render(): void {
@@ -459,6 +501,21 @@ export class Game {
       ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
     ctx.globalAlpha = 1;
+
+    // Shockwave rings (from pearl kills)
+    for (const ring of this.shockwaveRings) {
+      const alpha = (ring.life / ring.maxLife) * 0.8;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = '#88ffcc';
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = '#44ffaa';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // Red shield aura
     if (this.player.shieldActive) {
