@@ -7,7 +7,7 @@ export class Player {
   y: number;
   vx: number = 0;
   vy: number = 0;
-  hp: number = 3;
+  hp: number = PLAYER_MAX_HP;
   invincibleTimer: number = 0;
   shieldActive: boolean = false;
   shieldTimer: number = 0;

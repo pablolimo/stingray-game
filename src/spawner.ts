@@ -6,6 +6,7 @@ import { Squid } from './entities/squid';
 import { TreasureChest } from './entities/treasure';
 import { PowerupChest } from './entities/powerupchest';
 import { RedTreasure } from './entities/redtreasure';
+import { GlowingClam } from './entities/glowingclam';
 import { CANVAS_WIDTH } from './constants';
 import { Entity } from './types';
 
@@ -20,6 +21,7 @@ export class Spawner {
   private redTreasureTimer: number = 0;
   private squidTimer: number = 0;
   private squidInterval: number = 8.0 + Math.random() * 4.0;
+  private glowingClamTimer: number = 0;
 
   update(dt: number, _scrollSpeed: number, playerX: number, level: number = 1): Entity[] {
     this.time += dt;
@@ -105,6 +107,14 @@ export class Spawner {
         const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
         spawned.push(new Squid(x, -30, playerX));
       }
+
+      // Glowing clam: level 2 only, every 30s
+      this.glowingClamTimer += dt;
+      if (this.glowingClamTimer >= 30.0) {
+        this.glowingClamTimer = 0;
+        const x = 50 + Math.random() * (CANVAS_WIDTH - 100);
+        spawned.push(new GlowingClam(x, -40));
+      }
     }
 
     return spawned;
@@ -121,5 +131,6 @@ export class Spawner {
     this.redTreasureTimer = 0;
     this.squidTimer = 0;
     this.squidInterval = 8.0 + Math.random() * 4.0;
+    this.glowingClamTimer = 0;
   }
 }
