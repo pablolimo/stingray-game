@@ -29,6 +29,7 @@ import {
   LASER_DURATION, LASER_DRAIN_RATE, GAUGE_PER_EAT,
   LEVEL2_SCORE_THRESHOLD,
   PEARL_ORBIT_RADIUS, PEARL_SPIN_SPEED, PEARL_HIT_RADIUS, PEARL_DRAW_RADIUS,
+  EXPLOSION_PARTICLE_COUNT, SHOCKWAVE_INITIAL_RADIUS, SHOCKWAVE_MAX_RADIUS, SHOCKWAVE_DURATION,
 } from './constants';
 
 function aabb(
@@ -396,12 +397,11 @@ export class Game {
   }
 
   private spawnExplosion(x: number, y: number): void {
-    const colors = ['#88ffcc', '#ffffff', '#ffff66', '#44ffaa', '#ff8844'];
-    const count = 40;
-    for (let i = 0; i < count; i++) {
+    const explosionColors = ['#88ffcc', '#ffffff', '#ffff66', '#44ffaa', '#ff8844'];
+    for (let i = 0; i < EXPLOSION_PARTICLE_COUNT; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 80 + Math.random() * 200;
-      const color = colors[Math.floor(Math.random() * colors.length)];
+      const color = explosionColors[Math.floor(Math.random() * explosionColors.length)];
       const maxLife = 0.5 + Math.random() * 0.5;
       this.particles.push({
         x, y,
@@ -413,7 +413,13 @@ export class Game {
         size: 3 + Math.random() * 4,
       });
     }
-    this.shockwaveRings.push({ x, y, radius: 4, maxRadius: 60, life: 0.4, maxLife: 0.4 });
+    this.shockwaveRings.push({
+      x, y,
+      radius: SHOCKWAVE_INITIAL_RADIUS,
+      maxRadius: SHOCKWAVE_MAX_RADIUS,
+      life: SHOCKWAVE_DURATION,
+      maxLife: SHOCKWAVE_DURATION,
+    });
   }
 
   render(): void {
