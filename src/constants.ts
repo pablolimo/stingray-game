@@ -24,3 +24,7 @@ export const PEARL_ORBIT_RADIUS = 70;
 export const PEARL_SPIN_SPEED = 2.0;
 export const PEARL_HIT_RADIUS = 12;
 export const PEARL_DRAW_RADIUS = 9;
+export const EXPLOSION_PARTICLE_COUNT = 40;
+export const SHOCKWAVE_INITIAL_RADIUS = 4;
+export const SHOCKWAVE_MAX_RADIUS = 60;
+export const SHOCKWAVE_DURATION = 0.4;
