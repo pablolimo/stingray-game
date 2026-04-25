@@ -12,12 +12,14 @@ import { Squid } from './entities/squid';
 import { TreasureChest } from './entities/treasure';
 import { PowerupChest } from './entities/powerupchest';
 import { RedTreasure } from './entities/redtreasure';
+import { GlowingClam } from './entities/glowingclam';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
   SCREEN_SHAKE_DURATION, SCREEN_SHAKE_MAGNITUDE,
   LASER_DURATION, LASER_DRAIN_RATE, GAUGE_PER_EAT,
   LEVEL2_SCORE_THRESHOLD,
+  PEARL_ORBIT_RADIUS, PEARL_SPIN_SPEED, PEARL_HIT_RADIUS, PEARL_DRAW_RADIUS,
 } from './constants';
 
 function aabb(
@@ -28,6 +30,12 @@ function aabb(
     a.x + a.width > b.x &&
     a.y < b.y + b.height &&
     a.y + a.height > b.y;
+}
+
+interface OrbitalPearl {
+  angleOffset: number;   // fixed angular offset from the shared rotation angle
+  killsRemaining: number;
+  glowTimer: number;
 }
 
 export class Game {
@@ -53,6 +61,8 @@ export class Game {
   private laserActive: boolean = false;
   private laserAnimTime: number = 0;
   private shieldAnimTime: number = 0;
+  private orbitalPearls: OrbitalPearl[] = [];
+  private orbitalPearlAngle: number = 0;
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
@@ -185,6 +195,18 @@ export class Game {
               this.player.healHp();
               this.player.activateShield();
             }
+          } else if (e instanceof GlowingClam && !e.collected) {
+            const bounds = e.getBounds();
+            if (aabb(playerBounds, bounds)) {
+              e.collected = true;
+              this.spawnParticles(e.x, e.y, '#44ff88', 24);
+              // Grant 3 orbital pearls (reset if already active)
+              this.orbitalPearls = [
+                { angleOffset: 0, killsRemaining: 2, glowTimer: 0 },
+                { angleOffset: (Math.PI * 2) / 3, killsRemaining: 2, glowTimer: Math.PI / 2 },
+                { angleOffset: (Math.PI * 4) / 3, killsRemaining: 2, glowTimer: Math.PI },
+              ];
+            }
           } else if (e instanceof Jellyfish) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
@@ -221,6 +243,37 @@ export class Game {
           }
         }
 
+        // Orbital pearls – rotate, collide with enemies
+        if (this.orbitalPearls.length > 0) {
+          this.orbitalPearlAngle += PEARL_SPIN_SPEED * dt;
+
+          for (const pearl of this.orbitalPearls) {
+            pearl.glowTimer += dt * 4;
+          }
+
+          const angle = this.orbitalPearlAngle;
+          this.entities = this.entities.filter(e => {
+            if (!(e instanceof Jellyfish || e instanceof Shark || e instanceof Squid)) return true;
+            for (const pearl of this.orbitalPearls) {
+              if (pearl.killsRemaining <= 0) continue;
+              const pa = angle + pearl.angleOffset;
+              const px = this.player.x + Math.cos(pa) * PEARL_ORBIT_RADIUS;
+              const py = this.player.y + Math.sin(pa) * PEARL_ORBIT_RADIUS;
+              const dx = e.x - px;
+              const dy = e.y - py;
+              if (Math.sqrt(dx * dx + dy * dy) < PEARL_HIT_RADIUS + e.width * 0.4) {
+                pearl.killsRemaining -= 1;
+                this.spawnParticles(e.x, e.y, '#88ffcc', 10);
+                return false;
+              }
+            }
+            return true;
+          });
+
+          // Discard spent pearls
+          this.orbitalPearls = this.orbitalPearls.filter(p => p.killsRemaining > 0);
+        }
+
         // Level progression
         if (this.level < 2 && this.score >= LEVEL2_SCORE_THRESHOLD) {
           this.level = 2;
@@ -237,6 +290,7 @@ export class Game {
           if (e instanceof TreasureChest && e.collected) return false;
           if (e instanceof PowerupChest && e.collected) return false;
           if (e instanceof RedTreasure && e.collected) return false;
+          if (e instanceof GlowingClam && e.collected) return false;
           return true;
         });
 
@@ -285,6 +339,8 @@ export class Game {
     this.laserActive = false;
     this.laserAnimTime = 0;
     this.shieldAnimTime = 0;
+    this.orbitalPearls = [];
+    this.orbitalPearlAngle = 0;
   }
 
   private incrementLaserGauge(): void {
@@ -467,6 +523,47 @@ export class Game {
       ctx.fillRect(bx - beamW / 2, 0, beamW, by);
 
       ctx.restore();
+    }
+
+    // Orbital pearls – draw glowing pearls orbiting the player
+    if (this.orbitalPearls.length > 0) {
+      const pr = PEARL_DRAW_RADIUS;
+      for (const pearl of this.orbitalPearls) {
+        const pa = this.orbitalPearlAngle + pearl.angleOffset;
+        const px = this.player.x + Math.cos(pa) * PEARL_ORBIT_RADIUS;
+        const py = this.player.y + Math.sin(pa) * PEARL_ORBIT_RADIUS;
+
+        // Outer glow
+        ctx.save();
+        const glow = ctx.createRadialGradient(px, py, pr * 0.3, px, py, pr * 2.2);
+        glow.addColorStop(0, 'rgba(180,255,200,0.7)');
+        glow.addColorStop(1, 'rgba(0,200,80,0)');
+        ctx.globalAlpha = 0.55 + Math.sin(pearl.glowTimer) * 0.2;
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(px, py, pr * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Pearl body
+        ctx.save();
+        const pearlGrad = ctx.createRadialGradient(px - pr * 0.3, py - pr * 0.3, pr * 0.05, px, py, pr);
+        pearlGrad.addColorStop(0, '#ffffff');
+        pearlGrad.addColorStop(0.45, '#ccf5dd');
+        pearlGrad.addColorStop(1, '#44cc88');
+        ctx.fillStyle = pearlGrad;
+        ctx.beginPath();
+        ctx.arc(px, py, pr, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Shine highlight
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(px - pr * 0.35, py - pr * 0.35, pr * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     }
 
     this.player.render(ctx);
