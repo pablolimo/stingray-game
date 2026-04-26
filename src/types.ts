@@ -35,3 +35,17 @@ export interface Bubble {
   radius: number;
   speed: number;
 }
+
+export interface DisintegrationParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  color: string;
+  w: number;
+  h: number;
+  rotation: number;
+  rotSpeed: number;
+}

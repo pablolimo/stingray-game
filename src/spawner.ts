@@ -7,6 +7,7 @@ import { TreasureChest } from './entities/treasure';
 import { PowerupChest } from './entities/powerupchest';
 import { RedTreasure } from './entities/redtreasure';
 import { GlowingClam } from './entities/glowingclam';
+import { GoldenCoin } from './entities/goldencoin';
 import { CANVAS_WIDTH } from './constants';
 import { Entity } from './types';
 
@@ -22,6 +23,8 @@ export class Spawner {
   private squidTimer: number = 0;
   private squidInterval: number = 8.0 + Math.random() * 4.0;
   private glowingClamTimer: number = 0;
+  private coinTimer: number = 0;
+  private coinInterval: number = 12.0 + Math.random() * 6.0;
 
   update(dt: number, _scrollSpeed: number, playerX: number, level: number = 1): Entity[] {
     this.time += dt;
@@ -52,23 +55,23 @@ export class Spawner {
       spawned.push(new Starfish(x, -20));
     }
 
-    // Jellyfish: start at 4s, decrease to 1.5s; level 2 = 1.5x speed
+    // Jellyfish: start at 4s, decrease to 1.5s; level 2 = 1.5x speed, level 3 = faster & erratic
     const jellyfishInterval = 4.0 - diff * 2.5;
     const jellyfishSpeed = level >= 2 ? 1.5 : 1.0;
     this.jellyfishTimer += dt;
     if (this.jellyfishTimer >= jellyfishInterval) {
       this.jellyfishTimer -= jellyfishInterval;
       const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
-      spawned.push(new Jellyfish(x, -30, jellyfishSpeed));
+      spawned.push(new Jellyfish(x, -30, jellyfishSpeed, level));
     }
 
     // Shark: start at 10s, decrease to 4s
-    const sharkInterval = 10.0 - diff * 6.0;
+    const sharkInterval = level >= 3 ? Math.max(4.0, 8.0 - diff * 4.0) : 10.0 - diff * 6.0;
     this.sharkTimer += dt;
     if (this.sharkTimer >= sharkInterval) {
       this.sharkTimer -= sharkInterval;
       const x = Math.random() * CANVAS_WIDTH;
-      spawned.push(new Shark(x, -20, playerX));
+      spawned.push(new Shark(x, -20, playerX, level));
     }
 
     // Treasure chests: every 12s decreasing to 7s
@@ -117,6 +120,18 @@ export class Spawner {
       }
     }
 
+    // Golden coins: all levels, every ~12-18s (spawn 2-3 at a time)
+    this.coinTimer += dt;
+    if (this.coinTimer >= this.coinInterval) {
+      this.coinTimer = 0;
+      this.coinInterval = 12.0 + Math.random() * 6.0;
+      const count = 2 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < count; i++) {
+        const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
+        spawned.push(new GoldenCoin(x, -30 - i * 30));
+      }
+    }
+
     return spawned;
   }
 
@@ -132,5 +147,7 @@ export class Spawner {
     this.squidTimer = 0;
     this.squidInterval = 8.0 + Math.random() * 4.0;
     this.glowingClamTimer = 0;
+    this.coinTimer = 0;
+    this.coinInterval = 12.0 + Math.random() * 6.0;
   }
 }

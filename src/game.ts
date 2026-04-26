@@ -3,7 +3,7 @@ import { Player } from './player';
 import { InputHandler } from './input';
 import { Spawner } from './spawner';
 import { HUD } from './hud';
-import { Entity, GameState, Particle } from './types';
+import { Entity, GameState, Particle, DisintegrationParticle } from './types';
 
 interface ShockwaveRing {
   x: number;
@@ -22,12 +22,13 @@ import { TreasureChest } from './entities/treasure';
 import { PowerupChest } from './entities/powerupchest';
 import { RedTreasure } from './entities/redtreasure';
 import { GlowingClam } from './entities/glowingclam';
+import { GoldenCoin } from './entities/goldencoin';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
   SCREEN_SHAKE_DURATION, SCREEN_SHAKE_MAGNITUDE,
   LASER_DURATION, LASER_DRAIN_RATE, GAUGE_PER_EAT,
-  LEVEL2_SCORE_THRESHOLD,
+  LEVEL2_SCORE_THRESHOLD, LEVEL3_SCORE_THRESHOLD,
   PEARL_ORBIT_RADIUS, PEARL_SPIN_SPEED, PEARL_HIT_RADIUS, PEARL_DRAW_RADIUS,
   EXPLOSION_PARTICLE_COUNT, SHOCKWAVE_INITIAL_RADIUS, SHOCKWAVE_MAX_RADIUS, SHOCKWAVE_DURATION,
 } from './constants';
@@ -74,6 +75,8 @@ export class Game {
   private orbitalPearls: OrbitalPearl[] = [];
   private orbitalPearlAngle: number = 0;
   private shockwaveRings: ShockwaveRing[] = [];
+  private goldScore: number = 0;
+  private disintegrationParticles: DisintegrationParticle[] = [];
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
@@ -125,6 +128,9 @@ export class Game {
           if (e instanceof Squid) {
             e.targetX = this.player.x;
           }
+          if (e instanceof Shark && this.level >= 3) {
+            e.targetX = this.player.x;
+          }
           e.update(dt, this.scrollSpeed);
         }
 
@@ -144,7 +150,21 @@ export class Game {
           this.entities = this.entities.filter(e => {
             if (e instanceof Jellyfish || e instanceof Shark || e instanceof Squid) {
               if (Math.abs(e.x - this.player.x) < laserBeamHalfWidth + e.width / 2 && e.y < this.player.y) {
-                this.spawnParticles(e.x, e.y, '#00e5ff', 10);
+                if (e instanceof Squid) {
+                  // Squid needs 3 HP (≈2.5× hits) to die from the laser
+                  const dead = e.takeLaserHit();
+                  if (!dead) {
+                    this.spawnParticles(e.x, e.y, '#ff8844', 5);
+                    return true; // still alive
+                  }
+                  this.spawnDisintegration(e.x, e.y, ['#9b1e4b', '#dc508c', '#6e0032', '#ffe000']);
+                  return false;
+                }
+                // All other enemies: disintegrate immediately
+                const colors = e instanceof Jellyfish
+                  ? ['#c864c8', '#e0a0e0', '#9632b4', '#ffffff']
+                  : ['#708090', '#536878', '#b0c0d0', '#ffffff'];
+                this.spawnDisintegration(e.x, e.y, colors);
                 return false;
               }
             }
@@ -220,6 +240,13 @@ export class Game {
                 { angleOffset: (Math.PI * 8) / 5,      killsRemaining: 2, glowTimer: Math.PI * 1.6 },
               ];
             }
+          } else if (e instanceof GoldenCoin && !e.collected) {
+            const bounds = e.getBounds();
+            if (aabb(playerBounds, bounds)) {
+              e.collected = true;
+              this.goldScore += 1;
+              this.spawnParticles(e.x, e.y, '#ffd700', 12);
+            }
           } else if (e instanceof Jellyfish) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
@@ -275,6 +302,14 @@ export class Game {
               const dx = e.x - px;
               const dy = e.y - py;
               if (Math.sqrt(dx * dx + dy * dy) < PEARL_HIT_RADIUS + e.width * 0.4) {
+                if (e instanceof Squid) {
+                  // Squid needs 3 HP (≈2.5× hits) to die from a pearl
+                  const dead = e.takePearlHit();
+                  if (!dead) {
+                    // Pearl bounces off but doesn't consume a kill yet
+                    return true;
+                  }
+                }
                 pearl.killsRemaining -= 1;
                 this.spawnExplosion(e.x, e.y);
                 this.shakeTimer = Math.max(this.shakeTimer, SCREEN_SHAKE_DURATION * 0.6);
@@ -293,6 +328,10 @@ export class Game {
           this.level = 2;
           this.levelUpBannerTimer = 2.5;
         }
+        if (this.level < 3 && this.score >= LEVEL3_SCORE_THRESHOLD) {
+          this.level = 3;
+          this.levelUpBannerTimer = 2.5;
+        }
         if (this.levelUpBannerTimer > 0) {
           this.levelUpBannerTimer -= dt;
         }
@@ -305,6 +344,7 @@ export class Game {
           if (e instanceof PowerupChest && e.collected) return false;
           if (e instanceof RedTreasure && e.collected) return false;
           if (e instanceof GlowingClam && e.collected) return false;
+          if (e instanceof GoldenCoin && e.collected) return false;
           return true;
         });
 
@@ -315,6 +355,15 @@ export class Game {
           p.life -= dt;
         }
         this.particles = this.particles.filter(p => p.life > 0);
+
+        // Update disintegration particles
+        for (const p of this.disintegrationParticles) {
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.rotation += p.rotSpeed * dt;
+          p.life -= dt;
+        }
+        this.disintegrationParticles = this.disintegrationParticles.filter(p => p.life > 0);
 
         // Update shockwave rings
         for (const ring of this.shockwaveRings) {
@@ -350,7 +399,9 @@ export class Game {
     this.player = new Player();
     this.entities = [];
     this.particles = [];
+    this.disintegrationParticles = [];
     this.score = 0;
+    this.goldScore = 0;
     this.level = 1;
     this.levelUpBannerTimer = 0;
     this.scrollSpeed = INITIAL_SCROLL_SPEED;
@@ -420,6 +471,29 @@ export class Game {
       life: SHOCKWAVE_DURATION,
       maxLife: SHOCKWAVE_DURATION,
     });
+  }
+
+  private spawnDisintegration(x: number, y: number, colors: string[]): void {
+    const count = 28;
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 18 + Math.random() * 55;
+      const maxLife = 0.7 + Math.random() * 0.7;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      this.disintegrationParticles.push({
+        x: x + (Math.random() - 0.5) * 24,
+        y: y + (Math.random() - 0.5) * 24,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: maxLife,
+        maxLife,
+        color,
+        w: 2 + Math.random() * 4,
+        h: 1 + Math.random() * 3,
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 10,
+      });
+    }
   }
 
   render(): void {
@@ -507,6 +581,18 @@ export class Game {
       ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
     ctx.globalAlpha = 1;
+
+    // Disintegration particles (spinning debris fragments)
+    for (const p of this.disintegrationParticles) {
+      const alpha = (p.life / p.maxLife) * 0.95;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
 
     // Shockwave rings (from pearl kills)
     for (const ring of this.shockwaveRings) {
@@ -630,16 +716,18 @@ export class Game {
     }
 
     this.player.render(ctx);
-    this.hud.render(ctx, this.score, this.player.hp, this.powerupActive, this.gaugeLevel, this.laserActive, this.player.shieldActive, this.player.shieldTimer);
+    this.hud.render(ctx, this.score, this.player.hp, this.powerupActive, this.gaugeLevel, this.laserActive, this.player.shieldActive, this.player.shieldTimer, this.goldScore);
 
     // Level indicator (top-right, below score area)
     if (this.level >= 2) {
       ctx.save();
       ctx.font = 'bold 12px monospace';
-      ctx.fillStyle = '#ff6ed8';
-      ctx.shadowColor = '#ff6ed8';
+      const lvlColor = this.level >= 3 ? '#00ccff' : '#ff6ed8';
+      ctx.fillStyle = lvlColor;
+      ctx.shadowColor = lvlColor;
       ctx.shadowBlur = 6;
-      ctx.fillText(`LVL ${this.level}`, 10, 44);
+      // Shift down if gold score is visible
+      ctx.fillText(`LVL ${this.level}`, 10, this.goldScore > 0 ? 58 : 44);
       ctx.restore();
     }
 
@@ -650,14 +738,25 @@ export class Game {
       ctx.globalAlpha = alpha;
       ctx.textAlign = 'center';
       ctx.font = 'bold 36px monospace';
-      ctx.fillStyle = '#ff6ed8';
-      ctx.shadowColor = '#ff00cc';
-      ctx.shadowBlur = 24;
-      ctx.fillText('LEVEL 2!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
-      ctx.font = '14px monospace';
-      ctx.fillStyle = '#ffccf0';
-      ctx.shadowBlur = 8;
-      ctx.fillText('Squid attackers incoming!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 16);
+      if (this.level >= 3) {
+        ctx.fillStyle = '#00ccff';
+        ctx.shadowColor = '#0088ff';
+        ctx.shadowBlur = 24;
+        ctx.fillText('LEVEL 3!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
+        ctx.font = '14px monospace';
+        ctx.fillStyle = '#ccf0ff';
+        ctx.shadowBlur = 8;
+        ctx.fillText('Jellyfish are electrified! Sharks hunt you!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 16);
+      } else {
+        ctx.fillStyle = '#ff6ed8';
+        ctx.shadowColor = '#ff00cc';
+        ctx.shadowBlur = 24;
+        ctx.fillText('LEVEL 2!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
+        ctx.font = '14px monospace';
+        ctx.fillStyle = '#ffccf0';
+        ctx.shadowBlur = 8;
+        ctx.fillText('Squid attackers incoming!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 16);
+      }
       ctx.restore();
     }
   }
@@ -682,11 +781,18 @@ export class Game {
     ctx.shadowBlur = 5;
     ctx.fillText(`Score: ${this.score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
 
+    if (this.goldScore > 0) {
+      ctx.font = '16px monospace';
+      ctx.fillStyle = '#ffd700';
+      ctx.shadowColor = '#b8860b';
+      ctx.fillText(`Gold Coins: $${this.goldScore}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 36);
+    }
+
     const blink = Math.sin(this.titleAnimTime * 3) > 0;
     if (blink) {
       ctx.font = '14px monospace';
       ctx.fillStyle = '#adf';
-      ctx.fillText('Press SPACE to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
+      ctx.fillText('Press SPACE to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60 + (this.goldScore > 0 ? 20 : 0));
     }
     ctx.restore();
   }
