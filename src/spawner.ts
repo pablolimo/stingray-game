@@ -8,6 +8,7 @@ import { PowerupChest } from './entities/powerupchest';
 import { RedTreasure } from './entities/redtreasure';
 import { GlowingClam } from './entities/glowingclam';
 import { GoldenCoin } from './entities/goldencoin';
+import { ScubaKitten } from './entities/scubakitten';
 import { CANVAS_WIDTH } from './constants';
 import { Entity } from './types';
 
@@ -22,6 +23,8 @@ export class Spawner {
   private redTreasureTimer: number = 0;
   private squidTimer: number = 0;
   private squidInterval: number = 8.0 + Math.random() * 4.0;
+  private kittenTimer: number = 0;
+  private kittenInterval: number = 10.0 + Math.random() * 5.0;
   private glowingClamTimer: number = 0;
   private coinTimer: number = 0;
   private coinInterval: number = 12.0 + Math.random() * 6.0;
@@ -55,14 +58,17 @@ export class Spawner {
       spawned.push(new Starfish(x, -20));
     }
 
-    // Jellyfish: start at 4s, decrease to 1.5s; level 2 = 1.5x speed, level 3 = faster & erratic
+    // Jellyfish: start at 4s, decrease to 1.5s; level 2 = 1.5x speed, level 3 = faster & erratic + 2x spawn
     const jellyfishInterval = 4.0 - diff * 2.5;
     const jellyfishSpeed = level >= 2 ? 1.5 : 1.0;
+    const jellyfishCount = level >= 3 ? 2 : 1;
     this.jellyfishTimer += dt;
     if (this.jellyfishTimer >= jellyfishInterval) {
       this.jellyfishTimer -= jellyfishInterval;
-      const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
-      spawned.push(new Jellyfish(x, -30, jellyfishSpeed, level));
+      for (let j = 0; j < jellyfishCount; j++) {
+        const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
+        spawned.push(new Jellyfish(x, -30, jellyfishSpeed, level));
+      }
     }
 
     // Shark: start at 10s, decrease to 4s
@@ -101,7 +107,7 @@ export class Spawner {
       spawned.push(new RedTreasure(x, -30));
     }
 
-    // Squid: level 2 only, every 8-12s
+    // Squid: level 2+, every 8-12s
     if (level >= 2) {
       this.squidTimer += dt;
       if (this.squidTimer >= this.squidInterval) {
@@ -117,6 +123,17 @@ export class Spawner {
         this.glowingClamTimer = 0;
         const x = 50 + Math.random() * (CANVAS_WIDTH - 100);
         spawned.push(new GlowingClam(x, -40));
+      }
+    }
+
+    // Scuba kitten: level 3 only, every 10-15s
+    if (level >= 3) {
+      this.kittenTimer += dt;
+      if (this.kittenTimer >= this.kittenInterval) {
+        this.kittenTimer = 0;
+        this.kittenInterval = 10.0 + Math.random() * 5.0;
+        const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
+        spawned.push(new ScubaKitten(x, -30, playerX, 400));
       }
     }
 
@@ -146,6 +163,8 @@ export class Spawner {
     this.redTreasureTimer = 0;
     this.squidTimer = 0;
     this.squidInterval = 8.0 + Math.random() * 4.0;
+    this.kittenTimer = 0;
+    this.kittenInterval = 10.0 + Math.random() * 5.0;
     this.glowingClamTimer = 0;
     this.coinTimer = 0;
     this.coinInterval = 12.0 + Math.random() * 6.0;
