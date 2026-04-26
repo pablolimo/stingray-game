@@ -23,6 +23,8 @@ import { PowerupChest } from './entities/powerupchest';
 import { RedTreasure } from './entities/redtreasure';
 import { GlowingClam } from './entities/glowingclam';
 import { GoldenCoin } from './entities/goldencoin';
+import { ScubaKitten } from './entities/scubakitten';
+import { HarpoonProjectile } from './entities/harpoon';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
@@ -128,19 +130,33 @@ export class Game {
           if (e instanceof Squid) {
             e.targetX = this.player.x;
           }
+          if (e instanceof ScubaKitten) {
+            e.targetX = this.player.x;
+            e.targetY = this.player.y;
+          }
           if (e instanceof Shark && this.level >= 3) {
             e.targetX = this.player.x;
           }
           e.update(dt, this.scrollSpeed);
         }
 
+        // Collect harpoons spawned by ScubaKittens this frame
+        for (const e of this.entities) {
+          if (e instanceof ScubaKitten && e.pendingHarpoons.length > 0) {
+            this.entities.push(...e.pendingHarpoons);
+            e.pendingHarpoons = [];
+          }
+        }
+
         // Spawn
         const newEntities = this.spawner.update(dt, this.scrollSpeed, this.player.x, this.level);
         this.entities.push(...newEntities);
 
-        // Remove off-screen or expired squids
+        // Remove off-screen or expired entities
         this.entities = this.entities.filter(e => {
           if (e instanceof Squid && e.expired) return false;
+          if (e instanceof ScubaKitten && e.expired) return false;
+          if (e instanceof HarpoonProjectile && !e.active) return false;
           return e.y > -100 && e.y < CANVAS_HEIGHT + 100;
         });
 
@@ -148,16 +164,26 @@ export class Game {
         if (this.laserActive) {
           const laserBeamHalfWidth = 20;
           this.entities = this.entities.filter(e => {
-            if (e instanceof Jellyfish || e instanceof Shark || e instanceof Squid) {
+            if (e instanceof Jellyfish || e instanceof Shark || e instanceof Squid || e instanceof ScubaKitten) {
               if (Math.abs(e.x - this.player.x) < laserBeamHalfWidth + e.width / 2 && e.y < this.player.y) {
                 if (e instanceof Squid) {
-                  // Squid needs 3 HP (≈2.5× hits) to die from the laser
+                  // Squid needs multiple HP ticks to die from the laser
                   const dead = e.takeLaserHit();
                   if (!dead) {
                     this.spawnParticles(e.x, e.y, '#ff8844', 5);
                     return true; // still alive
                   }
                   this.spawnDisintegration(e.x, e.y, ['#9b1e4b', '#dc508c', '#6e0032', '#ffe000']);
+                  return false;
+                }
+                if (e instanceof ScubaKitten) {
+                  // ScubaKitten needs 2× squid hits to die from the laser
+                  const dead = e.takeLaserHit();
+                  if (!dead) {
+                    this.spawnParticles(e.x, e.y, '#4a90d9', 5);
+                    return true; // still alive
+                  }
+                  this.spawnDisintegration(e.x, e.y, ['#2d6e8a', '#f5c98a', '#1a8a5a', '#ffcc00']);
                   return false;
                 }
                 // All other enemies: disintegrate immediately
@@ -280,6 +306,29 @@ export class Game {
                 }
               }
             }
+          } else if (e instanceof ScubaKitten) {
+            if (!this.player.isInvincible()) {
+              const bounds = e.getBounds();
+              if (aabb(playerBounds, bounds)) {
+                const tookDamage = this.player.takeDamage();
+                if (tookDamage) {
+                  this.shakeTimer = SCREEN_SHAKE_DURATION;
+                  this.deactivatePowerup();
+                }
+              }
+            }
+          } else if (e instanceof HarpoonProjectile && e.active) {
+            if (!this.player.isInvincible()) {
+              const bounds = e.getBounds();
+              if (aabb(playerBounds, bounds)) {
+                e.active = false;
+                const tookDamage = this.player.takeDamage();
+                if (tookDamage) {
+                  this.shakeTimer = SCREEN_SHAKE_DURATION;
+                  this.deactivatePowerup();
+                }
+              }
+            }
           }
         }
 
@@ -293,7 +342,7 @@ export class Game {
 
           const angle = this.orbitalPearlAngle;
           this.entities = this.entities.filter(e => {
-            if (!(e instanceof Jellyfish || e instanceof Shark || e instanceof Squid)) return true;
+            if (!(e instanceof Jellyfish || e instanceof Shark || e instanceof Squid || e instanceof ScubaKitten)) return true;
             for (const pearl of this.orbitalPearls) {
               if (pearl.killsRemaining <= 0) continue;
               const pa = angle + pearl.angleOffset;
@@ -303,7 +352,15 @@ export class Game {
               const dy = e.y - py;
               if (Math.sqrt(dx * dx + dy * dy) < PEARL_HIT_RADIUS + e.width * 0.4) {
                 if (e instanceof Squid) {
-                  // Squid needs 3 HP (≈2.5× hits) to die from a pearl
+                  // Squid needs multiple HP hits to die from a pearl
+                  const dead = e.takePearlHit();
+                  if (!dead) {
+                    // Pearl bounces off but doesn't consume a kill yet
+                    return true;
+                  }
+                }
+                if (e instanceof ScubaKitten) {
+                  // ScubaKitten needs 2× squid HP hits to die from a pearl
                   const dead = e.takePearlHit();
                   if (!dead) {
                     // Pearl bounces off but doesn't consume a kill yet

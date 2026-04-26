@@ -341,6 +341,183 @@ export function createHeartSprite(): HTMLCanvasElement {
   return c;
 }
 
+export function createHarpoonSprite(): HTMLCanvasElement {
+  const c = makeCanvas(6, 20);
+  const ctx = c.getContext('2d')!;
+
+  // Shaft
+  ctx.fillStyle = '#c0c0c0';
+  for (let y = 4; y < 18; y++) {
+    px(ctx, '#c0c0c0', 2, y);
+    px(ctx, '#c0c0c0', 3, y);
+  }
+  // Tip
+  px(ctx, '#e0e0e0', 2, 2);
+  px(ctx, '#e0e0e0', 3, 2);
+  px(ctx, '#e8e8e8', 2, 1);
+  px(ctx, '#e8e8e8', 3, 1);
+  px(ctx, '#ffffff', 2, 0);
+  px(ctx, '#ffffff', 3, 0);
+  // Barb
+  px(ctx, '#a0a0a0', 1, 5);
+  px(ctx, '#a0a0a0', 4, 5);
+  px(ctx, '#a0a0a0', 0, 6);
+  px(ctx, '#a0a0a0', 5, 6);
+  // Tail fins
+  px(ctx, '#808080', 1, 17);
+  px(ctx, '#808080', 4, 17);
+  px(ctx, '#808080', 0, 18);
+  px(ctx, '#808080', 5, 18);
+  px(ctx, '#808080', 0, 19);
+  px(ctx, '#808080', 5, 19);
+
+  return c;
+}
+
+export function createScubaKittenSprites(): HTMLCanvasElement[] {
+  const frames: HTMLCanvasElement[] = [];
+  for (let f = 0; f < 2; f++) {
+    const c = makeCanvas(44, 50);
+    const ctx = c.getContext('2d')!;
+
+    // --- Air tank (behind body) ---
+    ctx.fillStyle = '#4a90d9';
+    ctx.beginPath();
+    ctx.roundRect(6, 18, 8, 18, 3);
+    ctx.fill();
+    ctx.fillStyle = '#2a6ab0';
+    ctx.beginPath();
+    ctx.roundRect(30, 18, 8, 18, 3);
+    ctx.fill();
+    // Tank valves
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(9, 16, 2, 3);
+    ctx.fillRect(33, 16, 2, 3);
+
+    // --- Body / diving suit ---
+    ctx.fillStyle = '#2d6e8a';
+    ctx.beginPath();
+    ctx.roundRect(12, 22, 20, 20, 4);
+    ctx.fill();
+    // Suit highlight
+    ctx.fillStyle = '#3e8fb0';
+    ctx.beginPath();
+    ctx.roundRect(15, 24, 8, 14, 3);
+    ctx.fill();
+
+    // --- Head ---
+    ctx.fillStyle = '#f5c98a';
+    ctx.beginPath();
+    ctx.arc(22, 16, 11, 0, Math.PI * 2);
+    ctx.fill();
+
+    // --- Ears ---
+    ctx.fillStyle = '#f5c98a';
+    // left ear
+    ctx.beginPath();
+    ctx.moveTo(12, 8); ctx.lineTo(15, 2); ctx.lineTo(18, 8);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e8a0a0';
+    ctx.beginPath();
+    ctx.moveTo(13, 8); ctx.lineTo(15, 4); ctx.lineTo(17, 8);
+    ctx.closePath(); ctx.fill();
+    // right ear
+    ctx.fillStyle = '#f5c98a';
+    ctx.beginPath();
+    ctx.moveTo(26, 8); ctx.lineTo(29, 2); ctx.lineTo(32, 8);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e8a0a0';
+    ctx.beginPath();
+    ctx.moveTo(27, 8); ctx.lineTo(29, 4); ctx.lineTo(31, 8);
+    ctx.closePath(); ctx.fill();
+
+    // --- Scuba mask / goggles ---
+    ctx.fillStyle = '#1a3a5a';
+    ctx.beginPath();
+    ctx.roundRect(13, 12, 18, 9, 3);
+    ctx.fill();
+    // Lenses
+    ctx.fillStyle = '#88ddf0';
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.ellipse(18, 16, 3.5, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(26, 16, 3.5, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // Mask strap
+    ctx.strokeStyle = '#1a3a5a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(13, 16); ctx.lineTo(10, 16);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(31, 16); ctx.lineTo(34, 16);
+    ctx.stroke();
+
+    // Pupils (eyes inside goggles)
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(18, 16, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(26, 16, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // --- Whiskers ---
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 0.8;
+    // left whiskers
+    ctx.beginPath(); ctx.moveTo(14, 22); ctx.lineTo(7, 20); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(14, 23); ctx.lineTo(7, 23); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(14, 24); ctx.lineTo(7, 26); ctx.stroke();
+    // right whiskers
+    ctx.beginPath(); ctx.moveTo(30, 22); ctx.lineTo(37, 20); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(30, 23); ctx.lineTo(37, 23); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(30, 24); ctx.lineTo(37, 26); ctx.stroke();
+
+    // --- Nose & mouth ---
+    ctx.fillStyle = '#d96060';
+    ctx.beginPath();
+    ctx.arc(22, 22, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // --- Harpoon gun arm ---
+    ctx.fillStyle = '#2d6e8a';
+    ctx.beginPath();
+    ctx.roundRect(32, 28, 6, 4, 2);
+    ctx.fill();
+    // Harpoon gun barrel
+    ctx.fillStyle = '#444';
+    ctx.fillRect(36, 29, 7, 2);
+
+    // --- Flippers (feet) ---
+    const flipperOffset = f === 0 ? 0 : 1;
+    ctx.fillStyle = '#1a8a5a';
+    // left flipper
+    ctx.beginPath();
+    ctx.ellipse(16, 43 + flipperOffset, 7, 3, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    // right flipper
+    ctx.beginPath();
+    ctx.ellipse(28, 43 + flipperOffset, 7, 3, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // --- Bubbles (rising, frame-alternating) ---
+    ctx.fillStyle = 'rgba(140,220,255,0.65)';
+    ctx.beginPath();
+    ctx.arc(40, f === 0 ? 25 : 22, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(38, f === 0 ? 18 : 15, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    frames.push(c);
+  }
+  return frames;
+}
+
 export function createGoldenCoinSprite(): HTMLCanvasElement {
   const c = makeCanvas(20, 20);
   const ctx = c.getContext('2d')!;
