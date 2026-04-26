@@ -3,11 +3,11 @@ import { createScubaKittenSprites } from '../sprites';
 import { CANVAS_WIDTH, SCUBA_KITTEN_MAX_HP, SCUBA_KITTEN_LASER_HIT_INTERVAL } from '../constants';
 import { HarpoonProjectile } from './harpoon';
 
-const KITTEN_LIFETIME = 7.0; // seconds before disappearing
-const KITTEN_FADE_TIME = 0.8; // seconds to fade out at end
-const KITTEN_CHASE_SPEED = 90; // horizontal px per second toward player
-const KITTEN_SHOOT_INTERVAL_MIN = 2.5; // seconds between harpoon shots
-const KITTEN_SHOOT_INTERVAL_MAX = 4.5;
+const SCUBA_KITTEN_LIFETIME = 7.0; // seconds before disappearing
+const SCUBA_KITTEN_FADE_TIME = 0.8; // seconds to fade out at end
+const SCUBA_KITTEN_CHASE_SPEED = 90; // horizontal px per second toward player
+const SCUBA_KITTEN_SHOOT_INTERVAL_MIN = 2.5; // seconds between harpoon shots
+const SCUBA_KITTEN_SHOOT_INTERVAL_MAX = 4.5;
 
 export class ScubaKitten implements Entity {
   x: number;
@@ -37,13 +37,13 @@ export class ScubaKitten implements Entity {
     this.targetX = targetX;
     this.targetY = targetY;
     this.sprites = createScubaKittenSprites();
-    this.shootInterval = KITTEN_SHOOT_INTERVAL_MIN +
-      Math.random() * (KITTEN_SHOOT_INTERVAL_MAX - KITTEN_SHOOT_INTERVAL_MIN);
+    this.shootInterval = SCUBA_KITTEN_SHOOT_INTERVAL_MIN +
+      Math.random() * (SCUBA_KITTEN_SHOOT_INTERVAL_MAX - SCUBA_KITTEN_SHOOT_INTERVAL_MIN);
   }
 
   update(dt: number, scrollSpeed: number): void {
     this.lifetime += dt;
-    if (this.lifetime >= KITTEN_LIFETIME) {
+    if (this.lifetime >= SCUBA_KITTEN_LIFETIME) {
       this.expired = true;
       return;
     }
@@ -53,7 +53,7 @@ export class ScubaKitten implements Entity {
 
     // Chase player horizontally
     const dx = this.targetX - this.x;
-    const step = KITTEN_CHASE_SPEED * dt;
+    const step = SCUBA_KITTEN_CHASE_SPEED * dt;
     if (Math.abs(dx) > step) {
       this.x += Math.sign(dx) * step;
     } else {
@@ -77,8 +77,8 @@ export class ScubaKitten implements Entity {
     this.shootTimer += dt;
     if (this.shootTimer >= this.shootInterval) {
       this.shootTimer = 0;
-      this.shootInterval = KITTEN_SHOOT_INTERVAL_MIN +
-        Math.random() * (KITTEN_SHOOT_INTERVAL_MAX - KITTEN_SHOOT_INTERVAL_MIN);
+      this.shootInterval = SCUBA_KITTEN_SHOOT_INTERVAL_MIN +
+        Math.random() * (SCUBA_KITTEN_SHOOT_INTERVAL_MAX - SCUBA_KITTEN_SHOOT_INTERVAL_MIN);
       // Spawn harpoon from the gun barrel (right side of kitten)
       const harpoon = new HarpoonProjectile(
         this.x + this.width * 0.4,
@@ -120,9 +120,9 @@ export class ScubaKitten implements Entity {
     ctx.translate(this.x, this.y);
 
     // Fade out near end of life
-    const timeLeft = KITTEN_LIFETIME - this.lifetime;
-    if (timeLeft < KITTEN_FADE_TIME) {
-      ctx.globalAlpha = Math.max(0, timeLeft / KITTEN_FADE_TIME);
+    const timeLeft = SCUBA_KITTEN_LIFETIME - this.lifetime;
+    if (timeLeft < SCUBA_KITTEN_FADE_TIME) {
+      ctx.globalAlpha = Math.max(0, timeLeft / SCUBA_KITTEN_FADE_TIME);
     }
 
     // Flash white when hit

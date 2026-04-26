@@ -1,6 +1,6 @@
 import { Entity } from '../types';
 import { createHarpoonSprite } from '../sprites';
-import { CANVAS_HEIGHT } from '../constants';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants';
 
 const HARPOON_SPEED = 220; // px per second
 
@@ -32,7 +32,7 @@ export class HarpoonProjectile implements Entity {
   update(dt: number, _scrollSpeed: number): void {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
-    if (this.y > CANVAS_HEIGHT + 40 || this.y < -40 || this.x < -40 || this.x > 520) {
+    if (this.y > CANVAS_HEIGHT + 40 || this.y < -40 || this.x < -40 || this.x > CANVAS_WIDTH + 40) {
       this.active = false;
     }
   }
