@@ -17,6 +17,7 @@ export class HUD {
     laserActive: boolean = false,
     shieldActive: boolean = false,
     shieldTimer: number = 0,
+    goldScore: number = 0,
   ): void {
     // Score
     ctx.save();
@@ -25,6 +26,15 @@ export class HUD {
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
     ctx.shadowBlur = 4;
     ctx.fillText(`SCORE: ${score}`, 10, 24);
+
+    // Gold coin score (shown below main score)
+    if (goldScore > 0) {
+      ctx.font = 'bold 13px monospace';
+      ctx.fillStyle = '#ffd700';
+      ctx.shadowColor = '#b8860b';
+      ctx.shadowBlur = 6;
+      ctx.fillText(`$: ${goldScore}`, 10, 42);
+    }
 
     // Hearts top right
     for (let i = 0; i < hp; i++) {

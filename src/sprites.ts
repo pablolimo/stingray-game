@@ -340,3 +340,43 @@ export function createHeartSprite(): HTMLCanvasElement {
   }
   return c;
 }
+
+export function createGoldenCoinSprite(): HTMLCanvasElement {
+  const c = makeCanvas(20, 20);
+  const ctx = c.getContext('2d')!;
+
+  // Outer gold disc
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  ctx.arc(10, 10, 9, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Dark gold rim
+  ctx.strokeStyle = '#b8860b';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(10, 10, 8.5, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Inner ring
+  ctx.strokeStyle = '#daa520';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(10, 10, 6, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Dollar sign
+  ctx.fillStyle = '#8b6914';
+  ctx.font = 'bold 9px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('$', 10, 11);
+
+  // Shine highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.beginPath();
+  ctx.arc(7, 7, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  return c;
+}
