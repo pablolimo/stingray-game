@@ -380,7 +380,7 @@ export function createScubaKittenSprites(): HTMLCanvasElement[] {
     const c = makeCanvas(44, 50);
     const ctx = c.getContext('2d')!;
 
-    // --- Air tank (behind body) ---
+    // --- Air tanks (behind body) – left and right ---
     ctx.fillStyle = '#4a90d9';
     ctx.beginPath();
     ctx.roundRect(6, 18, 8, 18, 3);
@@ -405,28 +405,28 @@ export function createScubaKittenSprites(): HTMLCanvasElement[] {
     ctx.roundRect(15, 24, 8, 14, 3);
     ctx.fill();
 
-    // --- Head ---
-    ctx.fillStyle = '#f5c98a';
+    // --- Head (black cat) ---
+    ctx.fillStyle = '#1a1a1a';
     ctx.beginPath();
     ctx.arc(22, 16, 11, 0, Math.PI * 2);
     ctx.fill();
 
-    // --- Ears ---
-    ctx.fillStyle = '#f5c98a';
+    // --- Ears (black cat) ---
+    ctx.fillStyle = '#1a1a1a';
     // left ear
     ctx.beginPath();
     ctx.moveTo(12, 8); ctx.lineTo(15, 2); ctx.lineTo(18, 8);
     ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#e8a0a0';
+    ctx.fillStyle = '#2a2a2a';
     ctx.beginPath();
     ctx.moveTo(13, 8); ctx.lineTo(15, 4); ctx.lineTo(17, 8);
     ctx.closePath(); ctx.fill();
     // right ear
-    ctx.fillStyle = '#f5c98a';
+    ctx.fillStyle = '#1a1a1a';
     ctx.beginPath();
     ctx.moveTo(26, 8); ctx.lineTo(29, 2); ctx.lineTo(32, 8);
     ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#e8a0a0';
+    ctx.fillStyle = '#2a2a2a';
     ctx.beginPath();
     ctx.moveTo(27, 8); ctx.lineTo(29, 4); ctx.lineTo(31, 8);
     ctx.closePath(); ctx.fill();
@@ -456,17 +456,25 @@ export function createScubaKittenSprites(): HTMLCanvasElement[] {
     ctx.moveTo(31, 16); ctx.lineTo(34, 16);
     ctx.stroke();
 
-    // Pupils (eyes inside goggles)
-    ctx.fillStyle = '#000';
+    // Green eyes (pupils inside goggles)
+    ctx.fillStyle = '#00cc44';
     ctx.beginPath();
     ctx.arc(18, 16, 1.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
     ctx.arc(26, 16, 1.5, 0, Math.PI * 2);
     ctx.fill();
+    // Bright green highlight
+    ctx.fillStyle = '#66ff99';
+    ctx.beginPath();
+    ctx.arc(17.5, 15.5, 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(25.5, 15.5, 0.6, 0, Math.PI * 2);
+    ctx.fill();
 
-    // --- Whiskers ---
-    ctx.strokeStyle = '#888';
+    // --- Whiskers (white for black cat) ---
+    ctx.strokeStyle = '#cccccc';
     ctx.lineWidth = 0.8;
     // left whiskers
     ctx.beginPath(); ctx.moveTo(14, 22); ctx.lineTo(7, 20); ctx.stroke();
@@ -492,26 +500,59 @@ export function createScubaKittenSprites(): HTMLCanvasElement[] {
     ctx.fillStyle = '#444';
     ctx.fillRect(36, 29, 7, 2);
 
-    // --- Flippers (feet) ---
-    const flipperOffset = f === 0 ? 0 : 1;
+    // --- Flippers – alternating kick (frame 0: left down / right up, frame 1: left up / right down) ---
     ctx.fillStyle = '#1a8a5a';
-    // left flipper
-    ctx.beginPath();
-    ctx.ellipse(16, 43 + flipperOffset, 7, 3, -0.3, 0, Math.PI * 2);
-    ctx.fill();
-    // right flipper
-    ctx.beginPath();
-    ctx.ellipse(28, 43 + flipperOffset, 7, 3, 0.3, 0, Math.PI * 2);
-    ctx.fill();
+    if (f === 0) {
+      // Left flipper kicks down
+      ctx.beginPath();
+      ctx.ellipse(15, 46, 8, 3, -0.7, 0, Math.PI * 2);
+      ctx.fill();
+      // Right flipper kicks up
+      ctx.beginPath();
+      ctx.ellipse(29, 40, 8, 3, 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Left flipper kicks up
+      ctx.beginPath();
+      ctx.ellipse(15, 40, 8, 3, 0.7, 0, Math.PI * 2);
+      ctx.fill();
+      // Right flipper kicks down
+      ctx.beginPath();
+      ctx.ellipse(29, 46, 8, 3, -0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
-    // --- Bubbles (rising, frame-alternating) ---
-    ctx.fillStyle = 'rgba(140,220,255,0.65)';
-    ctx.beginPath();
-    ctx.arc(40, f === 0 ? 25 : 22, 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(38, f === 0 ? 18 : 15, 1.5, 0, Math.PI * 2);
-    ctx.fill();
+    // --- Bubbles rising from both tank valves ---
+    ctx.strokeStyle = 'rgba(140,220,255,0.75)';
+    ctx.lineWidth = 0.8;
+    // Left tank bubbles
+    const leftBubbleXs = [10, 9, 11];
+    const leftBubbleYs = [13, 8, 4];
+    const leftBubbleSizes = [1.8, 1.4, 1.0];
+    for (let i = 0; i < 3; i++) {
+      const yShift = f === 0 ? 0 : 1;
+      ctx.fillStyle = 'rgba(140,220,255,0.65)';
+      ctx.beginPath();
+      ctx.arc(leftBubbleXs[i], leftBubbleYs[i] - yShift, leftBubbleSizes[i], 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(leftBubbleXs[i], leftBubbleYs[i] - yShift, leftBubbleSizes[i], 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Right tank bubbles
+    const rightBubbleXs = [34, 33, 35];
+    const rightBubbleYs = [13, 8, 4];
+    const rightBubbleSizes = [1.8, 1.4, 1.0];
+    for (let i = 0; i < 3; i++) {
+      const yShift = f === 0 ? 1 : 0;
+      ctx.fillStyle = 'rgba(140,220,255,0.65)';
+      ctx.beginPath();
+      ctx.arc(rightBubbleXs[i], rightBubbleYs[i] - yShift, rightBubbleSizes[i], 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(rightBubbleXs[i], rightBubbleYs[i] - yShift, rightBubbleSizes[i], 0, Math.PI * 2);
+      ctx.stroke();
+    }
 
     frames.push(c);
   }
