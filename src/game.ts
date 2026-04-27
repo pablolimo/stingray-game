@@ -25,12 +25,14 @@ import { GlowingClam } from './entities/glowingclam';
 import { GoldenCoin } from './entities/goldencoin';
 import { ScubaKitten } from './entities/scubakitten';
 import { HarpoonProjectile } from './entities/harpoon';
+import { ScubaRastafariBoss } from './entities/scubarastafari';
+import { EnergyBall } from './entities/energyball';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
   SCREEN_SHAKE_DURATION, SCREEN_SHAKE_MAGNITUDE,
   LASER_DURATION, LASER_DRAIN_RATE, GAUGE_PER_EAT,
-  LEVEL2_SCORE_THRESHOLD, LEVEL3_SCORE_THRESHOLD,
+  LEVEL2_SCORE_THRESHOLD, LEVEL3_SCORE_THRESHOLD, LEVEL4_SCORE_THRESHOLD,
   PEARL_ORBIT_RADIUS, PEARL_SPIN_SPEED, PEARL_HIT_RADIUS, PEARL_DRAW_RADIUS,
   EXPLOSION_PARTICLE_COUNT, SHOCKWAVE_INITIAL_RADIUS, SHOCKWAVE_MAX_RADIUS, SHOCKWAVE_DURATION,
 } from './constants';
@@ -81,6 +83,8 @@ export class Game {
   private disintegrationParticles: DisintegrationParticle[] = [];
   // Pause button bounds (canvas coordinates, updated each render)
   private pauseButtonBounds = { x: 0, y: 0, width: 28, height: 20 };
+  private boss: ScubaRastafariBoss | null = null;
+  private bossDefeatedTimer: number = 0;
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
@@ -156,15 +160,33 @@ export class Game {
           }
         }
 
-        // Spawn
-        const newEntities = this.spawner.update(dt, this.scrollSpeed, this.player.x, this.level);
-        this.entities.push(...newEntities);
+        // Update boss and collect its projectiles
+        if (this.boss && !this.boss.defeated) {
+          this.boss.targetX = this.player.x;
+          this.boss.targetY = this.player.y;
+          this.boss.update(dt, this.scrollSpeed);
+          if (this.boss.pendingHarpoons.length > 0) {
+            this.entities.push(...this.boss.pendingHarpoons);
+            this.boss.pendingHarpoons = [];
+          }
+          if (this.boss.pendingEnergyBalls.length > 0) {
+            this.entities.push(...this.boss.pendingEnergyBalls);
+            this.boss.pendingEnergyBalls = [];
+          }
+        }
+
+        // Spawn (disabled during Level 4 boss fight)
+        if (this.level < 4) {
+          const newEntities = this.spawner.update(dt, this.scrollSpeed, this.player.x, this.level);
+          this.entities.push(...newEntities);
+        }
 
         // Remove off-screen or expired entities
         this.entities = this.entities.filter(e => {
           if (e instanceof Squid && e.expired) return false;
           if (e instanceof ScubaKitten && e.expired) return false;
           if (e instanceof HarpoonProjectile && !e.active) return false;
+          if (e instanceof EnergyBall && !e.active) return false;
           return e.y > -100 && e.y < CANVAS_HEIGHT + 100;
         });
 
@@ -204,10 +226,38 @@ export class Game {
             }
             return true;
           });
+
+          // Boss: laser can damage it when not raging
+          if (this.boss && !this.boss.defeated) {
+            const laserBeamHalfWidth = 20;
+            if (
+              Math.abs(this.boss.x - this.player.x) < laserBeamHalfWidth + this.boss.width / 2 &&
+              this.boss.y < this.player.y
+            ) {
+              const dead = this.boss.takeLaserHit();
+              if (dead) {
+                this.spawnBossDefeatExplosion();
+              } else {
+                this.spawnParticles(this.boss.x, this.boss.y, '#ffcc00', 8);
+              }
+            }
+          }
         }
 
         // Collisions
         const playerBounds = this.player.getBounds();
+
+        // Boss ↔ player body collision
+        if (this.boss && !this.boss.defeated && !this.player.isInvincible()) {
+          if (aabb(playerBounds, this.boss.getBounds())) {
+            const tookDamage = this.player.takeDamage();
+            if (tookDamage) {
+              this.shakeTimer = SCREEN_SHAKE_DURATION;
+              this.deactivatePowerup();
+            }
+          }
+        }
+
         for (const e of this.entities) {
           if (e instanceof Fish && !e.collected) {
             const bounds = e.getBounds();
@@ -337,6 +387,18 @@ export class Game {
                 }
               }
             }
+          } else if (e instanceof EnergyBall && e.active) {
+            if (!this.player.isInvincible()) {
+              const bounds = e.getBounds();
+              if (aabb(playerBounds, bounds)) {
+                e.active = false;
+                const tookDamage = this.player.takeDamage();
+                if (tookDamage) {
+                  this.shakeTimer = SCREEN_SHAKE_DURATION;
+                  this.deactivatePowerup();
+                }
+              }
+            }
           }
         }
 
@@ -386,6 +448,31 @@ export class Game {
 
           // Discard spent pearls
           this.orbitalPearls = this.orbitalPearls.filter(p => p.killsRemaining > 0);
+
+          // Pearls can also hit the boss (when not raging)
+          if (this.boss && !this.boss.defeated && !this.boss.isRaging) {
+            const bossBounds = this.boss.getBounds();
+            for (const pearl of this.orbitalPearls) {
+              if (pearl.killsRemaining <= 0) continue;
+              const pa = this.orbitalPearlAngle + pearl.angleOffset;
+              const ppx = this.player.x + Math.cos(pa) * PEARL_ORBIT_RADIUS;
+              const ppy = this.player.y + Math.sin(pa) * PEARL_ORBIT_RADIUS;
+              if (
+                ppx >= bossBounds.x && ppx <= bossBounds.x + bossBounds.width &&
+                ppy >= bossBounds.y && ppy <= bossBounds.y + bossBounds.height
+              ) {
+                const dead = this.boss.takePearlHit();
+                pearl.killsRemaining -= 1;
+                this.spawnExplosion(this.boss.x, this.boss.y);
+                this.shakeTimer = Math.max(this.shakeTimer, SCREEN_SHAKE_DURATION * 0.6);
+                if (dead) {
+                  this.spawnBossDefeatExplosion();
+                }
+                break;
+              }
+            }
+            this.orbitalPearls = this.orbitalPearls.filter(p => p.killsRemaining > 0);
+          }
         }
 
         // Level progression
@@ -397,8 +484,36 @@ export class Game {
           this.level = 3;
           this.levelUpBannerTimer = 2.5;
         }
+        if (this.level < 4 && this.score >= LEVEL4_SCORE_THRESHOLD) {
+          this.level = 4;
+          this.levelUpBannerTimer = 3.0;
+          // Clear all enemies and their projectiles; keep only collectables
+          this.entities = this.entities.filter(
+            e =>
+              e instanceof TreasureChest ||
+              e instanceof PowerupChest ||
+              e instanceof RedTreasure ||
+              e instanceof GlowingClam ||
+              e instanceof GoldenCoin,
+          );
+          // Spawn level-4 loot: 2 blue chests, 1 red chest, 1 green clam
+          this.entities.push(new PowerupChest(CANVAS_WIDTH * 0.22, 280));
+          this.entities.push(new PowerupChest(CANVAS_WIDTH * 0.78, 380));
+          this.entities.push(new RedTreasure(CANVAS_WIDTH * 0.50, 220));
+          this.entities.push(new GlowingClam(CANVAS_WIDTH * 0.62, 460));
+          // Spawn the boss from the top centre
+          this.boss = new ScubaRastafariBoss(CANVAS_WIDTH / 2, -160);
+        }
         if (this.levelUpBannerTimer > 0) {
           this.levelUpBannerTimer -= dt;
+        }
+
+        // Boss defeated → brief explosion then stage clear
+        if (this.boss && this.boss.defeated) {
+          this.bossDefeatedTimer -= dt;
+          if (this.bossDefeatedTimer <= 0) {
+            this.state = GameState.StageClear;
+          }
         }
 
         // Remove collected
@@ -461,6 +576,13 @@ export class Game {
           this.startGame();
         }
         break;
+
+      case GameState.StageClear:
+        this.background.update(dt, 40);
+        if (spaceNow && !this.spaceWasDown) {
+          this.startGame();
+        }
+        break;
     }
 
     this.spaceWasDown = spaceNow;
@@ -499,6 +621,8 @@ export class Game {
     this.orbitalPearls = [];
     this.orbitalPearlAngle = 0;
     this.shockwaveRings = [];
+    this.boss = null;
+    this.bossDefeatedTimer = 0;
   }
 
   private incrementLaserGauge(): void {
@@ -581,6 +705,23 @@ export class Game {
     }
   }
 
+  private spawnBossDefeatExplosion(): void {
+    const bx = this.boss!.x;
+    const by = this.boss!.y;
+    this.boss!.defeated = true;
+    this.bossDefeatedTimer = 2.2;
+    // Multiple big explosions across the boss's body
+    const offsets = [
+      [0, 0], [-60, -40], [60, -40], [-40, 40], [40, 40], [0, -80],
+    ];
+    const colors = ['#8b4513', '#ffcc00', '#228b22', '#ff6600', '#1a8a5a', '#ffffff', '#ff4444'];
+    for (const [ox, oy] of offsets) {
+      this.spawnExplosion(bx + ox, by + oy);
+      this.spawnDisintegration(bx + ox, by + oy, colors);
+    }
+    this.shakeTimer = SCREEN_SHAKE_DURATION * 2.5;
+  }
+
   render(): void {
     const ctx = this.ctx;
     ctx.save();
@@ -607,6 +748,9 @@ export class Game {
         break;
       case GameState.GameOver:
         this.renderGameOver();
+        break;
+      case GameState.StageClear:
+        this.renderStageClear();
         break;
     }
 
@@ -656,6 +800,11 @@ export class Game {
   private renderPlaying(): void {
     const ctx = this.ctx;
     this.background.render(ctx);
+
+    // Boss (drawn behind entities so it appears below treasures, etc.)
+    if (this.boss) {
+      this.boss.render(ctx);
+    }
 
     // Entities
     for (const e of this.entities) {
@@ -834,12 +983,13 @@ export class Game {
     if (this.level >= 2) {
       ctx.save();
       ctx.font = 'bold 12px monospace';
-      const lvlColor = this.level >= 3 ? '#00ccff' : '#ff6ed8';
+      const lvlColor = this.level >= 4 ? '#ffdd00' : this.level >= 3 ? '#00ccff' : '#ff6ed8';
       ctx.fillStyle = lvlColor;
       ctx.shadowColor = lvlColor;
       ctx.shadowBlur = 6;
-      // Shift down if gold score is visible
-      ctx.fillText(`LVL ${this.level}`, 10, this.goldScore > 0 ? 58 : 44);
+      // Shift down if gold score is visible; also skip if boss bar is visible (level 4)
+      const lvlY = this.goldScore > 0 ? 58 : 44;
+      ctx.fillText(`LVL ${this.level}`, 10, lvlY);
       ctx.restore();
     }
 
@@ -850,7 +1000,16 @@ export class Game {
       ctx.globalAlpha = alpha;
       ctx.textAlign = 'center';
       ctx.font = 'bold 36px monospace';
-      if (this.level >= 3) {
+      if (this.level >= 4) {
+        ctx.fillStyle = '#ffdd00';
+        ctx.shadowColor = '#ff8800';
+        ctx.shadowBlur = 28;
+        ctx.fillText('LEVEL 4!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
+        ctx.font = '14px monospace';
+        ctx.fillStyle = '#ffe577';
+        ctx.shadowBlur = 10;
+        ctx.fillText('BOSS INCOMING – The Rasta Diver!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 16);
+      } else if (this.level >= 3) {
         ctx.fillStyle = '#00ccff';
         ctx.shadowColor = '#0088ff';
         ctx.shadowBlur = 24;
@@ -923,6 +1082,52 @@ export class Game {
       ctx.font = '14px monospace';
       ctx.fillStyle = '#adf';
       ctx.fillText('Press SPACE to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60 + (this.goldScore > 0 ? 20 : 0));
+    }
+    ctx.restore();
+  }
+
+  private renderStageClear(): void {
+    const ctx = this.ctx;
+    this.background.render(ctx);
+
+    // Dark gold overlay
+    ctx.fillStyle = 'rgba(20, 10, 0, 0.58)';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    ctx.save();
+    ctx.textAlign = 'center';
+
+    // "STAGE CLEAR!" headline
+    const bounce = Math.sin(this.titleAnimTime * 2) * 4;
+    ctx.font = 'bold 50px monospace';
+    ctx.fillStyle = '#ffdd00';
+    ctx.shadowColor = '#ff8800';
+    ctx.shadowBlur = 30;
+    ctx.fillText('STAGE CLEAR!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 70 + bounce);
+
+    ctx.font = '16px monospace';
+    ctx.fillStyle = '#ffe577';
+    ctx.shadowBlur = 8;
+    ctx.fillText('The Rasta Diver has been defeated!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 28);
+
+    ctx.font = '20px monospace';
+    ctx.fillStyle = '#fff';
+    ctx.shadowBlur = 5;
+    ctx.fillText(`Score: ${this.score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 14);
+
+    if (this.goldScore > 0) {
+      ctx.font = '16px monospace';
+      ctx.fillStyle = '#ffd700';
+      ctx.shadowColor = '#b8860b';
+      ctx.fillText(`Gold Coins: $${this.goldScore}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
+    }
+
+    const blink = Math.sin(this.titleAnimTime * 3) > 0;
+    if (blink) {
+      ctx.font = '14px monospace';
+      ctx.fillStyle = '#adf';
+      ctx.shadowBlur = 4;
+      ctx.fillText('Press SPACE to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70 + (this.goldScore > 0 ? 20 : 0));
     }
     ctx.restore();
   }
