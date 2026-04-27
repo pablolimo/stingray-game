@@ -5,7 +5,7 @@ import { HarpoonProjectile } from './harpoon';
 
 const SCUBA_KITTEN_LIFETIME = 7.0; // seconds before disappearing
 const SCUBA_KITTEN_FADE_TIME = 0.8; // seconds to fade out at end
-const SCUBA_KITTEN_CHASE_SPEED = 135; // 1.5× faster horizontal px per second toward player
+const SCUBA_KITTEN_CHASE_SPEED = 65; // reduced horizontal chase speed
 const SCUBA_KITTEN_SHOOT_INTERVAL_MIN = 1.25; // seconds between harpoon shots (2× more frequent)
 const SCUBA_KITTEN_SHOOT_INTERVAL_MAX = 2.25;
 
@@ -61,7 +61,7 @@ export class ScubaKitten implements Entity {
     }
 
     // Descend at a slower rate than scroll speed
-    this.y += scrollSpeed * 0.45 * dt;
+    this.y += scrollSpeed * 0.22 * dt;
 
     // Clamp to screen bounds
     this.x = Math.max(this.width / 2, Math.min(CANVAS_WIDTH - this.width / 2, this.x));

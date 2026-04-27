@@ -79,6 +79,8 @@ export class Game {
   private shockwaveRings: ShockwaveRing[] = [];
   private goldScore: number = 0;
   private disintegrationParticles: DisintegrationParticle[] = [];
+  // Pause button bounds (canvas coordinates, updated each render)
+  private pauseButtonBounds = { x: 0, y: 0, width: 28, height: 20 };
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
@@ -88,6 +90,7 @@ export class Game {
     this.input = new InputHandler();
     this.spawner = new Spawner();
     this.hud = new HUD();
+    canvas.addEventListener('click', (e) => this.handleClick(e));
   }
 
   update(dt: number): void {
@@ -103,6 +106,11 @@ export class Game {
         break;
 
       case GameState.Playing:
+        // Pause on spacebar press
+        if (spaceNow && !this.spaceWasDown) {
+          this.state = GameState.Paused;
+          break;
+        }
         this.scrollSpeed = Math.min(this.scrollSpeed + SCROLL_SPEED_INCREMENT * dt, MAX_SCROLL_SPEED);
         this.background.update(dt, this.scrollSpeed);
         this.player.update(dt, this.input);
@@ -440,6 +448,13 @@ export class Game {
         }
         break;
 
+      case GameState.Paused:
+        // Resume on spacebar press
+        if (spaceNow && !this.spaceWasDown) {
+          this.state = GameState.Playing;
+        }
+        break;
+
       case GameState.GameOver:
         this.background.update(dt, 30);
         if (spaceNow && !this.spaceWasDown) {
@@ -449,6 +464,19 @@ export class Game {
     }
 
     this.spaceWasDown = spaceNow;
+  }
+
+  private handleClick(e: MouseEvent): void {
+    if (this.state !== GameState.Playing && this.state !== GameState.Paused) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = CANVAS_WIDTH / rect.width;
+    const scaleY = CANVAS_HEIGHT / rect.height;
+    const cx = (e.clientX - rect.left) * scaleX;
+    const cy = (e.clientY - rect.top) * scaleY;
+    const b = this.pauseButtonBounds;
+    if (cx >= b.x && cx <= b.x + b.width && cy >= b.y && cy <= b.y + b.height) {
+      this.state = this.state === GameState.Paused ? GameState.Playing : GameState.Paused;
+    }
   }
 
   private startGame(): void {
@@ -572,6 +600,10 @@ export class Game {
         break;
       case GameState.Playing:
         this.renderPlaying();
+        break;
+      case GameState.Paused:
+        this.renderPlaying();
+        this.renderPauseOverlay();
         break;
       case GameState.GameOver:
         this.renderGameOver();
@@ -775,6 +807,29 @@ export class Game {
     this.player.render(ctx);
     this.hud.render(ctx, this.score, this.player.hp, this.powerupActive, this.gaugeLevel, this.laserActive, this.player.shieldActive, this.player.shieldTimer, this.goldScore);
 
+    // Pause button next to score (top-left area)
+    const pbX = 120;
+    const pbY = 8;
+    const pbW = 28;
+    const pbH = 20;
+    this.pauseButtonBounds = { x: pbX, y: pbY, width: pbW, height: pbH };
+    ctx.save();
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = this.state === GameState.Paused ? '#4af' : '#336';
+    ctx.strokeStyle = '#adf';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(pbX, pbY, pbW, pbH, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px monospace';
+    ctx.textAlign = 'center';
+    ctx.shadowBlur = 0;
+    ctx.fillText(this.state === GameState.Paused ? '▶' : '⏸', pbX + pbW / 2, pbY + pbH - 4);
+    ctx.restore();
+
     // Level indicator (top-right, below score area)
     if (this.level >= 2) {
       ctx.save();
@@ -816,6 +871,24 @@ export class Game {
       }
       ctx.restore();
     }
+  }
+
+  private renderPauseOverlay(): void {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 10, 40, 0.55)';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 48px monospace';
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = '#4af';
+    ctx.shadowBlur = 20;
+    ctx.fillText('PAUSED', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
+    ctx.font = '14px monospace';
+    ctx.fillStyle = '#adf';
+    ctx.shadowBlur = 5;
+    ctx.fillText('Press SPACE or click ⏸ to resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 24);
+    ctx.restore();
   }
 
   private renderGameOver(): void {

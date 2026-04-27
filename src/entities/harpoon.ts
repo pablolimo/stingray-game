@@ -2,13 +2,13 @@ import { Entity } from '../types';
 import { createHarpoonSprite } from '../sprites';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants';
 
-const HARPOON_SPEED = 220; // px per second
+const HARPOON_SPEED = 380; // px per second
 
 export class HarpoonProjectile implements Entity {
   x: number;
   y: number;
-  width: number = 6;
-  height: number = 20;
+  width: number = 10;
+  height: number = 30;
   active: boolean = true;
 
   private vx: number;
