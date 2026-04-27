@@ -15,6 +15,7 @@ export interface Sprite {
 export enum GameState {
   Title = 'Title',
   Playing = 'Playing',
+  Paused = 'Paused',
   GameOver = 'GameOver',
 }
 
