@@ -601,7 +601,7 @@ export function createGoldenCoinSprite(): HTMLCanvasElement {
 
 /**
  * Creates 2-frame animation sprites for the Scuba Rastafari Boss.
- * rage=true → dreadlocks turn bright yellow (Super Sayan mode).
+ * rage=true → dreadlocks turn bright yellow (Super Saiyan mode).
  * Canvas is 88×100 px; render at 220×250 for 2.5× cat scale.
  */
 export function createScubaRastafariBossSprites(rage: boolean): HTMLCanvasElement[] {

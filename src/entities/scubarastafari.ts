@@ -130,7 +130,7 @@ export class ScubaRastafariBoss implements Entity {
           Math.random() * (BOSS_SHOOT_INTERVAL_MAX - BOSS_SHOOT_INTERVAL_MIN);
         this.pendingHarpoons.push(
           new HarpoonProjectile(
-            this.x + this.width * 0.33,
+            this.x - this.width * 0.44, // left arm gun barrel in sprite coords
             this.y + 10,
             this.targetX,
             this.targetY,

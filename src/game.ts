@@ -988,7 +988,7 @@ export class Game {
       ctx.shadowColor = lvlColor;
       ctx.shadowBlur = 6;
       // Shift down if gold score is visible; also skip if boss bar is visible (level 4)
-      const lvlY = this.level >= 4 ? (this.goldScore > 0 ? 58 : 44) : (this.goldScore > 0 ? 58 : 44);
+      const lvlY = this.goldScore > 0 ? 58 : 44;
       ctx.fillText(`LVL ${this.level}`, 10, lvlY);
       ctx.restore();
     }
