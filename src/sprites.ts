@@ -598,3 +598,196 @@ export function createGoldenCoinSprite(): HTMLCanvasElement {
 
   return c;
 }
+
+/**
+ * Creates 2-frame animation sprites for the Scuba Rastafari Boss.
+ * rage=true → dreadlocks turn bright yellow (Super Sayan mode).
+ * Canvas is 88×100 px; render at 220×250 for 2.5× cat scale.
+ */
+export function createScubaRastafariBossSprites(rage: boolean): HTMLCanvasElement[] {
+  const frames: HTMLCanvasElement[] = [];
+  const dreadsColor = rage ? '#ffff00' : '#5c3d11';
+  const dreadsHighlight = rage ? '#fffaaa' : '#8b6030';
+
+  // Fixed control points for 9 dreadlocks
+  // [startX, startY, cpX, cpY, endX, endY, lineWidth]
+  const dreadsData: [number, number, number, number, number, number, number][] = [
+    [28, 19, 22,  6, 18, -6, 5.5],
+    [34, 13, 30, -2, 28, -12, 4.5],
+    [40, 11, 38, -4, 36, -15, 4],
+    [44, 10, 44, -4, 44, -16, 4.5],
+    [48, 11, 50, -4, 52, -15, 4],
+    [54, 13, 58, -2, 60, -12, 4.5],
+    [60, 19, 66,  6, 70, -6, 5.5],
+    [26, 26, 16, 20, 12,  36, 4],
+    [62, 26, 72, 20, 76,  36, 4],
+  ];
+
+  for (let f = 0; f < 2; f++) {
+    const c = makeCanvas(88, 100);
+    const ctx = c.getContext('2d')!;
+    const armShift = f === 0 ? 0 : 2;
+
+    // Air tanks (behind body)
+    ctx.fillStyle = '#3a7ab8';
+    ctx.beginPath();
+    ctx.roundRect(5, 36, 14, 32, 4);
+    ctx.fill();
+    ctx.fillStyle = '#2a5a9a';
+    ctx.beginPath();
+    ctx.roundRect(69, 36, 14, 32, 4);
+    ctx.fill();
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(10, 33, 4, 5);
+    ctx.fillRect(74, 33, 4, 5);
+
+    // Dreadlocks (drawn before head so head covers roots)
+    ctx.lineCap = 'round';
+    for (const [sx, sy, cpx, cpy, ex, ey, lw] of dreadsData) {
+      ctx.beginPath();
+      ctx.strokeStyle = dreadsColor;
+      ctx.lineWidth = lw;
+      ctx.moveTo(sx, sy);
+      ctx.quadraticCurveTo(cpx, cpy, ex, ey);
+      ctx.stroke();
+      // Highlight stripe
+      ctx.beginPath();
+      ctx.strokeStyle = dreadsHighlight;
+      ctx.lineWidth = lw * 0.3;
+      ctx.moveTo(sx - 1, sy);
+      ctx.quadraticCurveTo(cpx - 1, cpy, ex - 1, ey);
+      ctx.stroke();
+    }
+
+    // Head
+    ctx.fillStyle = '#4a2800';
+    ctx.beginPath();
+    ctx.arc(44, 28, 18, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Scuba mask
+    ctx.fillStyle = '#1a3a5a';
+    ctx.beginPath();
+    ctx.roundRect(27, 22, 34, 16, 4);
+    ctx.fill();
+    // Lenses
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#88ddf0';
+    ctx.beginPath();
+    ctx.ellipse(35, 30, 5.5, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(53, 30, 5.5, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // Angry pupils
+    ctx.fillStyle = '#00cc44';
+    ctx.beginPath();
+    ctx.arc(35, 30, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(53, 30, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    // Angry eyebrows (angled inward)
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'square';
+    ctx.beginPath();
+    ctx.moveTo(28, 22); ctx.lineTo(40, 26);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(60, 22); ctx.lineTo(48, 26);
+    ctx.stroke();
+    // Mask straps
+    ctx.strokeStyle = '#1a3a5a';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(27, 30); ctx.lineTo(23, 30);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(61, 30); ctx.lineTo(65, 30);
+    ctx.stroke();
+
+    // Breathing regulator
+    ctx.fillStyle = '#888';
+    ctx.fillRect(39, 38, 10, 6);
+    ctx.fillStyle = '#555';
+    ctx.fillRect(37, 40, 14, 4);
+
+    // Body / diving suit (rasta green)
+    ctx.fillStyle = '#2a6e4a';
+    ctx.beginPath();
+    ctx.roundRect(22, 44, 44, 34, 6);
+    ctx.fill();
+    // Suit highlight
+    ctx.fillStyle = '#3a9060';
+    ctx.beginPath();
+    ctx.roundRect(28, 47, 20, 24, 4);
+    ctx.fill();
+    // Rasta stripe accents
+    ctx.fillStyle = '#cc2222';
+    ctx.fillRect(22, 68, 44, 4);
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(22, 72, 44, 3);
+    ctx.fillStyle = '#228b22';
+    ctx.fillRect(22, 75, 44, 3);
+
+    // Left arm + harpoon gun
+    ctx.fillStyle = '#2a6e4a';
+    ctx.beginPath();
+    ctx.roundRect(8, 50 + armShift, 16, 9, 3);
+    ctx.fill();
+    ctx.fillStyle = '#444';
+    ctx.fillRect(3, 52 + armShift, 12, 5);
+    ctx.fillStyle = '#aaa';
+    ctx.fillRect(0, 53 + armShift, 3, 2);
+
+    // Right arm
+    ctx.fillStyle = '#2a6e4a';
+    ctx.beginPath();
+    ctx.roundRect(64, 50 - armShift, 16, 9, 3);
+    ctx.fill();
+    ctx.fillStyle = '#3a3000';
+    ctx.beginPath();
+    ctx.arc(78, 54 - armShift, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Flippers
+    ctx.fillStyle = '#1a7a3a';
+    if (f === 0) {
+      ctx.beginPath();
+      ctx.ellipse(32, 88, 14, 5, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(56, 82, 14, 5, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.ellipse(32, 82, 14, 5, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(56, 88, 14, 5, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Bubbles from tank valves
+    const bubbleData = f === 0
+      ? [[12, 30, 3], [12, 22, 2.3], [76, 30, 3], [76, 22, 2.3]]
+      : [[12, 28, 3], [12, 20, 2.3], [76, 28, 3], [76, 20, 2.3]];
+    for (const [bx, by, br] of bubbleData) {
+      ctx.fillStyle = 'rgba(140,220,255,0.65)';
+      ctx.beginPath();
+      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(140,220,255,0.75)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    frames.push(c);
+  }
+  return frames;
+}

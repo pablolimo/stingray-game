@@ -33,3 +33,7 @@ export const EXPLOSION_PARTICLE_COUNT = 40;
 export const SHOCKWAVE_INITIAL_RADIUS = 4;
 export const SHOCKWAVE_MAX_RADIUS = 60;
 export const SHOCKWAVE_DURATION = 0.4;
+export const LEVEL4_SCORE_THRESHOLD = 4000;
+export const BOSS_MAX_HP = SCUBA_KITTEN_MAX_HP * 3; // 3× the cat's HP
+export const BOSS_RAGE_DURATION = 3.5; // seconds per rage phase
+export const BOSS_LASER_HIT_INTERVAL = 0.2; // seconds between laser ticks on boss

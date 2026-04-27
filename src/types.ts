@@ -17,6 +17,7 @@ export enum GameState {
   Playing = 'Playing',
   Paused = 'Paused',
   GameOver = 'GameOver',
+  StageClear = 'StageClear',
 }
 
 export interface Particle {
