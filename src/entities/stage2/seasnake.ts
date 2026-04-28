@@ -1,6 +1,6 @@
 import { SmallEnemy } from '../entityRoles';
 
-const NUM_SEGMENTS = 14;
+const SEA_SNAKE_SEGMENTS = 14;
 
 export class SeaSnake extends SmallEnemy {
   x: number;
@@ -53,7 +53,7 @@ export class SeaSnake extends SmallEnemy {
   render(ctx: CanvasRenderingContext2D): void {
     const glowColor = this.level >= 3 ? '#ffee44' : '#ffdd44';
     const wiggleAmp = this.level >= 3 ? 10 : 7;
-    const segSpacing = this.height / NUM_SEGMENTS;
+    const segSpacing = this.height / SEA_SNAKE_SEGMENTS;
 
     ctx.save();
 
@@ -71,8 +71,8 @@ export class SeaSnake extends SmallEnemy {
     }
 
     // Draw each segment from tail (bottom) up to head (top)
-    for (let i = NUM_SEGMENTS - 1; i >= 0; i--) {
-      const t = i / (NUM_SEGMENTS - 1); // 0 = head, 1 = tail
+    for (let i = SEA_SNAKE_SEGMENTS - 1; i >= 0; i--) {
+      const t = i / (SEA_SNAKE_SEGMENTS - 1); // 0 = head, 1 = tail
       const segY = this.y - this.height / 2 + t * this.height;
       const segX = this.x + Math.sin(this.wigglePhase - i * 0.55) * wiggleAmp;
       const segR = 5 - t * 3.5; // head ~5px, tail ~1.5px
@@ -105,8 +105,8 @@ export class SeaSnake extends SmallEnemy {
     ctx.shadowColor = glowColor;
     ctx.shadowBlur = 5;
     ctx.beginPath();
-    for (let i = 0; i < NUM_SEGMENTS; i++) {
-      const t = i / (NUM_SEGMENTS - 1);
+    for (let i = 0; i < SEA_SNAKE_SEGMENTS; i++) {
+      const t = i / (SEA_SNAKE_SEGMENTS - 1);
       const segY = this.y - this.height / 2 + t * this.height;
       const segX = this.x + Math.sin(this.wigglePhase - i * 0.55) * wiggleAmp;
       if (i === 0) ctx.moveTo(segX, segY);
