@@ -252,23 +252,34 @@ export class Background {
     c.height = this.LAYER_HEIGHT;
     const ctx = c.getContext('2d')!;
 
-    // Very dark blue-black abyssal floor
-    ctx.fillStyle = '#050a14';
+    // Midnight deep – slightly lighter with moonlight feel (~25% brighter)
+    ctx.fillStyle = '#0d1a2e';
     ctx.fillRect(0, 0, CANVAS_WIDTH, this.LAYER_HEIGHT);
 
-    // Faint texture dots (dark blue grain)
+    // Grain texture with slightly brighter dots
     for (let i = 0; i < 1200; i++) {
       const x = Math.random() * CANVAS_WIDTH;
       const y = Math.random() * this.LAYER_HEIGHT;
-      ctx.fillStyle = Math.random() > 0.5 ? 'rgba(20,40,80,0.4)' : 'rgba(5,15,30,0.3)';
+      ctx.fillStyle = Math.random() > 0.5 ? 'rgba(40,70,120,0.35)' : 'rgba(15,30,55,0.3)';
       ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
     }
 
     // Subtle dark blue bands
     for (let y = 0; y < this.LAYER_HEIGHT; y += 55) {
-      const alpha = (Math.sin(y * 0.04) + 1) * 0.025;
-      ctx.fillStyle = `rgba(10,30,70,${alpha})`;
+      const alpha = (Math.sin(y * 0.04) + 1) * 0.03;
+      ctx.fillStyle = `rgba(20,50,100,${alpha})`;
       ctx.fillRect(0, y, CANVAS_WIDTH, 25);
+    }
+
+    // Faint star reflections scattered across the floor
+    for (let i = 0; i < 80; i++) {
+      const sx = Math.random() * CANVAS_WIDTH;
+      const sy = Math.random() * this.LAYER_HEIGHT;
+      const sr = 0.5 + Math.random() * 1.2;
+      ctx.fillStyle = `rgba(200,220,255,${0.08 + Math.random() * 0.12})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     return c;
@@ -339,27 +350,142 @@ export class Background {
     c.height = this.LAYER_HEIGHT;
     const ctx = c.getContext('2d')!;
 
-    // Dark coral-like structures with bio-glow outlines
-    for (let i = 0; i < 5; i++) {
-      const x = Math.random() * CANVAS_WIDTH;
-      const y = Math.random() * this.LAYER_HEIGHT;
+    const coralColors = [
+      { body: '#1a4a3a', glow: '#00e8cc' },
+      { body: '#3a1a4a', glow: '#cc44ff' },
+      { body: '#1a2a4a', glow: '#44aaff' },
+      { body: '#4a2a1a', glow: '#ff8844' },
+      { body: '#1a3a1a', glow: '#44ff88' },
+    ];
+
+    const numFormations = 18 + Math.floor(Math.random() * 8);
+    for (let i = 0; i < numFormations; i++) {
+      const cx = 20 + Math.random() * (CANVAS_WIDTH - 40);
+      const cy = 20 + Math.random() * (this.LAYER_HEIGHT - 40);
+      const cc = coralColors[Math.floor(Math.random() * coralColors.length)];
+      const formType = Math.floor(Math.random() * 4);
       ctx.save();
-      ctx.strokeStyle = 'rgba(0,200,180,0.4)';
-      ctx.shadowColor = '#00e8cc';
-      ctx.shadowBlur = 8;
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.arc(x, y, 4 + Math.random() * 5, 0, Math.PI * 2);
-      ctx.stroke();
+      ctx.translate(cx, cy);
+
+      if (formType === 0) {
+        // Branching coral: a trunk with 2-4 branches
+        const branches = 2 + Math.floor(Math.random() * 3);
+        const trunkH = 12 + Math.random() * 20;
+        ctx.strokeStyle = cc.glow;
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = cc.glow;
+        ctx.shadowBlur = 7;
+        ctx.globalAlpha = 0.65;
+        // trunk
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -trunkH);
+        ctx.stroke();
+        // branches
+        for (let b = 0; b < branches; b++) {
+          const branchY = -trunkH * (0.3 + b * 0.25);
+          const branchDir = b % 2 === 0 ? 1 : -1;
+          const branchLen = 6 + Math.random() * 10;
+          ctx.beginPath();
+          ctx.moveTo(0, branchY);
+          ctx.lineTo(branchDir * branchLen, branchY - branchLen * 0.8);
+          ctx.stroke();
+          // tip dot
+          ctx.globalAlpha = 0.9;
+          ctx.fillStyle = cc.glow;
+          ctx.beginPath();
+          ctx.arc(branchDir * branchLen, branchY - branchLen * 0.8, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 0.65;
+        }
+        // top tip
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = cc.glow;
+        ctx.beginPath();
+        ctx.arc(0, -trunkH, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (formType === 1) {
+        // Tube / column coral: a set of vertical cylinders
+        const tubes = 2 + Math.floor(Math.random() * 4);
+        for (let t = 0; t < tubes; t++) {
+          const tx = (t - tubes / 2) * 5 + Math.random() * 3;
+          const th = 8 + Math.random() * 18;
+          ctx.fillStyle = cc.body;
+          ctx.shadowColor = cc.glow;
+          ctx.shadowBlur = 8;
+          ctx.globalAlpha = 0.7;
+          ctx.beginPath();
+          ctx.rect(tx - 1.5, -th, 3, th);
+          ctx.fill();
+          // glowing rim
+          ctx.strokeStyle = cc.glow;
+          ctx.lineWidth = 1;
+          ctx.globalAlpha = 0.55;
+          ctx.beginPath();
+          ctx.rect(tx - 1.5, -th, 3, th);
+          ctx.stroke();
+          // opening circle at top
+          ctx.fillStyle = cc.glow;
+          ctx.globalAlpha = 0.85;
+          ctx.beginPath();
+          ctx.arc(tx, -th, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+      } else if (formType === 2) {
+        // Fan coral: arc of connected arcs
+        const fanR = 10 + Math.random() * 15;
+        const fanSpokes = 5 + Math.floor(Math.random() * 5);
+        ctx.strokeStyle = cc.glow;
+        ctx.lineWidth = 1;
+        ctx.shadowColor = cc.glow;
+        ctx.shadowBlur = 8;
+        ctx.globalAlpha = 0.5;
+        for (let s = 0; s <= fanSpokes; s++) {
+          const a = Math.PI + (s / fanSpokes) * Math.PI;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(fanR * Math.cos(a), fanR * Math.sin(a));
+          ctx.stroke();
+        }
+        // arc connecting the tips
+        ctx.beginPath();
+        ctx.arc(0, 0, fanR, Math.PI, Math.PI * 2);
+        ctx.stroke();
+
+      } else {
+        // Mound / bubble coral: a cluster of glowing circles
+        const moundCount = 4 + Math.floor(Math.random() * 6);
+        for (let m = 0; m < moundCount; m++) {
+          const mx = (Math.random() - 0.5) * 18;
+          const my = (Math.random() - 0.5) * 8;
+          const mr = 2.5 + Math.random() * 3.5;
+          ctx.fillStyle = cc.body;
+          ctx.shadowColor = cc.glow;
+          ctx.shadowBlur = 10;
+          ctx.globalAlpha = 0.55;
+          ctx.beginPath();
+          ctx.arc(mx, my, mr, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = cc.glow;
+          ctx.lineWidth = 0.8;
+          ctx.globalAlpha = 0.5;
+          ctx.beginPath();
+          ctx.arc(mx, my, mr, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
       ctx.restore();
     }
 
     // Large dark rocks
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       const x = Math.random() * CANVAS_WIDTH;
       const y = Math.random() * this.LAYER_HEIGHT;
       const r = 5 + Math.random() * 10;
-      ctx.fillStyle = `rgba(${8 + Math.random() * 10},${12 + Math.random() * 10},${22 + Math.random() * 12},0.92)`;
+      ctx.fillStyle = `rgba(${10 + Math.random() * 12},${16 + Math.random() * 12},${28 + Math.random() * 14},0.92)`;
       ctx.beginPath();
       ctx.ellipse(x, y, r, r * 0.7, Math.random() * Math.PI, 0, Math.PI * 2);
       ctx.fill();
@@ -458,15 +584,15 @@ export class Background {
   }
 
   private renderStage2Water(ctx: CanvasRenderingContext2D): void {
-    // Dark deep-sea tint
-    ctx.fillStyle = 'rgba(0, 20, 60, 0.45)';
+    // Dark deep-sea tint – reduced to simulate moonlight
+    ctx.fillStyle = 'rgba(0, 25, 65, 0.32)';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Deep gradient - almost black at bottom
+    // Deep gradient - lighter at top (moonlight), deeper at bottom
     const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-    gradient.addColorStop(0, 'rgba(0, 10, 40, 0.35)');
-    gradient.addColorStop(0.6, 'rgba(0, 5, 20, 0.18)');
-    gradient.addColorStop(1, 'rgba(0, 2, 10, 0.06)');
+    gradient.addColorStop(0, 'rgba(5, 20, 55, 0.25)');
+    gradient.addColorStop(0.6, 'rgba(0, 8, 28, 0.12)');
+    gradient.addColorStop(1, 'rgba(0, 4, 14, 0.04)');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
