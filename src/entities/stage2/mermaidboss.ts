@@ -1,5 +1,5 @@
 import { Entity } from '../../types';
-import { CANVAS_WIDTH, BOSS_MAX_HP, BOSS_LASER_HIT_INTERVAL } from '../../constants';
+import { CANVAS_WIDTH, BOSS_MAX_HP, BOSS_LASER_HIT_INTERVAL, BOSS_RAGE_DURATION } from '../../constants';
 import { BossEnemy } from '../entityRoles';
 import { EnergyBall } from '../energyball';
 
@@ -9,7 +9,6 @@ const MERMAID_TARGET_Y = 220;
 const MERMAID_CHASE_SPEED = 65;
 const MERMAID_SHOOT_MIN = 1.8;
 const MERMAID_SHOOT_MAX = 2.8;
-const MERMAID_RAGE_THRESHOLD = 0.25; // single rage at 25%
 
 function createMermaidNormalSprite(): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -357,7 +356,12 @@ export class MermaidBoss extends BossEnemy {
   private shootInterval: number;
   private floatTime: number = 0;
   private hitFlash: number = 0;
-  private rageTriggered: boolean = false;
+  private rageTimer: number = 0;
+  private rageShootTimer: number = 0;
+
+  // rage triggers at 75%, 50%, 25% HP remaining
+  private rageThresholds: number[];
+  private nextRageIdx: number = 0;
 
   constructor(x: number, startY: number) {
     super();
@@ -365,6 +369,11 @@ export class MermaidBoss extends BossEnemy {
     this.y = startY;
     this.hp = BOSS_MAX_HP;
     this.maxHp = BOSS_MAX_HP;
+    this.rageThresholds = [
+      Math.floor(BOSS_MAX_HP * 0.75),
+      Math.floor(BOSS_MAX_HP * 0.50),
+      Math.floor(BOSS_MAX_HP * 0.25),
+    ];
     this.normalSprites = [createMermaidNormalSprite(), createMermaidNormalSprite()];
     this.rageSprites = [createMermaidRageSprite(), createMermaidRageSprite()];
     this.shootInterval = MERMAID_SHOOT_MIN + Math.random() * (MERMAID_SHOOT_MAX - MERMAID_SHOOT_MIN);
@@ -398,13 +407,20 @@ export class MermaidBoss extends BossEnemy {
     this.animTimer += dt;
     if (this.animTimer >= 0.45) { this.animTimer -= 0.45; this.animFrame = (this.animFrame + 1) % 2; }
 
-    // Rage mode: shoot faster burst
+    // Rage mode: shoot faster burst, then expire after BOSS_RAGE_DURATION
     if (this.isRaging) {
-      this.shootTimer += dt;
+      this.rageTimer += dt;
+      this.rageShootTimer += dt;
       const rageInterval = 0.5;
-      if (this.shootTimer >= rageInterval) {
-        this.shootTimer = 0;
+      if (this.rageShootTimer >= rageInterval) {
+        this.rageShootTimer = 0;
         this.fireGoldBurst();
+      }
+      if (this.rageTimer >= BOSS_RAGE_DURATION) {
+        this.isRaging = false;
+        this.rageTimer = 0;
+        this.rageShootTimer = 0;
+        this.nextRageIdx++;
       }
     } else {
       this.shootTimer += dt;
@@ -453,9 +469,13 @@ export class MermaidBoss extends BossEnemy {
   }
 
   private checkRage(): void {
-    if (!this.rageTriggered && this.hp <= Math.floor(this.maxHp * MERMAID_RAGE_THRESHOLD)) {
-      this.rageTriggered = true;
+    if (
+      this.nextRageIdx < this.rageThresholds.length &&
+      this.hp <= this.rageThresholds[this.nextRageIdx]
+    ) {
       this.isRaging = true;
+      this.rageTimer = 0;
+      this.rageShootTimer = 0;
     }
   }
 
@@ -541,7 +561,7 @@ export class MermaidBoss extends BossEnemy {
       ctx.fillStyle = '#ffdd00';
       ctx.shadowColor = '#ffdd00';
       ctx.shadowBlur = 8;
-      ctx.fillText('WITCH FORM UNLEASHED!', barX + barW, barY - 2);
+      ctx.fillText('INVINCIBLE RAGE!', barX + barW, barY - 2);
     }
 
     ctx.restore();
