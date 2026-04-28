@@ -8,6 +8,7 @@ import {
 } from '../constants';
 import { HarpoonProjectile } from './harpoon';
 import { EnergyBall } from './energyball';
+import { BossEnemy } from './entityRoles';
 
 // Boss width/height = 2.0× the ScubaKitten (88×100) – 20% smaller than original 2.5×
 const BOSS_WIDTH = 176;
@@ -18,7 +19,7 @@ const BOSS_CHASE_SPEED = 75; // horizontal pixels per second
 const BOSS_SHOOT_INTERVAL_MIN = 1.6;
 const BOSS_SHOOT_INTERVAL_MAX = 2.6;
 
-export class ScubaRastafariBoss implements Entity {
+export class ScubaRastafariBoss extends BossEnemy {
   x: number;
   y: number;
   width: number = BOSS_WIDTH;
@@ -37,6 +38,9 @@ export class ScubaRastafariBoss implements Entity {
 
   pendingHarpoons: HarpoonProjectile[] = [];
   pendingEnergyBalls: EnergyBall[] = [];
+
+  get pendingProjectiles(): Entity[] { return [...this.pendingHarpoons, ...this.pendingEnergyBalls]; }
+  set pendingProjectiles(_v: Entity[]) { this.pendingHarpoons = []; this.pendingEnergyBalls = []; }
 
   laserHitCooldown: number = 0;
   hitFlash: number = 0;
@@ -57,6 +61,7 @@ export class ScubaRastafariBoss implements Entity {
   private nextRageIdx: number = 0;
 
   constructor(x: number, startY: number) {
+    super();
     this.x = x;
     this.y = startY;
     this.hp = BOSS_MAX_HP;

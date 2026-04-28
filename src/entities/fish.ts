@@ -1,8 +1,8 @@
-import { Entity } from '../types';
 import { createFishSprites } from '../sprites';
 import { FISH_SCORE } from '../constants';
+import { FoodCollectible } from './entityRoles';
 
-export class Fish implements Entity {
+export class Fish extends FoodCollectible {
   x: number;
   y: number;
   width: number = 24;
@@ -18,6 +18,7 @@ export class Fish implements Entity {
   private driftSpeed: number;
 
   constructor(x: number, y: number, colorVariant: 0 | 1 | 2 = 0) {
+    super();
     this.x = x;
     this.y = y;
     this.colorVariant = colorVariant;

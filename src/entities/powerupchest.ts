@@ -1,5 +1,5 @@
-import { Entity } from '../types';
 import { SHINY_CHEST_SCORE } from '../constants';
+import { PowerupCollectible } from './entityRoles';
 
 function createShinyChestSprite(): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -60,7 +60,7 @@ function createShinyChestSprite(): HTMLCanvasElement {
   return c;
 }
 
-export class PowerupChest implements Entity {
+export class PowerupChest extends PowerupCollectible {
   x: number;
   y: number;
   width: number = 64;
@@ -72,6 +72,7 @@ export class PowerupChest implements Entity {
   private glowTimer: number = 0;
 
   constructor(x: number, y: number) {
+    super();
     this.x = x;
     this.y = y;
     this.sprite = createShinyChestSprite();

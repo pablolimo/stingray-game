@@ -1,8 +1,8 @@
-import { Entity } from '../types';
 import { createStarfishSprite } from '../sprites';
 import { STARFISH_SCORE } from '../constants';
+import { BonusFoodCollectible } from './entityRoles';
 
-export class Starfish implements Entity {
+export class Starfish extends BonusFoodCollectible {
   x: number;
   y: number;
   width: number = 48;
@@ -13,6 +13,7 @@ export class Starfish implements Entity {
   private sprite: HTMLCanvasElement;
 
   constructor(x: number, y: number) {
+    super();
     this.x = x;
     this.y = y;
     this.sprite = createStarfishSprite();

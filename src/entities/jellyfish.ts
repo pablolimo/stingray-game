@@ -1,9 +1,9 @@
-import { Entity } from '../types';
 import { createJellyfishSprites } from '../sprites';
+import { SmallEnemy } from './entityRoles';
 
 const LIGHTNING_JITTER = 3; // pixels of zigzag jitter per lightning bolt segment
 
-export class Jellyfish implements Entity {
+export class Jellyfish extends SmallEnemy {
   x: number;
   y: number;
   width: number = 48;
@@ -18,6 +18,7 @@ export class Jellyfish implements Entity {
   private electricTimer: number;
 
   constructor(x: number, y: number, speedMultiplier: number = 1.0, level: number = 1) {
+    super();
     this.x = x;
     this.y = y;
     this.sprites = createJellyfishSprites();

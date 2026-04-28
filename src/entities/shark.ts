@@ -1,8 +1,8 @@
-import { Entity } from '../types';
 import { createSharkSprite } from '../sprites';
 import { CANVAS_WIDTH } from '../constants';
+import { BigEnemy } from './entityRoles';
 
-export class Shark implements Entity {
+export class Shark extends BigEnemy {
   x: number;
   y: number;
   width: number = 120;
@@ -14,6 +14,7 @@ export class Shark implements Entity {
   private level: number;
 
   constructor(x: number, y: number, targetX: number, level: number = 1) {
+    super();
     this.x = x;
     this.y = y;
     this.targetX = targetX;

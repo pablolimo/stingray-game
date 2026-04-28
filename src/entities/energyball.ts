@@ -1,9 +1,9 @@
-import { Entity } from '../types';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants';
+import { ProjectileEntity } from './entityRoles';
 
 const ENERGY_BALL_SPEED = 220; // px per second
 
-export class EnergyBall implements Entity {
+export class EnergyBall extends ProjectileEntity {
   x: number;
   y: number;
   width: number = 22;
@@ -15,6 +15,7 @@ export class EnergyBall implements Entity {
   private glowTimer: number = 0;
 
   constructor(x: number, y: number, angle: number) {
+    super();
     this.x = x;
     this.y = y;
     this.vx = Math.cos(angle) * ENERGY_BALL_SPEED;
