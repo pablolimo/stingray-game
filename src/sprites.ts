@@ -14,12 +14,12 @@ export function createStingraySprites(): HTMLCanvasElement[] {
   // 3 frames of 24x24
   const frames: HTMLCanvasElement[] = [];
   
-  const body = '#2a4a6b';
-  const wing = '#1a3a5a';
-  const belly = '#3a6a8b';
-  const tail = '#1a2a3b';
-  const eye = '#000000';
-  const highlight = '#4a8ab0';
+  const body = '#7a9ab8';
+  const wing = '#5a7a9a';
+  const belly = '#9ab8cc';
+  const tail = '#4a6a88';
+  const eye = '#001828';
+  const highlight = '#c0d8ec';
 
   // Wing offsets for flap animation: [0, -1, -2] for y offset of wing tips
   const wingOffsets = [0, -1, -2];

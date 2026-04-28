@@ -28,20 +28,6 @@ function createMoonJellyfishSprite(): HTMLCanvasElement {
   ctx.stroke();
   ctx.shadowBlur = 0;
 
-  // 4 oral arms hanging below bell
-  ctx.strokeStyle = 'rgba(180,140,255,0.7)';
-  ctx.lineWidth = 2;
-  const armOffsets = [-6, -2, 2, 6];
-  for (const ox of armOffsets) {
-    ctx.beginPath();
-    ctx.moveTo(16 + ox, 24);
-    ctx.quadraticCurveTo(
-      16 + ox + (ox < 0 ? -4 : 4), 30,
-      16 + ox + (ox < 0 ? -2 : 2), 38
-    );
-    ctx.stroke();
-  }
-
   // Inner cross pattern (characteristic of moon jellyfish)
   ctx.fillStyle = 'rgba(200,150,255,0.4)';
   ctx.beginPath();

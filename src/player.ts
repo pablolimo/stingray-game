@@ -13,6 +13,7 @@ export class Player {
   shieldTimer: number = 0;
   animFrame: number = 0;
   animTimer: number = 0;
+  private glowTimer: number = 0;
   width: number = 96;
   height: number = 96;
 
@@ -57,6 +58,7 @@ export class Player {
       this.animTimer -= 0.15;
       this.animFrame = (this.animFrame + 1) % this.sprites.length;
     }
+    this.glowTimer += dt;
 
     // Invincibility
     if (this.invincibleTimer > 0) {
@@ -110,6 +112,20 @@ export class Player {
     if (this.invincibleTimer > 0 && Math.sin(this.invincibleTimer * 20) > 0) {
       return;
     }
+
+    // Natural bioluminescent glow aura
+    ctx.save();
+    const glowAlpha = 0.10 + Math.abs(Math.sin(this.glowTimer * 1.4)) * 0.07;
+    ctx.globalAlpha = glowAlpha;
+    const grd = ctx.createRadialGradient(this.x, this.y, 4, this.x, this.y, this.width * 0.65);
+    grd.addColorStop(0, 'rgba(160, 210, 255, 0.9)');
+    grd.addColorStop(1, 'rgba(80, 150, 220, 0)');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.width * 0.65, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
     const sprite = this.sprites[this.animFrame];
     ctx.drawImage(sprite, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
   }
