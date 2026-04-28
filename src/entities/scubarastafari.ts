@@ -9,9 +9,9 @@ import {
 import { HarpoonProjectile } from './harpoon';
 import { EnergyBall } from './energyball';
 
-// Boss width/height = 2.5× the ScubaKitten (88×100)
-const BOSS_WIDTH = 220;
-const BOSS_HEIGHT = 250;
+// Boss width/height = 2.0× the ScubaKitten (88×100) – 20% smaller than original 2.5×
+const BOSS_WIDTH = 176;
+const BOSS_HEIGHT = 200;
 
 const BOSS_TARGET_Y = 210; // resting vertical position
 const BOSS_CHASE_SPEED = 75; // horizontal pixels per second

@@ -98,8 +98,8 @@ export class Spawner {
       spawned.push(new PowerupChest(x, -30));
     }
 
-    // Red treasure: every 40s decreasing to 25s
-    const redTreasureInterval = 40.0 - diff * 15.0;
+    // Red treasure: every 40s decreasing to 25s; level 3+ spawns twice as fast
+    const redTreasureInterval = (40.0 - diff * 15.0) / (level >= 3 ? 2 : 1);
     this.redTreasureTimer += dt;
     if (this.redTreasureTimer >= redTreasureInterval) {
       this.redTreasureTimer -= redTreasureInterval;

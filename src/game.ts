@@ -85,6 +85,7 @@ export class Game {
   private pauseButtonBounds = { x: 0, y: 0, width: 28, height: 20 };
   private boss: ScubaRastafariBoss | null = null;
   private bossDefeatedTimer: number = 0;
+  private level4BlueChestTimer: number = 0;
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
@@ -179,6 +180,16 @@ export class Game {
         if (this.level < 4) {
           const newEntities = this.spawner.update(dt, this.scrollSpeed, this.player.x, this.level);
           this.entities.push(...newEntities);
+        }
+
+        // Level 4: spawn two blue chests every 10 seconds
+        if (this.level === 4 && this.boss && !this.boss.defeated) {
+          this.level4BlueChestTimer += dt;
+          if (this.level4BlueChestTimer >= 10.0) {
+            this.level4BlueChestTimer -= 10.0;
+            this.entities.push(new PowerupChest(40 + Math.random() * (CANVAS_WIDTH - 80), -30));
+            this.entities.push(new PowerupChest(40 + Math.random() * (CANVAS_WIDTH - 80), -30));
+          }
         }
 
         // Remove off-screen or expired entities
@@ -623,6 +634,7 @@ export class Game {
     this.shockwaveRings = [];
     this.boss = null;
     this.bossDefeatedTimer = 0;
+    this.level4BlueChestTimer = 0;
   }
 
   private incrementLaserGauge(): void {
