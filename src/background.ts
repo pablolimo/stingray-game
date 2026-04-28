@@ -314,7 +314,7 @@ export class Background {
       ctx.fillStyle = glowColor;
       ctx.globalAlpha = 0.8;
       ctx.beginPath();
-      ctx.arc(x + (3 % 2 === 0 ? 3 : -3), baseY - 28, 2.5, 0, Math.PI * 2);
+      ctx.arc(x - 3, baseY - 28, 2.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }

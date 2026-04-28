@@ -347,7 +347,7 @@ export class MermaidBoss extends BossEnemy {
 
   private pendingBalls: EnergyBall[] = [];
   get pendingProjectiles(): Entity[] { return this.pendingBalls; }
-  set pendingProjectiles(_v: Entity[]) { this.pendingBalls = []; }
+  set pendingProjectiles(v: Entity[]) { this.pendingBalls = v as EnergyBall[]; }
 
   private normalSprites: HTMLCanvasElement[];
   private rageSprites: HTMLCanvasElement[];
