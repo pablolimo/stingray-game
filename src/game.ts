@@ -22,6 +22,7 @@ import {
 import { StageDefinition } from './stages/stageDefinition';
 import { stage1Definition } from './stages/stage1';
 import { stage2Definition } from './stages/stage2';
+import { PlayerArcBall } from './entities/playerarcball';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
@@ -84,6 +85,7 @@ export class Game {
   private currentStageId: number = 1;
   private stageDef: StageDefinition = stage1Definition;
   private activePowerupStyle: 'laser' | 'arc' = 'laser';
+  private arcBallTimer: number = 0;
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
@@ -135,7 +137,17 @@ export class Game {
           if (this.gaugeLevel <= 0) {
             this.gaugeLevel = 0;
             this.laserActive = false;
+            this.arcBallTimer = 0;
             // powerupActive stays true – can be recharged
+          }
+          // Arc weapon: fire glowing energy balls periodically
+          if (this.activePowerupStyle === 'arc') {
+            this.arcBallTimer += dt;
+            const ARC_FIRE_INTERVAL = 0.7;
+            if (this.arcBallTimer >= ARC_FIRE_INTERVAL) {
+              this.arcBallTimer -= ARC_FIRE_INTERVAL;
+              this.entities.push(new PlayerArcBall(this.player.x, this.player.y - this.player.height / 2));
+            }
           }
         }
         if (this.player.shieldActive) {
@@ -200,8 +212,8 @@ export class Game {
           return e.y > -100 && e.y < CANVAS_HEIGHT + 100;
         });
 
-        // Laser beam – destroy enemies in its path each frame while active
-        if (this.laserActive) {
+        // Laser beam – destroy enemies in its path each frame while active (laser style only)
+        if (this.laserActive && this.activePowerupStyle === 'laser') {
           const laserBeamHalfWidth = 20;
           this.entities = this.entities.filter(e => {
             if (e instanceof SmallEnemy || e instanceof BigEnemy || e instanceof MediumEnemy || e instanceof Level3Enemy) {
@@ -247,6 +259,72 @@ export class Game {
                 this.spawnBossDefeatExplosion();
               } else {
                 this.spawnParticles(this.boss.x, this.boss.y, '#ffcc00', 8);
+              }
+            }
+          }
+        }
+
+        // Arc energy balls – player projectiles hitting enemies
+        if (this.activePowerupStyle === 'arc') {
+          const arcBalls = this.entities.filter(
+            e => e instanceof PlayerArcBall && (e as PlayerArcBall).active,
+          ) as PlayerArcBall[];
+          if (arcBalls.length > 0) {
+            this.entities = this.entities.filter(e => {
+              if (e instanceof SmallEnemy || e instanceof BigEnemy || e instanceof MediumEnemy || e instanceof Level3Enemy) {
+                const eBounds = e.getBounds();
+                for (const ball of arcBalls) {
+                  if (!ball.active) continue;
+                  if (aabb(ball.getBounds(), eBounds)) {
+                    ball.active = false;
+                    if (e instanceof MediumEnemy) {
+                      // Arc ball hits harder: 3× damage
+                      for (let i = 0; i < 3; i++) {
+                        const dead = e.takePearlHit();
+                        if (dead) { this.spawnDisintegration(e.x, e.y, this.stageDef.mediumEnemyDisintColors); return false; }
+                      }
+                      this.spawnParticles(e.x, e.y, this.stageDef.mediumEnemyLaserHitColor, 10);
+                      return true;
+                    }
+                    if (e instanceof Level3Enemy) {
+                      for (let i = 0; i < 3; i++) {
+                        const dead = e.takePearlHit();
+                        if (dead) { this.spawnDisintegration(e.x, e.y, this.stageDef.level3EnemyDisintColors); return false; }
+                      }
+                      this.spawnParticles(e.x, e.y, this.stageDef.level3EnemyLaserHitColor, 10);
+                      return true;
+                    }
+                    // SmallEnemy / BigEnemy: destroy on contact
+                    const colors = e instanceof SmallEnemy
+                      ? this.stageDef.smallEnemyDisintColors
+                      : this.stageDef.bigEnemyDisintColors;
+                    this.spawnDisintegration(e.x, e.y, colors);
+                    return false;
+                  }
+                }
+              }
+              return true;
+            });
+
+            // Arc balls vs boss
+            if (this.boss && !this.boss.defeated) {
+              const bossBounds = this.boss.getBounds();
+              for (const ball of arcBalls) {
+                if (!ball.active) continue;
+                if (aabb(ball.getBounds(), bossBounds)) {
+                  ball.active = false;
+                  let dead = false;
+                  for (let i = 0; i < 3; i++) {
+                    dead = this.boss.takePearlHit();
+                    if (dead) break;
+                  }
+                  if (dead) {
+                    this.spawnBossDefeatExplosion();
+                  } else {
+                    this.spawnParticles(this.boss.x, this.boss.y, '#ccaaff', 14);
+                    this.shakeTimer = Math.max(this.shakeTimer, SCREEN_SHAKE_DURATION * 0.5);
+                  }
+                }
               }
             }
           }
@@ -385,7 +463,7 @@ export class Game {
                 }
               }
             }
-          } else if (e instanceof ProjectileEntity && e.active) {
+          } else if (e instanceof ProjectileEntity && e.active && !(e instanceof PlayerArcBall)) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
@@ -620,6 +698,7 @@ export class Game {
     this.bossDefeatedTimer = 0;
     this.level4BlueChestTimer = 0;
     this.activePowerupStyle = 'laser';
+    this.arcBallTimer = 0;
   }
 
   private incrementLaserGauge(): void {
@@ -892,30 +971,16 @@ export class Game {
       const by = this.player.y - this.player.height / 2;
 
       if (this.activePowerupStyle === 'arc') {
-        // Arc weapon: 4 expanding white semicircular arcs
-        const arcCount = 4;
-        for (let i = 0; i < arcCount; i++) {
-          const phase = ((this.laserAnimTime * 2.5 + i * 0.25) % 1.0);
-          const r = phase * 140 + 18;
-          const alpha = (1 - phase) * 0.75;
-          ctx.save();
-          ctx.globalAlpha = alpha;
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = Math.max(0.5, 3 - phase * 2.5);
-          ctx.shadowColor = '#ccddff';
-          ctx.shadowBlur = 10;
-          ctx.beginPath();
-          ctx.arc(bx, by, r, Math.PI, 0, false);
-          ctx.stroke();
-          ctx.restore();
-        }
-        // Central burst dot
-        ctx.globalAlpha = 0.5 + Math.sin(this.laserAnimTime * 18) * 0.2;
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = '#aaccff';
-        ctx.shadowBlur = 12;
+        // Arc weapon active: show a pulsing charge indicator at the front of the stingray
+        const chargePulse = 0.4 + Math.sin(this.laserAnimTime * 14) * 0.3;
+        ctx.globalAlpha = chargePulse;
+        const chargeGrad = ctx.createRadialGradient(bx, by, 2, bx, by, 22);
+        chargeGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+        chargeGrad.addColorStop(0.45, 'rgba(200,160,255,0.5)');
+        chargeGrad.addColorStop(1, 'rgba(100,60,220,0)');
+        ctx.fillStyle = chargeGrad;
         ctx.beginPath();
-        ctx.arc(bx, by, 5, 0, Math.PI * 2);
+        ctx.arc(bx, by, 22, 0, Math.PI * 2);
         ctx.fill();
       } else {
         const beamW = 40;
