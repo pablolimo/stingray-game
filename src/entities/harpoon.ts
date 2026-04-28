@@ -1,10 +1,10 @@
-import { Entity } from '../types';
 import { createHarpoonSprite } from '../sprites';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants';
+import { ProjectileEntity } from './entityRoles';
 
 const HARPOON_SPEED = 380; // px per second
 
-export class HarpoonProjectile implements Entity {
+export class HarpoonProjectile extends ProjectileEntity {
   x: number;
   y: number;
   width: number = 10;
@@ -17,6 +17,7 @@ export class HarpoonProjectile implements Entity {
   private sprite: HTMLCanvasElement;
 
   constructor(x: number, y: number, targetX: number, targetY: number) {
+    super();
     this.x = x;
     this.y = y;
     this.sprite = createHarpoonSprite();

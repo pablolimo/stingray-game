@@ -13,25 +13,20 @@ interface ShockwaveRing {
   life: number;
   maxLife: number;
 }
-import { Fish } from './entities/fish';
-import { Starfish } from './entities/starfish';
-import { Jellyfish } from './entities/jellyfish';
-import { Shark } from './entities/shark';
-import { Squid } from './entities/squid';
-import { TreasureChest } from './entities/treasure';
-import { PowerupChest } from './entities/powerupchest';
-import { RedTreasure } from './entities/redtreasure';
-import { GlowingClam } from './entities/glowingclam';
-import { GoldenCoin } from './entities/goldencoin';
-import { ScubaKitten } from './entities/scubakitten';
-import { HarpoonProjectile } from './entities/harpoon';
-import { ScubaRastafariBoss } from './entities/scubarastafari';
-import { EnergyBall } from './entities/energyball';
+import {
+  SmallEnemy, BigEnemy, MediumEnemy, Level3Enemy,
+  FoodCollectible, BonusFoodCollectible, TreasureCollectible, PowerupCollectible,
+  HealCollectible, OrbitalCollectible, CoinCollectible,
+  ProjectileEntity, BossEnemy,
+} from './entities/entityRoles';
+import { StageDefinition } from './stages/stageDefinition';
+import { stage1Definition } from './stages/stage1';
+import { stage2Definition } from './stages/stage2';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
   SCREEN_SHAKE_DURATION, SCREEN_SHAKE_MAGNITUDE,
-  LASER_DURATION, LASER_DRAIN_RATE, GAUGE_PER_EAT,
+  LASER_DRAIN_RATE, GAUGE_PER_EAT,
   LEVEL2_SCORE_THRESHOLD, LEVEL3_SCORE_THRESHOLD, LEVEL4_SCORE_THRESHOLD,
   PEARL_ORBIT_RADIUS, PEARL_SPIN_SPEED, PEARL_HIT_RADIUS, PEARL_DRAW_RADIUS,
   EXPLOSION_PARTICLE_COUNT, SHOCKWAVE_INITIAL_RADIUS, SHOCKWAVE_MAX_RADIUS, SHOCKWAVE_DURATION,
@@ -83,19 +78,28 @@ export class Game {
   private disintegrationParticles: DisintegrationParticle[] = [];
   // Pause button bounds (canvas coordinates, updated each render)
   private pauseButtonBounds = { x: 0, y: 0, width: 28, height: 20 };
-  private boss: ScubaRastafariBoss | null = null;
+  private boss: BossEnemy | null = null;
   private bossDefeatedTimer: number = 0;
   private level4BlueChestTimer: number = 0;
+  private currentStageId: number = 1;
+  private stageDef: StageDefinition = stage1Definition;
+  private activePowerupStyle: 'laser' | 'arc' = 'laser';
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
     this.ctx = ctx;
-    this.background = new Background();
+    this.background = new Background(this.currentStageId);
     this.player = new Player();
     this.input = new InputHandler();
-    this.spawner = new Spawner();
+    this.spawner = new Spawner(this.stageDef.spawnConfig);
     this.hud = new HUD();
     canvas.addEventListener('click', (e) => this.handleClick(e));
+  }
+
+  setStage(stageId: number): void {
+    this.currentStageId = stageId;
+    this.stageDef = stageId === 2 ? stage2Definition : stage1Definition;
+    this.background = new Background(stageId);
   }
 
   update(dt: number): void {
@@ -140,24 +144,24 @@ export class Game {
 
         // Update entities
         for (const e of this.entities) {
-          if (e instanceof Squid) {
+          if (e instanceof MediumEnemy) {
             e.targetX = this.player.x;
           }
-          if (e instanceof ScubaKitten) {
+          if (e instanceof Level3Enemy) {
             e.targetX = this.player.x;
             e.targetY = this.player.y;
           }
-          if (e instanceof Shark && this.level >= 3) {
+          if (e instanceof BigEnemy && this.level >= 3) {
             e.targetX = this.player.x;
           }
           e.update(dt, this.scrollSpeed);
         }
 
-        // Collect harpoons spawned by ScubaKittens this frame
+        // Collect projectiles spawned by Level3Enemies this frame
         for (const e of this.entities) {
-          if (e instanceof ScubaKitten && e.pendingHarpoons.length > 0) {
-            this.entities.push(...e.pendingHarpoons);
-            e.pendingHarpoons = [];
+          if (e instanceof Level3Enemy && e.pendingProjectiles.length > 0) {
+            this.entities.push(...e.pendingProjectiles);
+            e.pendingProjectiles = [];
           }
         }
 
@@ -166,13 +170,9 @@ export class Game {
           this.boss.targetX = this.player.x;
           this.boss.targetY = this.player.y;
           this.boss.update(dt, this.scrollSpeed);
-          if (this.boss.pendingHarpoons.length > 0) {
-            this.entities.push(...this.boss.pendingHarpoons);
-            this.boss.pendingHarpoons = [];
-          }
-          if (this.boss.pendingEnergyBalls.length > 0) {
-            this.entities.push(...this.boss.pendingEnergyBalls);
-            this.boss.pendingEnergyBalls = [];
+          if (this.boss.pendingProjectiles.length > 0) {
+            this.entities.push(...this.boss.pendingProjectiles);
+            this.boss.pendingProjectiles = [];
           }
         }
 
@@ -182,22 +182,21 @@ export class Game {
           this.entities.push(...newEntities);
         }
 
-        // Level 4: spawn two blue chests every 10 seconds
+        // Level 4: spawn two powerup chests every 10 seconds
         if (this.level === 4 && this.boss && !this.boss.defeated) {
           this.level4BlueChestTimer += dt;
           if (this.level4BlueChestTimer >= 10.0) {
             this.level4BlueChestTimer -= 10.0;
-            this.entities.push(new PowerupChest(40 + Math.random() * (CANVAS_WIDTH - 80), -30));
-            this.entities.push(new PowerupChest(40 + Math.random() * (CANVAS_WIDTH - 80), -30));
+            this.entities.push(this.stageDef.spawnConfig.createPowerupChest(40 + Math.random() * (CANVAS_WIDTH - 80), -30));
+            this.entities.push(this.stageDef.spawnConfig.createPowerupChest(40 + Math.random() * (CANVAS_WIDTH - 80), -30));
           }
         }
 
         // Remove off-screen or expired entities
         this.entities = this.entities.filter(e => {
-          if (e instanceof Squid && e.expired) return false;
-          if (e instanceof ScubaKitten && e.expired) return false;
-          if (e instanceof HarpoonProjectile && !e.active) return false;
-          if (e instanceof EnergyBall && !e.active) return false;
+          if (e instanceof MediumEnemy && e.expired) return false;
+          if (e instanceof Level3Enemy && e.expired) return false;
+          if (e instanceof ProjectileEntity && !e.active) return false;
           return e.y > -100 && e.y < CANVAS_HEIGHT + 100;
         });
 
@@ -205,32 +204,30 @@ export class Game {
         if (this.laserActive) {
           const laserBeamHalfWidth = 20;
           this.entities = this.entities.filter(e => {
-            if (e instanceof Jellyfish || e instanceof Shark || e instanceof Squid || e instanceof ScubaKitten) {
+            if (e instanceof SmallEnemy || e instanceof BigEnemy || e instanceof MediumEnemy || e instanceof Level3Enemy) {
               if (Math.abs(e.x - this.player.x) < laserBeamHalfWidth + e.width / 2 && e.y < this.player.y) {
-                if (e instanceof Squid) {
-                  // Squid needs multiple HP ticks to die from the laser
+                if (e instanceof MediumEnemy) {
                   const dead = e.takeLaserHit();
                   if (!dead) {
-                    this.spawnParticles(e.x, e.y, '#ff8844', 5);
-                    return true; // still alive
+                    this.spawnParticles(e.x, e.y, this.stageDef.mediumEnemyLaserHitColor, 5);
+                    return true;
                   }
-                  this.spawnDisintegration(e.x, e.y, ['#9b1e4b', '#dc508c', '#6e0032', '#ffe000']);
+                  this.spawnDisintegration(e.x, e.y, this.stageDef.mediumEnemyDisintColors);
                   return false;
                 }
-                if (e instanceof ScubaKitten) {
-                  // ScubaKitten needs 2× squid hits to die from the laser
+                if (e instanceof Level3Enemy) {
                   const dead = e.takeLaserHit();
                   if (!dead) {
-                    this.spawnParticles(e.x, e.y, '#4a90d9', 5);
-                    return true; // still alive
+                    this.spawnParticles(e.x, e.y, this.stageDef.level3EnemyLaserHitColor, 5);
+                    return true;
                   }
-                  this.spawnDisintegration(e.x, e.y, ['#2d6e8a', '#f5c98a', '#1a8a5a', '#ffcc00']);
+                  this.spawnDisintegration(e.x, e.y, this.stageDef.level3EnemyDisintColors);
                   return false;
                 }
-                // All other enemies: disintegrate immediately
-                const colors = e instanceof Jellyfish
-                  ? ['#c864c8', '#e0a0e0', '#9632b4', '#ffffff']
-                  : ['#708090', '#536878', '#b0c0d0', '#ffffff'];
+                // SmallEnemy / BigEnemy: disintegrate immediately
+                const colors = e instanceof SmallEnemy
+                  ? this.stageDef.smallEnemyDisintColors
+                  : this.stageDef.bigEnemyDisintColors;
                 this.spawnDisintegration(e.x, e.y, colors);
                 return false;
               }
@@ -270,7 +267,7 @@ export class Game {
         }
 
         for (const e of this.entities) {
-          if (e instanceof Fish && !e.collected) {
+          if (e instanceof FoodCollectible && !e.collected) {
             const bounds = e.getBounds();
             if (aabb(playerBounds, bounds)) {
               e.collected = true;
@@ -278,7 +275,7 @@ export class Game {
               this.spawnParticles(e.x, e.y, '#f4721a', 8);
               this.incrementLaserGauge();
             }
-          } else if (e instanceof Starfish && !e.collected) {
+          } else if (e instanceof BonusFoodCollectible && !e.collected) {
             const bounds = e.getBounds();
             if (aabb(playerBounds, bounds)) {
               e.collected = true;
@@ -286,7 +283,7 @@ export class Game {
               this.spawnParticles(e.x, e.y, '#e8612a', 12);
               this.incrementLaserGauge();
             }
-          } else if (e instanceof TreasureChest && !e.collected) {
+          } else if (e instanceof TreasureCollectible && !e.collected) {
             const bounds = e.getBounds();
             if (aabb(playerBounds, bounds)) {
               e.collected = true;
@@ -294,14 +291,16 @@ export class Game {
               this.spawnParticles(e.x, e.y, '#ffd700', 16);
               this.incrementLaserGauge();
             }
-          } else if (e instanceof PowerupChest && !e.collected) {
+          } else if (e instanceof PowerupCollectible && !e.collected) {
             const bounds = e.getBounds();
             if (aabb(playerBounds, bounds)) {
               e.collected = true;
               this.score += e.score;
-              this.spawnParticles(e.x, e.y, '#00e5ff', 20);
+              this.activePowerupStyle = e.powerupStyle;
+              const glowColor = this.activePowerupStyle === 'arc' ? '#ffffff' : '#00e5ff';
+              this.spawnParticles(e.x, e.y, glowColor, 20);
               if (this.powerupActive) {
-                // Already have the gauge – fill it to 100% and start laser
+                // Already have the gauge – fill it to 100% and start firing
                 this.gaugeLevel = 1;
                 this.laserActive = true;
                 this.laserAnimTime = 0;
@@ -312,7 +311,7 @@ export class Game {
                 this.laserActive = false;
               }
             }
-          } else if (e instanceof RedTreasure && !e.collected) {
+          } else if (e instanceof HealCollectible && !e.collected) {
             const bounds = e.getBounds();
             if (aabb(playerBounds, bounds)) {
               e.collected = true;
@@ -321,7 +320,7 @@ export class Game {
               this.player.healHp();
               this.player.activateShield();
             }
-          } else if (e instanceof GlowingClam && !e.collected) {
+          } else if (e instanceof OrbitalCollectible && !e.collected) {
             const bounds = e.getBounds();
             if (aabb(playerBounds, bounds)) {
               e.collected = true;
@@ -335,14 +334,14 @@ export class Game {
                 { angleOffset: (Math.PI * 8) / 5,      killsRemaining: 2, glowTimer: Math.PI * 1.6 },
               ];
             }
-          } else if (e instanceof GoldenCoin && !e.collected) {
+          } else if (e instanceof CoinCollectible && !e.collected) {
             const bounds = e.getBounds();
             if (aabb(playerBounds, bounds)) {
               e.collected = true;
               this.goldScore += 1;
               this.spawnParticles(e.x, e.y, '#ffd700', 12);
             }
-          } else if (e instanceof Jellyfish) {
+          } else if (e instanceof SmallEnemy) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
@@ -353,7 +352,7 @@ export class Game {
                 }
               }
             }
-          } else if (e instanceof Shark) {
+          } else if (e instanceof BigEnemy) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
@@ -364,7 +363,7 @@ export class Game {
                 }
               }
             }
-          } else if (e instanceof Squid) {
+          } else if (e instanceof MediumEnemy) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
@@ -375,7 +374,7 @@ export class Game {
                 }
               }
             }
-          } else if (e instanceof ScubaKitten) {
+          } else if (e instanceof Level3Enemy) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
@@ -386,19 +385,7 @@ export class Game {
                 }
               }
             }
-          } else if (e instanceof HarpoonProjectile && e.active) {
-            if (!this.player.isInvincible()) {
-              const bounds = e.getBounds();
-              if (aabb(playerBounds, bounds)) {
-                e.active = false;
-                const tookDamage = this.player.takeDamage();
-                if (tookDamage) {
-                  this.shakeTimer = SCREEN_SHAKE_DURATION;
-                  this.deactivatePowerup();
-                }
-              }
-            }
-          } else if (e instanceof EnergyBall && e.active) {
+          } else if (e instanceof ProjectileEntity && e.active) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
@@ -423,7 +410,7 @@ export class Game {
 
           const angle = this.orbitalPearlAngle;
           this.entities = this.entities.filter(e => {
-            if (!(e instanceof Jellyfish || e instanceof Shark || e instanceof Squid || e instanceof ScubaKitten)) return true;
+            if (!(e instanceof SmallEnemy || e instanceof BigEnemy || e instanceof MediumEnemy || e instanceof Level3Enemy)) return true;
             for (const pearl of this.orbitalPearls) {
               if (pearl.killsRemaining <= 0) continue;
               const pa = angle + pearl.angleOffset;
@@ -432,19 +419,15 @@ export class Game {
               const dx = e.x - px;
               const dy = e.y - py;
               if (Math.sqrt(dx * dx + dy * dy) < PEARL_HIT_RADIUS + e.width * 0.4) {
-                if (e instanceof Squid) {
-                  // Squid needs multiple HP hits to die from a pearl
+                if (e instanceof MediumEnemy) {
                   const dead = e.takePearlHit();
                   if (!dead) {
-                    // Pearl bounces off but doesn't consume a kill yet
                     return true;
                   }
                 }
-                if (e instanceof ScubaKitten) {
-                  // ScubaKitten needs 2× squid HP hits to die from a pearl
+                if (e instanceof Level3Enemy) {
                   const dead = e.takePearlHit();
                   if (!dead) {
-                    // Pearl bounces off but doesn't consume a kill yet
                     return true;
                   }
                 }
@@ -501,19 +484,19 @@ export class Game {
           // Clear all enemies and their projectiles; keep only collectables
           this.entities = this.entities.filter(
             e =>
-              e instanceof TreasureChest ||
-              e instanceof PowerupChest ||
-              e instanceof RedTreasure ||
-              e instanceof GlowingClam ||
-              e instanceof GoldenCoin,
+              e instanceof TreasureCollectible ||
+              e instanceof PowerupCollectible ||
+              e instanceof HealCollectible ||
+              e instanceof OrbitalCollectible ||
+              e instanceof CoinCollectible,
           );
-          // Spawn level-4 loot: 2 blue chests, 1 red chest, 1 green clam
-          this.entities.push(new PowerupChest(CANVAS_WIDTH * 0.22, 280));
-          this.entities.push(new PowerupChest(CANVAS_WIDTH * 0.78, 380));
-          this.entities.push(new RedTreasure(CANVAS_WIDTH * 0.50, 220));
-          this.entities.push(new GlowingClam(CANVAS_WIDTH * 0.62, 460));
+          // Spawn level-4 loot: 2 powerup chests, 1 red chest, 1 green clam
+          this.entities.push(this.stageDef.spawnConfig.createPowerupChest(CANVAS_WIDTH * 0.22, 280));
+          this.entities.push(this.stageDef.spawnConfig.createPowerupChest(CANVAS_WIDTH * 0.78, 380));
+          this.entities.push(this.stageDef.spawnConfig.createRedTreasure(CANVAS_WIDTH * 0.50, 220));
+          this.entities.push(this.stageDef.spawnConfig.createGlowingClam(CANVAS_WIDTH * 0.62, 460));
           // Spawn the boss from the top centre
-          this.boss = new ScubaRastafariBoss(CANVAS_WIDTH / 2, -160);
+          this.boss = this.stageDef.createBoss(CANVAS_WIDTH / 2, -160);
         }
         if (this.levelUpBannerTimer > 0) {
           this.levelUpBannerTimer -= dt;
@@ -529,13 +512,13 @@ export class Game {
 
         // Remove collected
         this.entities = this.entities.filter(e => {
-          if (e instanceof Fish && e.collected) return false;
-          if (e instanceof Starfish && e.collected) return false;
-          if (e instanceof TreasureChest && e.collected) return false;
-          if (e instanceof PowerupChest && e.collected) return false;
-          if (e instanceof RedTreasure && e.collected) return false;
-          if (e instanceof GlowingClam && e.collected) return false;
-          if (e instanceof GoldenCoin && e.collected) return false;
+          if (e instanceof FoodCollectible && e.collected) return false;
+          if (e instanceof BonusFoodCollectible && e.collected) return false;
+          if (e instanceof TreasureCollectible && e.collected) return false;
+          if (e instanceof PowerupCollectible && e.collected) return false;
+          if (e instanceof HealCollectible && e.collected) return false;
+          if (e instanceof OrbitalCollectible && e.collected) return false;
+          if (e instanceof CoinCollectible && e.collected) return false;
           return true;
         });
 
@@ -614,6 +597,7 @@ export class Game {
 
   private startGame(): void {
     this.state = GameState.Playing;
+    this.background = new Background(this.currentStageId);
     this.player = new Player();
     this.entities = [];
     this.particles = [];
@@ -623,7 +607,7 @@ export class Game {
     this.level = 1;
     this.levelUpBannerTimer = 0;
     this.scrollSpeed = INITIAL_SCROLL_SPEED;
-    this.spawner.reset();
+    this.spawner = new Spawner(this.stageDef.spawnConfig);
     this.powerupActive = false;
     this.gaugeLevel = 0;
     this.laserActive = false;
@@ -635,6 +619,7 @@ export class Game {
     this.boss = null;
     this.bossDefeatedTimer = 0;
     this.level4BlueChestTimer = 0;
+    this.activePowerupStyle = 'laser';
   }
 
   private incrementLaserGauge(): void {
@@ -886,8 +871,13 @@ export class Game {
         this.player.x, this.player.y, this.player.width * 0.2,
         this.player.x, this.player.y, this.player.width * 0.75,
       );
-      glowGrad.addColorStop(0, 'rgba(0,229,255,0.9)');
-      glowGrad.addColorStop(1, 'rgba(0,100,255,0)');
+      if (this.activePowerupStyle === 'arc') {
+        glowGrad.addColorStop(0, 'rgba(220,220,255,0.9)');
+        glowGrad.addColorStop(1, 'rgba(160,160,255,0)');
+      } else {
+        glowGrad.addColorStop(0, 'rgba(0,229,255,0.9)');
+        glowGrad.addColorStop(1, 'rgba(0,100,255,0)');
+      }
       ctx.fillStyle = glowGrad;
       ctx.beginPath();
       ctx.ellipse(this.player.x, this.player.y, this.player.width * 0.75, this.player.height * 0.65, 0, 0, Math.PI * 2);
@@ -895,31 +885,60 @@ export class Game {
       ctx.restore();
     }
 
-    // Laser beam (blue vertical blast forward/upward from stingray)
+    // Laser / arc beam (upward from stingray)
     if (this.laserActive) {
       ctx.save();
-      const beamW = 40;
       const bx = this.player.x;
       const by = this.player.y - this.player.height / 2;
 
-      // Core beam gradient
-      const laserGrad = ctx.createLinearGradient(bx - beamW / 2, 0, bx + beamW / 2, 0);
-      laserGrad.addColorStop(0, 'rgba(0,100,255,0)');
-      laserGrad.addColorStop(0.35, 'rgba(0,229,255,0.6)');
-      laserGrad.addColorStop(0.5, 'rgba(255,255,255,0.95)');
-      laserGrad.addColorStop(0.65, 'rgba(0,229,255,0.6)');
-      laserGrad.addColorStop(1, 'rgba(0,100,255,0)');
+      if (this.activePowerupStyle === 'arc') {
+        // Arc weapon: 4 expanding white semicircular arcs
+        const arcCount = 4;
+        for (let i = 0; i < arcCount; i++) {
+          const phase = ((this.laserAnimTime * 2.5 + i * 0.25) % 1.0);
+          const r = phase * 140 + 18;
+          const alpha = (1 - phase) * 0.75;
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = Math.max(0.5, 3 - phase * 2.5);
+          ctx.shadowColor = '#ccddff';
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(bx, by, r, Math.PI, 0, false);
+          ctx.stroke();
+          ctx.restore();
+        }
+        // Central burst dot
+        ctx.globalAlpha = 0.5 + Math.sin(this.laserAnimTime * 18) * 0.2;
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#aaccff';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(bx, by, 5, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const beamW = 40;
 
-      // Outer glow
-      const outerAlpha = 0.15 + Math.sin(this.laserAnimTime * 10) * 0.05;
-      ctx.globalAlpha = outerAlpha;
-      ctx.fillStyle = '#00e5ff';
-      ctx.fillRect(bx - beamW, 0, beamW * 2, by);
+        // Core beam gradient
+        const laserGrad = ctx.createLinearGradient(bx - beamW / 2, 0, bx + beamW / 2, 0);
+        laserGrad.addColorStop(0, 'rgba(0,100,255,0)');
+        laserGrad.addColorStop(0.35, 'rgba(0,229,255,0.6)');
+        laserGrad.addColorStop(0.5, 'rgba(255,255,255,0.95)');
+        laserGrad.addColorStop(0.65, 'rgba(0,229,255,0.6)');
+        laserGrad.addColorStop(1, 'rgba(0,100,255,0)');
 
-      // Inner beam
-      ctx.globalAlpha = 0.85 + Math.sin(this.laserAnimTime * 15) * 0.1;
-      ctx.fillStyle = laserGrad;
-      ctx.fillRect(bx - beamW / 2, 0, beamW, by);
+        // Outer glow
+        const outerAlpha = 0.15 + Math.sin(this.laserAnimTime * 10) * 0.05;
+        ctx.globalAlpha = outerAlpha;
+        ctx.fillStyle = '#00e5ff';
+        ctx.fillRect(bx - beamW, 0, beamW * 2, by);
+
+        // Inner beam
+        ctx.globalAlpha = 0.85 + Math.sin(this.laserAnimTime * 15) * 0.1;
+        ctx.fillStyle = laserGrad;
+        ctx.fillRect(bx - beamW / 2, 0, beamW, by);
+      }
 
       ctx.restore();
     }
@@ -1020,7 +1039,7 @@ export class Game {
         ctx.font = '14px monospace';
         ctx.fillStyle = '#ffe577';
         ctx.shadowBlur = 10;
-        ctx.fillText('BOSS INCOMING – The Rasta Diver!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 16);
+        ctx.fillText(this.stageDef.level4BossMessage, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 16);
       } else if (this.level >= 3) {
         ctx.fillStyle = '#00ccff';
         ctx.shadowColor = '#0088ff';
@@ -1029,7 +1048,7 @@ export class Game {
         ctx.font = '14px monospace';
         ctx.fillStyle = '#ccf0ff';
         ctx.shadowBlur = 8;
-        ctx.fillText('Jellyfish are electrified! Sharks hunt you!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 16);
+        ctx.fillText(this.stageDef.level3Message, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 16);
       } else {
         ctx.fillStyle = '#ff6ed8';
         ctx.shadowColor = '#ff00cc';
@@ -1038,7 +1057,7 @@ export class Game {
         ctx.font = '14px monospace';
         ctx.fillStyle = '#ffccf0';
         ctx.shadowBlur = 8;
-        ctx.fillText('Squid attackers incoming!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 16);
+        ctx.fillText(this.stageDef.level2Message, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 16);
       }
       ctx.restore();
     }
@@ -1120,7 +1139,7 @@ export class Game {
     ctx.font = '16px monospace';
     ctx.fillStyle = '#ffe577';
     ctx.shadowBlur = 8;
-    ctx.fillText('The Rasta Diver has been defeated!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 28);
+    ctx.fillText(this.stageDef.stageClearMessage, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 28);
 
     ctx.font = '20px monospace';
     ctx.fillStyle = '#fff';

@@ -1,4 +1,4 @@
-import { Entity } from '../types';
+import { OrbitalCollectible } from './entityRoles';
 
 function createGlowingClamSprite(): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -63,7 +63,7 @@ function createGlowingClamSprite(): HTMLCanvasElement {
   return c;
 }
 
-export class GlowingClam implements Entity {
+export class GlowingClam extends OrbitalCollectible {
   x: number;
   y: number;
   width: number = 72;
@@ -74,6 +74,7 @@ export class GlowingClam implements Entity {
   private glowTimer: number = 0;
 
   constructor(x: number, y: number) {
+    super();
     this.x = x;
     this.y = y;
     this.sprite = createGlowingClamSprite();

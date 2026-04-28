@@ -2,6 +2,7 @@ import { Entity } from '../types';
 import { createScubaKittenSprites } from '../sprites';
 import { CANVAS_WIDTH, SCUBA_KITTEN_MAX_HP, SCUBA_KITTEN_LASER_HIT_INTERVAL } from '../constants';
 import { HarpoonProjectile } from './harpoon';
+import { Level3Enemy } from './entityRoles';
 
 const SCUBA_KITTEN_LIFETIME = 7.0; // seconds before disappearing
 const SCUBA_KITTEN_FADE_TIME = 0.8; // seconds to fade out at end
@@ -9,7 +10,7 @@ const SCUBA_KITTEN_CHASE_SPEED = 65; // reduced horizontal chase speed
 const SCUBA_KITTEN_SHOOT_INTERVAL_MIN = 1.25; // seconds between harpoon shots (2× more frequent)
 const SCUBA_KITTEN_SHOOT_INTERVAL_MAX = 2.25;
 
-export class ScubaKitten implements Entity {
+export class ScubaKitten extends Level3Enemy {
   x: number;
   y: number;
   width: number = 88;
@@ -22,6 +23,9 @@ export class ScubaKitten implements Entity {
   /** Harpoons queued for the game loop to collect */
   pendingHarpoons: HarpoonProjectile[] = [];
 
+  get pendingProjectiles(): Entity[] { return this.pendingHarpoons; }
+  set pendingProjectiles(v: Entity[]) { this.pendingHarpoons = v as HarpoonProjectile[]; }
+
   private sprites: HTMLCanvasElement[];
   private animFrame: number = 0;
   private animTimer: number = 0;
@@ -32,6 +36,7 @@ export class ScubaKitten implements Entity {
   hitFlash: number = 0;
 
   constructor(x: number, y: number, targetX: number, targetY: number) {
+    super();
     this.x = x;
     this.y = y;
     this.targetX = targetX;

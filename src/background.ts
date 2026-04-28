@@ -11,11 +11,19 @@ export class Background {
   private bubbles: Bubble[] = [];
   private time: number = 0;
   private readonly LAYER_HEIGHT = CANVAS_HEIGHT * 2;
+  private readonly stageId: number;
 
-  constructor() {
-    this.layer1 = this.createLayer1();
-    this.layer2 = this.createLayer2();
-    this.layer3 = this.createLayer3();
+  constructor(stageId: number = 1) {
+    this.stageId = stageId;
+    if (stageId === 2) {
+      this.layer1 = this.createLayer1_s2();
+      this.layer2 = this.createLayer2_s2();
+      this.layer3 = this.createLayer3_s2();
+    } else {
+      this.layer1 = this.createLayer1();
+      this.layer2 = this.createLayer2();
+      this.layer3 = this.createLayer3();
+    }
     this.initBubbles();
   }
 
@@ -236,7 +244,145 @@ export class Background {
     return c;
   }
 
+  // ─── Stage 2 layer creators ────────────────────────────────────────────────
+
+  private createLayer1_s2(): HTMLCanvasElement {
+    const c = document.createElement('canvas');
+    c.width = CANVAS_WIDTH;
+    c.height = this.LAYER_HEIGHT;
+    const ctx = c.getContext('2d')!;
+
+    // Very dark blue-black abyssal floor
+    ctx.fillStyle = '#050a14';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, this.LAYER_HEIGHT);
+
+    // Faint texture dots (dark blue grain)
+    for (let i = 0; i < 1200; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      ctx.fillStyle = Math.random() > 0.5 ? 'rgba(20,40,80,0.4)' : 'rgba(5,15,30,0.3)';
+      ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
+    }
+
+    // Subtle dark blue bands
+    for (let y = 0; y < this.LAYER_HEIGHT; y += 55) {
+      const alpha = (Math.sin(y * 0.04) + 1) * 0.025;
+      ctx.fillStyle = `rgba(10,30,70,${alpha})`;
+      ctx.fillRect(0, y, CANVAS_WIDTH, 25);
+    }
+
+    return c;
+  }
+
+  private createLayer2_s2(): HTMLCanvasElement {
+    const c = document.createElement('canvas');
+    c.width = CANVAS_WIDTH;
+    c.height = this.LAYER_HEIGHT;
+    const ctx = c.getContext('2d')!;
+
+    // Dark rock formations
+    for (let i = 0; i < 12; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      const r = 4 + Math.random() * 9;
+      const gray = Math.floor(18 + Math.random() * 20);
+      ctx.fillStyle = `rgb(${gray},${gray + 5},${gray + 15})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.65, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Bioluminescent floor plants (soft glowing stalks)
+    for (let i = 0; i < 6; i++) {
+      const x = 20 + Math.random() * (CANVAS_WIDTH - 40);
+      const baseY = 20 + Math.random() * (this.LAYER_HEIGHT - 40);
+      const glowColor = ['#00ffe8', '#aa44ff', '#44aaff', '#ff44aa'][Math.floor(Math.random() * 4)];
+      ctx.save();
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 10;
+      ctx.strokeStyle = glowColor;
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x, baseY);
+      for (let seg = 0; seg < 4; seg++) {
+        const sy = baseY - (seg / 4) * 28;
+        ctx.quadraticCurveTo(x + (seg % 2 === 0 ? 7 : -7), sy - 7, x + (seg % 2 === 0 ? 3 : -3), sy - 14);
+      }
+      ctx.stroke();
+      // Tip glow dot
+      ctx.fillStyle = glowColor;
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.arc(x - 3, baseY - 28, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Bioluminescent scattered spore/dot patterns
+    for (let i = 0; i < 40; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      const glows = ['rgba(0,255,220,0.25)', 'rgba(150,50,255,0.2)', 'rgba(50,160,255,0.2)'];
+      ctx.fillStyle = glows[Math.floor(Math.random() * glows.length)];
+      ctx.beginPath();
+      ctx.arc(x, y, 1 + Math.random() * 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    return c;
+  }
+
+  private createLayer3_s2(): HTMLCanvasElement {
+    const c = document.createElement('canvas');
+    c.width = CANVAS_WIDTH;
+    c.height = this.LAYER_HEIGHT;
+    const ctx = c.getContext('2d')!;
+
+    // Dark coral-like structures with bio-glow outlines
+    for (let i = 0; i < 5; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0,200,180,0.4)';
+      ctx.shadowColor = '#00e8cc';
+      ctx.shadowBlur = 8;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(x, y, 4 + Math.random() * 5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Large dark rocks
+    for (let i = 0; i < 5; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      const r = 5 + Math.random() * 10;
+      ctx.fillStyle = `rgba(${8 + Math.random() * 10},${12 + Math.random() * 10},${22 + Math.random() * 12},0.92)`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.7, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    return c;
+  }
+
+  // ─── Stage 1 layer creators ────────────────────────────────────────────────
+
   private initBubbles(): void {
+    if (this.stageId === 2) {
+      // Fewer, larger, blue-glowing bubbles
+      for (let i = 0; i < 5; i++) {
+        this.bubbles.push({
+          x: Math.random() * CANVAS_WIDTH,
+          y: Math.random() * CANVAS_HEIGHT,
+          radius: 3 + Math.random() * 6,
+          speed: 14 + Math.random() * 18,
+        });
+      }
+      return;
+    }
     for (let i = 0; i < 8; i++) {
       this.bubbles.push({
         x: Math.random() * CANVAS_WIDTH,
@@ -273,6 +419,14 @@ export class Background {
     this.drawLayer(ctx, this.layer2, this.offset2);
     this.drawLayer(ctx, this.layer3, this.offset3);
 
+    if (this.stageId === 2) {
+      this.renderStage2Water(ctx);
+    } else {
+      this.renderStage1Water(ctx);
+    }
+  }
+
+  private renderStage1Water(ctx: CanvasRenderingContext2D): void {
     // Water tint – caribbean turquoise
     ctx.fillStyle = 'rgba(0, 140, 160, 0.28)';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -301,6 +455,60 @@ export class Background {
       ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,0.6)';
     }
+  }
+
+  private renderStage2Water(ctx: CanvasRenderingContext2D): void {
+    // Dark deep-sea tint
+    ctx.fillStyle = 'rgba(0, 20, 60, 0.45)';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // Deep gradient - almost black at bottom
+    const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    gradient.addColorStop(0, 'rgba(0, 10, 40, 0.35)');
+    gradient.addColorStop(0.6, 'rgba(0, 5, 20, 0.18)');
+    gradient.addColorStop(1, 'rgba(0, 2, 10, 0.06)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // Moonlight shafts (thin pale rays from top)
+    this.renderMoonlightShafts(ctx);
+
+    // Bioluminescent blue-glowing bubbles
+    for (const b of this.bubbles) {
+      ctx.save();
+      ctx.shadowColor = '#44aaff';
+      ctx.shadowBlur = b.radius * 3;
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = 'rgba(100,180,255,0.7)';
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // Faint shine
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = 'rgba(200,230,255,0.8)';
+      ctx.beginPath();
+      ctx.arc(b.x - b.radius * 0.3, b.y - b.radius * 0.3, b.radius * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  private renderMoonlightShafts(ctx: CanvasRenderingContext2D): void {
+    ctx.save();
+    ctx.globalAlpha = 0.04;
+    for (let i = 0; i < 3; i++) {
+      const t = this.time * 0.18 + i * 2.1;
+      const cx = (Math.sin(t * 0.5) * 0.35 + 0.5) * CANVAS_WIDTH;
+      const shaftW = 28 + Math.sin(t * 1.3) * 10;
+      const shaftGrad = ctx.createLinearGradient(cx - shaftW, 0, cx + shaftW, 0);
+      shaftGrad.addColorStop(0, 'transparent');
+      shaftGrad.addColorStop(0.5, 'rgba(180, 220, 255, 0.9)');
+      shaftGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = shaftGrad;
+      ctx.fillRect(cx - shaftW, 0, shaftW * 2, CANVAS_HEIGHT);
+    }
+    ctx.restore();
   }
 
   private renderCaustics(ctx: CanvasRenderingContext2D): void {

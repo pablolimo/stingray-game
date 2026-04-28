@@ -5,17 +5,63 @@
   <title>Stingray</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0a1628; display: flex; align-items: center; justify-content: center; width: 100vw; height: 100vh; overflow: hidden; }
+    body { background: #0a1628; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100vw; height: 100vh; overflow: hidden; }
     canvas { 
       image-rendering: pixelated;
       image-rendering: crisp-edges;
       max-width: 100vw;
-      max-height: 100vh;
+      max-height: calc(100vh - 44px);
+    }
+    #stage-selector {
+      position: fixed;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(5, 10, 30, 0.85);
+      border: 1px solid #224466;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #88aacc;
+      z-index: 10;
+    }
+    #stage-selector span {
+      color: #557799;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    #stage-selector button {
+      background: #0a1e3a;
+      color: #88aacc;
+      border: 1px solid #224466;
+      border-radius: 4px;
+      padding: 3px 10px;
+      font-family: monospace;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    #stage-selector button:hover {
+      background: #112244;
+    }
+    #stage-selector button.active {
+      background: #003344;
+      color: #00e5ff;
+      border-color: #00e5ff;
     }
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
+  <div id="stage-selector">
+    <span>STAGE:</span>
+    <button id="stage-btn-1" class="active">1 – Caribbean Reef</button>
+    <button id="stage-btn-2">2 – Midnight Deep</button>
+  </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

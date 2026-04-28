@@ -1,13 +1,13 @@
-import { Entity } from '../types';
 import { createSquidSprites } from '../sprites';
 import { CANVAS_WIDTH, SQUID_MAX_HP, SQUID_LASER_HIT_INTERVAL } from '../constants';
+import { MediumEnemy } from './entityRoles';
 
 const SQUID_LIFETIME = 4.0; // seconds before disappearing
 const SQUID_FADE_TIME = 0.5; // seconds to fade out at end
 const SQUID_SPIN_SPEED = 3.5; // radians per second
 const SQUID_CHASE_SPEED = 140; // horizontal px per second toward player
 
-export class Squid implements Entity {
+export class Squid extends MediumEnemy {
   x: number;
   y: number;
   width: number = 48;
@@ -25,6 +25,7 @@ export class Squid implements Entity {
   hitFlash: number = 0;
 
   constructor(x: number, y: number, targetX: number) {
+    super();
     this.x = x;
     this.y = y;
     this.targetX = targetX;

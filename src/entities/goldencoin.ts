@@ -1,12 +1,12 @@
-import { Entity } from '../types';
 import { createGoldenCoinSprite } from '../sprites';
+import { CoinCollectible } from './entityRoles';
 
 const COIN_SIZE = 20;
 const COIN_SPIN_SPEED = 3.5; // radians per second (visual spin)
 const COIN_MIN_SCALE = 0.05; // minimum scaleX when coin is edge-on during spin
 const COIN_GLOW_SPEED = 4.0;
 
-export class GoldenCoin implements Entity {
+export class GoldenCoin extends CoinCollectible {
   x: number;
   y: number;
   width: number = COIN_SIZE;
@@ -18,6 +18,7 @@ export class GoldenCoin implements Entity {
   private glowTimer: number;
 
   constructor(x: number, y: number) {
+    super();
     this.x = x;
     this.y = y;
     this.sprite = createGoldenCoinSprite();

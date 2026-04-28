@@ -1,5 +1,5 @@
-import { Entity } from '../types';
 import { TREASURE_SCORE } from '../constants';
+import { TreasureCollectible } from './entityRoles';
 
 function createTreasureChestSprite(): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -55,7 +55,7 @@ function createTreasureChestSprite(): HTMLCanvasElement {
   return c;
 }
 
-export class TreasureChest implements Entity {
+export class TreasureChest extends TreasureCollectible {
   x: number;
   y: number;
   width: number = 64;
@@ -67,6 +67,7 @@ export class TreasureChest implements Entity {
   private glowTimer: number = 0;
 
   constructor(x: number, y: number) {
+    super();
     this.x = x;
     this.y = y;
     this.sprite = createTreasureChestSprite();
