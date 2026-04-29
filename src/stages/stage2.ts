@@ -3,6 +3,7 @@ import { SeaTurtle } from '../entities/stage2/seaturtle';
 import { SeaMonkey } from '../entities/stage2/seamonkey';
 import { BioFish } from '../entities/stage2/biofish';
 import { Krill } from '../entities/stage2/krill';
+import { Shrimp } from '../entities/stage2/shrimp';
 import { MoonJellyfish } from '../entities/stage2/moonjellyfish';
 import { WhiteChest } from '../entities/stage2/whitechest';
 import { Squid } from '../entities/squid';
@@ -22,7 +23,12 @@ export const stage2Definition: StageDefinition = {
     createBigEnemy: (x, y, targetX, level) => new SeaTurtle(x, y, targetX, level),
     createMediumEnemy: (x, y, targetX) => new Squid(x, y, targetX),
     createLevel3Enemy: (x, y, targetX, targetY) => new SeaMonkey(x, y, targetX, targetY),
-    createFood: (x, y) => Math.random() < 0.25 ? new MoonJellyfish(x, y) : new BioFish(x, y),
+    createFood: (x, y) => {
+      const r = Math.random();
+      if (r < 0.25) return new MoonJellyfish(x, y);
+      if (r < 0.5)  return new Shrimp(x, y);
+      return new BioFish(x, y);
+    },
     createBonusFood: (x, y) => new Krill(x, y),
     createTreasure: (x, y) => new TreasureChest(x, y),
     createPowerupChest: (x, y) => new WhiteChest(x, y),

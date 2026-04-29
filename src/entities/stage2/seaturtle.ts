@@ -1,50 +1,102 @@
 import { CANVAS_WIDTH } from '../../constants';
 import { BigEnemy } from '../entityRoles';
 
-function createSeaTurtleSprite(): HTMLCanvasElement {
-  const c = document.createElement('canvas');
-  c.width = 72;
-  c.height = 48;
-  const ctx = c.getContext('2d')!;
+// Draws the sea turtle directly on `ctx`.
+// The logical drawing area is 80×48 units, centred at (40, 24).
+// flipAngle: oscillating angle (radians) for flipper flapping animation.
+function drawSeaTurtle(ctx: CanvasRenderingContext2D, flipAngle: number): void {
+  // ── Colour palette ────────────────────────────────────────────────────────
+  const SHELL_DARK   = '#1a3a24';
+  const SHELL_MID    = '#2d5c3c';
+  const SHELL_LIGHT  = '#4a7c5a';
+  const SCUTE_COLOR  = '#3d6b4a';
+  const SCUTE_LINE   = '#5a9970';
+  const FLIPPER_DARK = '#1c3a22';
+  const FLIPPER_MID  = '#3a6840';
+  const HEAD_DARK    = '#2d5030';
+  const HEAD_LIGHT   = '#5a8a5e';
+  const NECK_COLOR   = '#3a6647';
+  const GLOW_COLOR   = '#44ee88';
 
-  // --- Shell base (rich gradient) ---
-  const shellGrad = ctx.createRadialGradient(36, 22, 4, 36, 20, 26);
-  shellGrad.addColorStop(0, '#4a7c5a');   // olive-green highlight
-  shellGrad.addColorStop(0.55, '#2d5c3c');
-  shellGrad.addColorStop(1, '#1a3a24');
+  // Shell centred at (38, 24), rx=22, ry=14
+  const SX = 38, SY = 24, SRX = 22, SRY = 14;
+
+  // ── Helper: draw one flipper ──────────────────────────────────────────────
+  // pivotX/Y: attachment point on the shell edge.
+  // baseAngle: rest angle (radians) for the flipper pointing outward.
+  // len: length of the flipper from pivot.
+  // flip: +1 or -1 to control which way the flap goes.
+  function drawFlipper(
+    px: number, py: number,
+    baseAngle: number,
+    len: number, wid: number,
+    flip: number,
+  ): void {
+    const angle = baseAngle + flip * flipAngle;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(angle);
+    const fg = ctx.createLinearGradient(0, 0, len, 0);
+    fg.addColorStop(0, FLIPPER_MID);
+    fg.addColorStop(1, FLIPPER_DARK);
+    ctx.fillStyle = fg;
+    ctx.beginPath();
+    // Pointed-blade shape: wide at base, tapering to a rounded tip
+    ctx.moveTo(0, -wid * 0.6);
+    ctx.bezierCurveTo(len * 0.4, -wid * 0.8, len * 0.85, -wid * 0.45, len, 0);
+    ctx.bezierCurveTo(len * 0.85,  wid * 0.45, len * 0.4,  wid * 0.8, 0,  wid * 0.6);
+    ctx.closePath();
+    ctx.fill();
+    // Vein lines
+    ctx.strokeStyle = 'rgba(80,160,100,0.4)';
+    ctx.lineWidth = 0.6;
+    for (let v = -1; v <= 1; v++) {
+      ctx.beginPath();
+      ctx.moveTo(1, 0);
+      ctx.lineTo(len * 0.88, v * wid * 0.38);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ── 1. Rear flippers (drawn first, fully behind the shell) ───────────────
+  // Rear flippers pivot at the back-left edge of the shell, flap gently
+  drawFlipper(SX - SRX * 0.6, SY - SRY * 0.7,  -Math.PI * 0.65, 14, 4.5, -1);  // rear-upper
+  drawFlipper(SX - SRX * 0.6, SY + SRY * 0.7,   Math.PI * 0.65, 14, 4.5,  1);  // rear-lower
+
+  // ── 2. Front flippers (drawn before shell; base hidden under shell) ───────
+  // Front flippers pivot near the front-side of the shell, flap more strongly
+  drawFlipper(SX + SRX * 0.35, SY - SRY * 0.8, -Math.PI * 0.38, 18, 5.5, -1); // front-upper
+  drawFlipper(SX + SRX * 0.35, SY + SRY * 0.8,  Math.PI * 0.38, 18, 5.5,  1); // front-lower
+
+  // ── 3. Shell ──────────────────────────────────────────────────────────────
+  const shellGrad = ctx.createRadialGradient(SX, SY - 2, 4, SX, SY, 26);
+  shellGrad.addColorStop(0,    SHELL_LIGHT);
+  shellGrad.addColorStop(0.55, SHELL_MID);
+  shellGrad.addColorStop(1,    SHELL_DARK);
   ctx.fillStyle = shellGrad;
   ctx.beginPath();
-  ctx.ellipse(36, 22, 27, 17, 0, 0, Math.PI * 2);
+  ctx.ellipse(SX, SY, SRX, SRY, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // --- Scute (shell plate) pattern ---
-  // Central large scute
-  ctx.fillStyle = '#3d6b4a';
-  ctx.beginPath();
-  ctx.ellipse(36, 20, 10, 7, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#5a9970';
-  ctx.lineWidth = 0.7;
-  ctx.stroke();
-
-  // Side scutes (vertebral row)
-  const scuteCenters: [number, number, number, number, number][] = [
-    // x,  y,  rx, ry, angle
-    [24, 18,  8, 5,  0],
-    [48, 18,  8, 5,  0],
-    [22, 28,  6, 4,  0.3],
-    [50, 28,  6, 4, -0.3],
-    [36, 31,  9, 5,  0],
+  // Scute pattern
+  const scutes: [number, number, number, number, number][] = [
+    [SX,      SY - 2,  9,  6,   0],
+    [SX - 10, SY - 4,  7, 4.5,  0],
+    [SX + 10, SY - 4,  7, 4.5,  0],
+    [SX - 11, SY + 5,  5,  3.5, 0.3],
+    [SX + 11, SY + 5,  5,  3.5,-0.3],
+    [SX,      SY + 7,  8,  4.5, 0],
   ];
-  for (const [sx, sy, rx, ry, angle] of scuteCenters) {
+  for (const [sx, sy, rx, ry, angle] of scutes) {
     ctx.save();
     ctx.translate(sx, sy);
     ctx.rotate(angle);
-    ctx.fillStyle = '#3a6647';
+    ctx.fillStyle = SCUTE_COLOR;
     ctx.beginPath();
     ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#5a9970';
+    ctx.strokeStyle = SCUTE_LINE;
     ctx.lineWidth = 0.6;
     ctx.stroke();
     ctx.restore();
@@ -53,130 +105,106 @@ function createSeaTurtleSprite(): HTMLCanvasElement {
   // Scute highlight lines
   ctx.strokeStyle = 'rgba(100,180,120,0.35)';
   ctx.lineWidth = 0.8;
-  for (const [sx, sy, rx, ry] of scuteCenters) {
+  for (const [sx, sy, rx, ry] of scutes) {
     ctx.beginPath();
     ctx.arc(sx - rx * 0.25, sy - ry * 0.3, rx * 0.5, Math.PI * 1.1, Math.PI * 1.9);
     ctx.stroke();
   }
 
-  // --- Bioluminescent shell rim ---
+  // Bioluminescent shell rim
   ctx.strokeStyle = '#66cc88';
   ctx.lineWidth = 1.8;
-  ctx.shadowColor = '#44ee88';
+  ctx.shadowColor = GLOW_COLOR;
   ctx.shadowBlur = 7;
   ctx.beginPath();
-  ctx.ellipse(36, 22, 27, 17, 0, 0, Math.PI * 2);
+  ctx.ellipse(SX, SY, SRX, SRY, 0, 0, Math.PI * 2);
   ctx.stroke();
   ctx.shadowBlur = 0;
 
-  // --- Plastron (belly visible around edges) ---
+  // Plastron sheen
   ctx.fillStyle = '#c8d8a0';
-  ctx.globalAlpha = 0.22;
+  ctx.globalAlpha = 0.18;
   ctx.beginPath();
-  ctx.ellipse(36, 26, 16, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(SX, SY + 4, 14, 7, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  // --- Flippers ---
-  const flippers: [number, number, number, number, number][] = [
-    // x,   y,  rx,  ry,  angle
-    [13, 16,  12, 5,  -0.55],   // front-left
-    [59, 16,  12, 5,   0.55],   // front-right
-    [15, 32,  10, 4.5,  0.55],  // rear-left
-    [57, 32,  10, 4.5, -0.55],  // rear-right
-  ];
-  for (const [fx, fy, frx, fry, fa] of flippers) {
-    ctx.save();
-    ctx.translate(fx, fy);
-    ctx.rotate(fa);
-    const flipGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, frx);
-    flipGrad.addColorStop(0, '#3a6840');
-    flipGrad.addColorStop(1, '#1c3a22');
-    ctx.fillStyle = flipGrad;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, frx, fry, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // Flipper vein lines
-    ctx.strokeStyle = 'rgba(80,160,100,0.45)';
-    ctx.lineWidth = 0.7;
-    for (let v = -1; v <= 1; v++) {
-      ctx.beginPath();
-      ctx.moveTo(-frx * 0.1, 0);
-      ctx.lineTo(frx * 0.9, v * fry * 0.55);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
+  // Shell top sheen
+  ctx.save();
+  ctx.globalAlpha = 0.12;
+  const sheen = ctx.createLinearGradient(SX - 14, SY - 10, SX + 6, SY + 4);
+  sheen.addColorStop(0, '#ffffff');
+  sheen.addColorStop(1, 'transparent');
+  ctx.fillStyle = sheen;
+  ctx.beginPath();
+  ctx.ellipse(SX - 4, SY - 4, 14, 8, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 
-  // --- Head ---
-  const headGrad = ctx.createRadialGradient(58, 16, 2, 56, 17, 10);
-  headGrad.addColorStop(0, '#5a8a5e');
-  headGrad.addColorStop(1, '#2d5030');
+  // ── 4. Neck ───────────────────────────────────────────────────────────────
+  // Short neck connecting the right shell edge to the head
+  ctx.fillStyle = NECK_COLOR;
+  ctx.beginPath();
+  ctx.ellipse(SX + SRX + 2, SY, 4, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ── 5. Head (outside the shell, to the right) ─────────────────────────────
+  const HX = SX + SRX + 11, HY = SY - 1;   // centre of head, clearly outside shell
+  const headGrad = ctx.createRadialGradient(HX - 2, HY - 2, 1, HX, HY, 9);
+  headGrad.addColorStop(0, HEAD_LIGHT);
+  headGrad.addColorStop(1, HEAD_DARK);
   ctx.fillStyle = headGrad;
   ctx.beginPath();
-  ctx.ellipse(57, 17, 9, 7, 0.25, 0, Math.PI * 2);
+  ctx.ellipse(HX, HY, 9, 7, 0.15, 0, Math.PI * 2);
   ctx.fill();
 
   // Head scute plates
   ctx.strokeStyle = 'rgba(100,180,110,0.5)';
   ctx.lineWidth = 0.7;
   ctx.beginPath();
-  ctx.moveTo(52, 13); ctx.lineTo(60, 13);
-  ctx.moveTo(52, 17); ctx.lineTo(60, 17);
-  ctx.moveTo(56, 13); ctx.lineTo(56, 21);
+  ctx.moveTo(HX - 5, HY - 4); ctx.lineTo(HX + 4, HY - 4);
+  ctx.moveTo(HX - 5, HY);     ctx.lineTo(HX + 4, HY);
+  ctx.moveTo(HX,     HY - 4); ctx.lineTo(HX,     HY + 4);
   ctx.stroke();
 
   // Nostril
   ctx.fillStyle = '#1a2e1c';
   ctx.beginPath();
-  ctx.ellipse(63, 14, 1.2, 0.8, 0.3, 0, Math.PI * 2);
+  ctx.ellipse(HX + 7, HY - 2, 1.1, 0.8, 0.3, 0, Math.PI * 2);
   ctx.fill();
 
-  // Eye (bright, alert)
+  // Eye
   ctx.fillStyle = '#0a1a0c';
   ctx.beginPath();
-  ctx.arc(58, 13, 2.8, 0, Math.PI * 2);
+  ctx.arc(HX + 1, HY - 3, 2.6, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = '#99ffbb';
   ctx.shadowColor = '#44ff88';
   ctx.shadowBlur = 5;
   ctx.beginPath();
-  ctx.arc(57.8, 13, 1.4, 0, Math.PI * 2);
+  ctx.arc(HX + 0.8, HY - 3, 1.3, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
   // Eye shine
   ctx.fillStyle = '#ffffff';
   ctx.globalAlpha = 0.8;
   ctx.beginPath();
-  ctx.arc(57.2, 12.3, 0.6, 0, Math.PI * 2);
+  ctx.arc(HX + 0.2, HY - 3.6, 0.55, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
-
-  // --- Shell top sheen ---
-  ctx.save();
-  ctx.globalAlpha = 0.12;
-  const sheen = ctx.createLinearGradient(20, 8, 48, 28);
-  sheen.addColorStop(0, '#ffffff');
-  sheen.addColorStop(1, 'transparent');
-  ctx.fillStyle = sheen;
-  ctx.beginPath();
-  ctx.ellipse(36, 18, 18, 10, -0.3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  return c;
 }
 
 export class SeaTurtle extends BigEnemy {
   x: number;
   y: number;
-  width: number = 144;
+  // Slightly wider than before to give the head room on the right
+  width: number = 160;
   height: number = 96;
   targetX: number;
 
-  private sprite: HTMLCanvasElement;
   private level: number;
   private angle: number;
+  private flipperTimer: number = 0;
 
   constructor(x: number, y: number, targetX: number, level: number = 1) {
     super();
@@ -184,17 +212,15 @@ export class SeaTurtle extends BigEnemy {
     this.y = y;
     this.targetX = targetX;
     this.level = level;
-    this.sprite = createSeaTurtleSprite();
     const dx = targetX - x;
     this.angle = Math.atan2(1, dx / CANVAS_WIDTH) * 0.3;
   }
 
   update(dt: number, scrollSpeed: number): void {
-    // Slightly slower than sharks
     const speedMult = this.level >= 3 ? 1.6 : 1.35;
     this.y += scrollSpeed * speedMult * dt;
-    // Turtles don't actively hunt even at level 3 - just drift
     this.x += Math.sin(this.angle) * scrollSpeed * 0.25 * dt;
+    this.flipperTimer += dt * 2.5;
   }
 
   getBounds(): { x: number; y: number; width: number; height: number } {
@@ -209,7 +235,12 @@ export class SeaTurtle extends BigEnemy {
   render(ctx: CanvasRenderingContext2D): void {
     ctx.save();
     ctx.translate(this.x, this.y);
-    ctx.drawImage(this.sprite, -this.width / 2, -this.height / 2, this.width, this.height);
+    // Scale from the logical 80×48 drawing space to the display size (160×96)
+    ctx.scale(this.width / 80, this.height / 48);
+    // Centre the logical drawing area on the origin
+    ctx.translate(-40, -24);
+    drawSeaTurtle(ctx, Math.sin(this.flipperTimer) * 0.32);
     ctx.restore();
   }
 }
+
