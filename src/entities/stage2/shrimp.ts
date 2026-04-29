@@ -131,6 +131,7 @@ export class Shrimp extends FoodCollectible {
   private sprite: HTMLCanvasElement;
   private driftAngle: number;
   private glowTimer: number;
+  private glowAlpha: number = 0.12;
 
   constructor(x: number, y: number) {
     super();
@@ -146,6 +147,7 @@ export class Shrimp extends FoodCollectible {
     this.driftAngle += dt * 1.8;
     this.x += Math.sin(this.driftAngle) * 18 * dt;
     this.glowTimer += dt * 3.5;
+    this.glowAlpha = 0.12 + Math.abs(Math.sin(this.glowTimer)) * 0.18;
   }
 
   getBounds(): { x: number; y: number; width: number; height: number } {
@@ -162,8 +164,7 @@ export class Shrimp extends FoodCollectible {
 
     // Pink shimmer glow
     ctx.save();
-    const gAlpha = 0.12 + Math.abs(Math.sin(this.glowTimer)) * 0.18;
-    ctx.globalAlpha = gAlpha;
+    ctx.globalAlpha = this.glowAlpha;
     const grd = ctx.createRadialGradient(this.x, this.y, 2, this.x, this.y, this.width * 0.85);
     grd.addColorStop(0, '#ff88cc');
     grd.addColorStop(1, 'transparent');

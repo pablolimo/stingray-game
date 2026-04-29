@@ -205,6 +205,7 @@ export class SeaTurtle extends BigEnemy {
   private level: number;
   private angle: number;
   private flipperTimer: number = 0;
+  private flipAngle: number = 0;
 
   constructor(x: number, y: number, targetX: number, level: number = 1) {
     super();
@@ -221,6 +222,7 @@ export class SeaTurtle extends BigEnemy {
     this.y += scrollSpeed * speedMult * dt;
     this.x += Math.sin(this.angle) * scrollSpeed * 0.25 * dt;
     this.flipperTimer += dt * 2.5;
+    this.flipAngle = Math.sin(this.flipperTimer) * 0.32;
   }
 
   getBounds(): { x: number; y: number; width: number; height: number } {
@@ -239,7 +241,7 @@ export class SeaTurtle extends BigEnemy {
     ctx.scale(this.width / 80, this.height / 48);
     // Centre the logical drawing area on the origin
     ctx.translate(-40, -24);
-    drawSeaTurtle(ctx, Math.sin(this.flipperTimer) * 0.32);
+    drawSeaTurtle(ctx, this.flipAngle);
     ctx.restore();
   }
 }
