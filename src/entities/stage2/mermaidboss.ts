@@ -1,14 +1,18 @@
 import { Entity } from '../../types';
 import { CANVAS_WIDTH, BOSS_MAX_HP, BOSS_LASER_HIT_INTERVAL, BOSS_RAGE_DURATION } from '../../constants';
 import { BossEnemy } from '../entityRoles';
-import { EnergyBall } from '../energyball';
+import { MermaidRock } from './mermaidrock';
+import { ThunderLightning } from './thunderlightning';
 
 const MERMAID_WIDTH = 176;
 const MERMAID_HEIGHT = 200;
 const MERMAID_TARGET_Y = 220;
 const MERMAID_CHASE_SPEED = 65;
-const MERMAID_SHOOT_MIN = 1.8;
-const MERMAID_SHOOT_MAX = 2.8;
+const CHARGE_SPEED = 520;   // px/s toward player during charge
+const RETREAT_SPEED = 380;  // px/s back to home Y after charge
+const CHARGE_DURATION = 0.65; // max seconds per charge rush
+
+type AttackState = 'idle' | 'prepare' | 'charging' | 'retreating' | 'throwing';
 
 function createMermaidNormalSprite(): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -344,20 +348,26 @@ export class MermaidBoss extends BossEnemy {
   isRaging: boolean = false;
   laserHitCooldown: number = 0;
 
-  private pendingBalls: EnergyBall[] = [];
-  get pendingProjectiles(): Entity[] { return this.pendingBalls; }
-  set pendingProjectiles(v: Entity[]) { this.pendingBalls = v as EnergyBall[]; }
+  private _pendingProjectiles: Entity[] = [];
+  get pendingProjectiles(): Entity[] { return this._pendingProjectiles; }
+  set pendingProjectiles(v: Entity[]) { this._pendingProjectiles = v; }
 
   private normalSprites: HTMLCanvasElement[];
   private rageSprites: HTMLCanvasElement[];
   private animFrame: number = 0;
   private animTimer: number = 0;
-  private shootTimer: number = 0;
-  private shootInterval: number;
   private floatTime: number = 0;
   private hitFlash: number = 0;
   private rageTimer: number = 0;
   private rageShootTimer: number = 0;
+
+  // Normal-mode attack state machine
+  private attackState: AttackState = 'idle';
+  private attackTimer: number = 0;
+  private chargeCount: number = 0;
+  private chargeTargetX: number = 0;
+  private chargeTargetY: number = 0;
+  private idleWait: number = 1.5;
 
   // rage triggers at 75%, 50%, 25% HP remaining
   private rageThresholds: number[];
@@ -376,7 +386,6 @@ export class MermaidBoss extends BossEnemy {
     ];
     this.normalSprites = [createMermaidNormalSprite(), createMermaidNormalSprite()];
     this.rageSprites = [createMermaidRageSprite(), createMermaidRageSprite()];
-    this.shootInterval = MERMAID_SHOOT_MIN + Math.random() * (MERMAID_SHOOT_MAX - MERMAID_SHOOT_MIN);
   }
 
   update(dt: number, _scrollSpeed: number): void {
@@ -387,68 +396,151 @@ export class MermaidBoss extends BossEnemy {
 
     this.floatTime += dt;
 
-    // Slide in from top
+    // Slide in from top – skip attack logic until in position
     if (this.y < MERMAID_TARGET_Y) {
       this.y = Math.min(MERMAID_TARGET_Y, this.y + 110 * dt);
+      return;
     }
-
-    // Vertical float
-    const floatTarget = MERMAID_TARGET_Y + Math.sin(this.floatTime * 0.7) * 20;
-    this.y += (floatTarget - this.y) * 1.8 * dt;
-
-    // Horizontal chase
-    const dx = this.targetX - this.x;
-    const step = MERMAID_CHASE_SPEED * dt;
-    this.x += Math.abs(dx) > step ? Math.sign(dx) * step : dx;
-    const margin = this.width * 0.38;
-    this.x = Math.max(margin, Math.min(CANVAS_WIDTH - margin, this.x));
 
     // Sprite animation
     this.animTimer += dt;
     if (this.animTimer >= 0.45) { this.animTimer -= 0.45; this.animFrame = (this.animFrame + 1) % 2; }
 
-    // Rage mode: shoot faster burst, then expire after BOSS_RAGE_DURATION
     if (this.isRaging) {
+      // Rage mode: float at top + chase + thunder strikes
+      const floatTarget = MERMAID_TARGET_Y + Math.sin(this.floatTime * 0.7) * 20;
+      this.y += (floatTarget - this.y) * 1.8 * dt;
+      const dx = this.targetX - this.x;
+      const step = MERMAID_CHASE_SPEED * dt;
+      this.x += Math.abs(dx) > step ? Math.sign(dx) * step : dx;
+      const margin = this.width * 0.38;
+      this.x = Math.max(margin, Math.min(CANVAS_WIDTH - margin, this.x));
+
       this.rageTimer += dt;
       this.rageShootTimer += dt;
-      const rageInterval = 0.5;
-      if (this.rageShootTimer >= rageInterval) {
+      if (this.rageShootTimer >= 0.55) {
         this.rageShootTimer = 0;
-        this.fireGoldBurst();
+        this.spawnThunder();
       }
       if (this.rageTimer >= BOSS_RAGE_DURATION) {
         this.isRaging = false;
         this.rageTimer = 0;
         this.rageShootTimer = 0;
         this.nextRageIdx++;
+        // Reset attack state so she begins a fresh charge sequence
+        this.attackState = 'idle';
+        this.attackTimer = 0;
+        this.chargeCount = 0;
+        this.idleWait = 1.2;
       }
     } else {
-      this.shootTimer += dt;
-      if (this.shootTimer >= this.shootInterval) {
-        this.shootTimer = 0;
-        this.shootInterval = MERMAID_SHOOT_MIN + Math.random() * (MERMAID_SHOOT_MAX - MERMAID_SHOOT_MIN);
-        this.fireWaterBolt();
+      this.updateNormalAttack(dt);
+    }
+  }
+
+  private updateNormalAttack(dt: number): void {
+    // Movement is state-dependent
+    const margin = this.width * 0.38;
+
+    if (this.attackState === 'idle' || this.attackState === 'prepare' || this.attackState === 'throwing') {
+      // Normal float + horizontal chase
+      const floatTarget = MERMAID_TARGET_Y + Math.sin(this.floatTime * 0.7) * 20;
+      this.y += (floatTarget - this.y) * 1.8 * dt;
+      const dx = this.targetX - this.x;
+      const step = MERMAID_CHASE_SPEED * dt;
+      this.x += Math.abs(dx) > step ? Math.sign(dx) * step : dx;
+      this.x = Math.max(margin, Math.min(CANVAS_WIDTH - margin, this.x));
+    } else if (this.attackState === 'charging') {
+      // Rush toward the recorded player position
+      const dxC = this.chargeTargetX - this.x;
+      const dyC = this.chargeTargetY - this.y;
+      const distC = Math.sqrt(dxC * dxC + dyC * dyC);
+      const chargeStep = CHARGE_SPEED * dt;
+      if (distC > chargeStep) {
+        this.x += (dxC / distC) * chargeStep;
+        this.y += (dyC / distC) * chargeStep;
+      } else {
+        this.x = this.chargeTargetX;
+        this.y = this.chargeTargetY;
       }
+      this.x = Math.max(margin, Math.min(CANVAS_WIDTH - margin, this.x));
+    } else if (this.attackState === 'retreating') {
+      // Rush back up to home Y
+      const dyR = MERMAID_TARGET_Y - this.y;
+      const retreatStep = RETREAT_SPEED * dt;
+      this.y += Math.abs(dyR) > retreatStep ? Math.sign(dyR) * retreatStep : dyR;
+      // Continue X chase while retreating
+      const dxR = this.targetX - this.x;
+      const stepR = MERMAID_CHASE_SPEED * dt;
+      this.x += Math.abs(dxR) > stepR ? Math.sign(dxR) * stepR : dxR;
+      this.x = Math.max(margin, Math.min(CANVAS_WIDTH - margin, this.x));
+    }
+
+    // State timer + transitions
+    this.attackTimer += dt;
+
+    switch (this.attackState) {
+      case 'idle':
+        if (this.attackTimer >= this.idleWait) {
+          this.attackTimer = 0;
+          this.attackState = 'prepare';
+        }
+        break;
+
+      case 'prepare':
+        if (this.attackTimer >= 0.4) {
+          this.attackTimer = 0;
+          // Lock in player position at the moment the charge begins
+          this.chargeTargetX = this.targetX;
+          this.chargeTargetY = this.targetY;
+          this.attackState = 'charging';
+        }
+        break;
+
+      case 'charging':
+        if (this.attackTimer >= CHARGE_DURATION) {
+          this.attackTimer = 0;
+          this.attackState = 'retreating';
+        }
+        break;
+
+      case 'retreating':
+        if (Math.abs(this.y - MERMAID_TARGET_Y) < 8 || this.attackTimer >= 1.4) {
+          this.attackTimer = 0;
+          this.chargeCount++;
+          if (this.chargeCount >= 3) {
+            this.chargeCount = 0;
+            this.attackState = 'throwing';
+            this.fireRock();
+          } else {
+            this.attackState = 'idle';
+            this.idleWait = 0.5; // shorter pause between consecutive charges
+          }
+        }
+        break;
+
+      case 'throwing':
+        // Brief pause after the rock is thrown before returning to idle
+        if (this.attackTimer >= 0.5) {
+          this.attackTimer = 0;
+          this.attackState = 'idle';
+          this.idleWait = 1.5;
+        }
+        break;
     }
   }
 
-  private fireWaterBolt(): void {
-    // Phase 1: single aimed water bolt toward player
-    const dx = this.targetX - this.x;
-    const dy = this.targetY - this.y;
-    const angle = Math.atan2(dy, dx);
-    const ball = new EnergyBall(this.x, this.y + 20, angle);
-    // Tint it blue-white by overriding render - we just use regular EnergyBall
-    this.pendingBalls.push(ball);
+  private fireRock(): void {
+    const rock = new MermaidRock(this.x, this.y + 20, this.targetX, this.targetY);
+    this._pendingProjectiles.push(rock);
   }
 
-  private fireGoldBurst(): void {
-    // Phase 2 (rage): 6-way burst of golden bolts
-    const count = 6;
-    for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2;
-      this.pendingBalls.push(new EnergyBall(this.x, this.y + 20, angle));
-    }
+  private spawnThunder(): void {
+    // Spawn a lightning strike near the player's current position
+    const spread = 220;
+    const tx = this.targetX + (Math.random() - 0.5) * spread;
+    const cx = Math.max(20, Math.min(CANVAS_WIDTH - 20, tx));
+    this._pendingProjectiles.push(new ThunderLightning(cx));
   }
 
   takeLaserHit(): boolean {
