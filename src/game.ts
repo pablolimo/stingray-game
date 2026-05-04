@@ -1264,9 +1264,12 @@ export class Game {
       const bx = this.player.x;
       const startY = this.player.y - this.player.height / 2;
       const spreadHalfWidth = NUCLEAR_BLAST_HALF_WIDTH * 1.8;
-      const totalHeight = startY + 40;
+      // Use a fixed stream height for stable animation math – if totalHeight depended on
+      // the player's Y, moving up/down would change the modulo denominator and cause
+      // fireballs to jump forward or reverse unexpectedly.
+      const streamHeight = CANVAS_HEIGHT + 40;
       const numBalls = 55;
-      const heightPerBall = (totalHeight / numBalls) * 1.5;
+      const heightPerBall = (streamHeight / numBalls) * 1.5;
 
       for (let i = 0; i < numBalls; i++) {
         // Use golden-angle-like constant for even variety between fireballs
@@ -1274,7 +1277,7 @@ export class Game {
         // Each fireball travels at a slightly different speed upward
         const speed = 180 + (i % 9) * 55;
         // Wrap Y position to create a continuous non-stop stream
-        const rawY = (t * speed + seed * heightPerBall) % (totalHeight || 1);
+        const rawY = (t * speed + seed * heightPerBall) % streamHeight;
         const fy = startY - rawY;
 
         if (fy < -50 || fy > startY + 10) continue;

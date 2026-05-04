@@ -120,8 +120,11 @@ export class Spawner {
       if (this.squidTimer >= this.squidInterval) {
         this.squidTimer = 0;
         this.squidInterval = 8.0 + Math.random() * 4.0;
-        const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
-        spawned.push(this.config.createMediumEnemy(x, -30, playerX));
+        const groupSize = this.config.mediumEnemyGroupSize ?? 1;
+        for (let i = 0; i < groupSize; i++) {
+          const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
+          spawned.push(this.config.createMediumEnemy(x, -30 - i * 30, playerX));
+        }
       }
 
       // Glowing clam: every glowingClamInterval (default 30s, stage 3 uses shorter)

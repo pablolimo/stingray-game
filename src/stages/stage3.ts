@@ -43,6 +43,7 @@ export const stage3Definition: StageDefinition = {
     // More glowing clams (shorter interval via config)
     createGlowingClam: (x, y) => new GlowingClam(x, y),
     glowingClamInterval: 15.0,  // more frequent than stage 1/2's 30s
+    mediumEnemyGroupSize: 5,    // black squids appear in groups of 5
     // Coins
     createCoin: (x, y) => new GoldenCoin(x, y),
     // Stage 3 specific obstacles
