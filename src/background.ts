@@ -906,7 +906,7 @@ export class Background {
       const ry2 = -2 + r * 4;
       const rw = 10 - r * 1.5;
       ctx.beginPath();
-      ctx.arc(-0, ry2, rw, -Math.PI * 0.7, 0);
+      ctx.arc(0, ry2, rw, -Math.PI * 0.7, 0);
       ctx.stroke();
       ctx.beginPath();
       ctx.arc(0, ry2, rw, Math.PI, Math.PI * 1.7);
