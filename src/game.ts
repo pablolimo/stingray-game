@@ -1285,6 +1285,7 @@ export class Game {
       const spreadHalfWidth = NUCLEAR_BLAST_HALF_WIDTH * 1.8;
       const totalHeight = startY + 40;
       const numBalls = 55;
+      const heightPerBall = (totalHeight / numBalls) * 1.5;
 
       for (let i = 0; i < numBalls; i++) {
         // Use golden-angle-like constant for even variety between fireballs
@@ -1292,7 +1293,7 @@ export class Game {
         // Each fireball travels at a slightly different speed upward
         const speed = 180 + (i % 9) * 55;
         // Wrap Y position to create a continuous non-stop stream
-        const rawY = (t * speed + seed * (totalHeight / numBalls) * 1.5) % (totalHeight || 1);
+        const rawY = (t * speed + seed * heightPerBall) % (totalHeight || 1);
         const fy = startY - rawY;
 
         if (fy < -50 || fy > startY + 10) continue;
@@ -1307,7 +1308,7 @@ export class Game {
 
         const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, size);
         fg.addColorStop(0, `rgba(255,245,80,${bright})`);
-        fg.addColorStop(0.3, `rgba(255,100,0,${(bright * 0.85).toFixed(2)})`);
+        fg.addColorStop(0.3, `rgba(255,100,0,${bright * 0.85})`);
         fg.addColorStop(0.65, 'rgba(200,15,0,0.4)');
         fg.addColorStop(1, 'rgba(100,0,0,0)');
         ctx.fillStyle = fg;
