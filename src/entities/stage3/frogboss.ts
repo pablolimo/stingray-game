@@ -38,7 +38,6 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean, t: number): 
     ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
   }
 
-  // Back legs / Front arms – muscular in rage mode
   if (rage) {
     // Thick muscular thighs
     ctx.fillStyle = baseColor;
@@ -79,10 +78,15 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean, t: number): 
     ctx.beginPath(); ctx.ellipse(12, 90, 12, 24, -0.5, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(76, 90, 12, 24, 0.5, 0, Math.PI * 2); ctx.fill();
 
-    // Front arms (oscillate gently)
-    const armSwing = Math.sin(t * 3) * 8;
-    ctx.beginPath(); ctx.ellipse(16, 62 + armSwing, 8, 18, -0.7, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(72, 62 - armSwing, 8, 18, 0.7, 0, Math.PI * 2); ctx.fill();
+    // Shoulder sockets – visible attachment points for the separately-spinning arms
+    ctx.fillStyle = '#2a6a00';
+    ctx.beginPath(); ctx.arc(10, 58, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = baseColor;
+    ctx.beginPath(); ctx.arc(10, 58, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2a6a00';
+    ctx.beginPath(); ctx.arc(78, 58, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = baseColor;
+    ctx.beginPath(); ctx.arc(78, 58, 4, 0, Math.PI * 2); ctx.fill();
   }
 
   // Head
@@ -220,6 +224,7 @@ export class MutantFrogBoss extends BossEnemy {
   private jumpTargetY: number = 0;
   private idleWait: number = 1.2;
   private sequenceStep: number = 0;
+  private armAngle: number = 0;
 
   private rageThresholds: number[];
   private nextRageIdx: number = 0;
@@ -244,6 +249,8 @@ export class MutantFrogBoss extends BossEnemy {
     if (this.laserHitCooldown > 0) this.laserHitCooldown -= dt;
     if (this.hitFlash > 0) this.hitFlash -= dt;
     this.floatTime += dt;
+    // Arm rotation: always spinning (slower in normal mode, faster in rage)
+    this.armAngle += (this.isRaging ? 5.0 : 1.4) * dt;
 
     // Slide in from top
     if (this.y < FROG_TARGET_Y) {
@@ -446,6 +453,50 @@ export class MutantFrogBoss extends BossEnemy {
     ctx.drawImage(sprites[this.animFrame], -this.width / 2, -this.height / 2, this.width, this.height);
 
     ctx.filter = 'none';
+
+    // In normal mode, draw spinning arms separately so they look detached from the body
+    if (!this.isRaging) {
+      // Scale from sprite-space (88×90) to canvas-space (FROG_WIDTH × FROG_HEIGHT)
+      const sx = this.width / 88;
+      const sy = this.height / 90;
+      const baseColor = '#5a9a00';
+      const skinColor = '#7acc22';
+
+      // Left shoulder pivot in canvas space
+      const leftPivotX = 10 * sx - this.width / 2;
+      const leftPivotY = 58 * sy - this.height / 2;
+      // Right shoulder pivot
+      const rightPivotX = 78 * sx - this.width / 2;
+      const rightPivotY = 58 * sy - this.height / 2;
+
+      // Helper: draw one muscular arm (in sprite-space units, scaled)
+      const drawSpinningArm = (pivotX: number, pivotY: number, angle: number) => {
+        ctx.save();
+        ctx.translate(pivotX, pivotY);
+        ctx.rotate(angle);
+        ctx.scale(sx, sy);
+        ctx.fillStyle = baseColor;
+        ctx.beginPath(); ctx.ellipse(0, 14, 11, 19, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(0, 30, 9, 14, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 42, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = skinColor;
+        ctx.beginPath(); ctx.ellipse(0, 8, 7, 10, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      };
+
+      drawSpinningArm(leftPivotX, leftPivotY, this.armAngle);
+      drawSpinningArm(rightPivotX, rightPivotY, -this.armAngle);
+
+      // Re-draw shoulder socket circles on top of arm connection points
+      ctx.fillStyle = '#2a6a00';
+      ctx.beginPath(); ctx.arc(leftPivotX, leftPivotY, 6 * sx, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = baseColor;
+      ctx.beginPath(); ctx.arc(leftPivotX, leftPivotY, 4 * sx, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2a6a00';
+      ctx.beginPath(); ctx.arc(rightPivotX, rightPivotY, 6 * sx, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = baseColor;
+      ctx.beginPath(); ctx.arc(rightPivotX, rightPivotY, 4 * sx, 0, Math.PI * 2); ctx.fill();
+    }
 
     if (this.isRaging) {
       ctx.save();
