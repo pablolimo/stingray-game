@@ -414,6 +414,7 @@ export class RockThrowingOtter extends Level3Enemy {
   private erraticVx: number = 0;
   private erraticVy: number = 0;
   private erraticTimer: number = 0;
+  private calmDirY: number = 1;
 
   private _pendingProjectiles: Entity[] = [];
   get pendingProjectiles(): Entity[] { return this._pendingProjectiles; }
@@ -472,17 +473,23 @@ export class RockThrowingOtter extends Level3Enemy {
   }
 
   private updateCalm(dt: number, scrollSpeed: number): void {
-    // Drift gently with scroll, slight horizontal float
-    this.y += scrollSpeed * OTTER_SCROLL_FACTOR * dt;
+    // Drift gently, slight horizontal float
     this.floatX += Math.sin(this.floatPhase * 0.5) * 18 * dt;
     this.floatX = Math.max(this.width / 2, Math.min(CANVAS_WIDTH - this.width / 2, this.floatX));
     this.x += (this.floatX - this.x) * 1.2 * dt;
-    // Gentle vertical float
-    this.y += Math.sin(this.floatPhase) * 8 * dt;
+    // Vertical movement with direction bounce so the otter never leaves the screen
+    this.y += this.calmDirY * scrollSpeed * OTTER_SCROLL_FACTOR * dt;
+    this.y += this.calmDirY * Math.sin(this.floatPhase) * 8 * dt;
 
-    // Mark as expired if scrolled off screen
-    if (this.y > CANVAS_HEIGHT + 120) {
-      this.expired = true;
+    // Bounce at bottom: reverse direction upward
+    if (this.y > CANVAS_HEIGHT - this.height / 2) {
+      this.y = CANVAS_HEIGHT - this.height / 2;
+      this.calmDirY = -1;
+    }
+    // Bounce at top: reverse direction downward
+    if (this.y < this.height / 2) {
+      this.y = this.height / 2;
+      this.calmDirY = 1;
     }
   }
 
