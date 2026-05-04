@@ -111,7 +111,7 @@ export class BlackSquid extends MediumEnemy {
     }
     this.x += this.erraticVx * dt;
     // Decay the erratic velocity between dashes
-    this.erraticVx *= Math.pow(0.3, dt);
+    this.erraticVx *= (1 - 7 * dt);
 
     const dx = this.targetX - this.x;
     const step = BLACK_SQUID_CHASE_SPEED * dt;
