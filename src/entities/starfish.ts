@@ -20,7 +20,7 @@ export class Starfish extends BonusFoodCollectible {
   update(dt: number, scrollSpeed: number): void {
     this.y += scrollSpeed * dt;
     this.rotation += dt * 1.5;
-    this.glowPhase += dt * 2.0;
+    this.glowPhase = (this.glowPhase + dt * 2.0) % (Math.PI * 2);
   }
 
   getBounds(): { x: number; y: number; width: number; height: number } {

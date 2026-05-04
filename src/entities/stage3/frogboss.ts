@@ -142,33 +142,46 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean): void {
 }
 
 function createFrogNormalSprites(): HTMLCanvasElement[] {
-  return [0, 1].map(() => {
+  // Two frames with a subtle belly-breathe: frame 0 = rest, frame 1 = slight inhale
+  return [0, 1].map(frame => {
     const c = document.createElement('canvas');
     c.width = 88;
     c.height = 90;
     const ctx = c.getContext('2d')!;
     drawFrogBody(ctx, false);
+    if (frame === 1) {
+      // Subtle inhale: slightly brighter belly highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      ctx.beginPath(); ctx.ellipse(44, 62, 20, 24, 0, 0, Math.PI * 2); ctx.fill();
+    }
     return c;
   });
 }
 
 function createFrogRageSprites(): HTMLCanvasElement[] {
-  // 8-frame sprite for body (no arms – arms are drawn separately in render)
+  // 8 frames with a pulsing toxic glow intensity (body animation; arms are drawn
+  // separately in render() so they don't need to be baked in here)
   const FRAMES = 8;
-  return Array.from({ length: FRAMES }, () => {
+  return Array.from({ length: FRAMES }, (_, frame) => {
     const c = document.createElement('canvas');
     c.width = 88;
     c.height = 90;
     const ctx = c.getContext('2d')!;
 
-    // Toxic glow aura
+    // Pulsing toxic aura – intensity varies per frame
+    const pulse = Math.sin((frame / FRAMES) * Math.PI * 2) * 0.5 + 0.5;
     const aura = ctx.createRadialGradient(44, 45, 10, 44, 45, 46);
-    aura.addColorStop(0, 'rgba(150,255,0,0.3)');
+    aura.addColorStop(0, `rgba(150,255,0,${0.18 + pulse * 0.22})`);
     aura.addColorStop(1, 'transparent');
     ctx.fillStyle = aura;
     ctx.fillRect(0, 0, 88, 90);
 
     drawFrogBody(ctx, true);
+
+    // Additional per-frame brightness pulse on the belly
+    ctx.fillStyle = `rgba(200,255,100,${0.04 + pulse * 0.08})`;
+    ctx.beginPath(); ctx.ellipse(44, 62, 22, 26, 0, 0, Math.PI * 2); ctx.fill();
+
     return c;
   });
 }
