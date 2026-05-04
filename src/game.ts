@@ -1276,37 +1276,43 @@ export class Game {
       ctx.restore();
     }
 
-    // Nuclear blast beam (red fire beam, wider and stronger)
+    // Nuclear blast – massive barrage of fireballs shot forward from the stingray
     if (this.nuclearBlastActive) {
       ctx.save();
+      const t = this.nuclearBlastAnimTime;
       const bx = this.player.x;
-      const by = this.player.y - this.player.height / 2;
-      const beamW = NUCLEAR_BLAST_HALF_WIDTH * 2;
-      const pulse = 0.7 + Math.sin(this.nuclearBlastAnimTime * 18) * 0.3;
+      const startY = this.player.y - this.player.height / 2;
+      const spreadHalfWidth = NUCLEAR_BLAST_HALF_WIDTH * 1.8;
+      const totalHeight = startY + 40;
+      const numBalls = 55;
 
-      // Outer fire glow
-      ctx.globalAlpha = 0.18 * pulse;
-      ctx.fillStyle = '#ff4400';
-      ctx.fillRect(bx - beamW, 0, beamW * 2, by);
+      for (let i = 0; i < numBalls; i++) {
+        // Use golden-angle-like constant for even variety between fireballs
+        const seed = i * 2.399;
+        // Each fireball travels at a slightly different speed upward
+        const speed = 180 + (i % 9) * 55;
+        // Wrap Y position to create a continuous non-stop stream
+        const rawY = (t * speed + seed * (totalHeight / numBalls) * 1.5) % (totalHeight || 1);
+        const fy = startY - rawY;
 
-      // Inner beam
-      const nucGrad = ctx.createLinearGradient(bx - beamW / 2, 0, bx + beamW / 2, 0);
-      nucGrad.addColorStop(0, 'rgba(255,100,0,0)');
-      nucGrad.addColorStop(0.3, 'rgba(255,80,0,0.7)');
-      nucGrad.addColorStop(0.5, 'rgba(255,255,100,0.95)');
-      nucGrad.addColorStop(0.7, 'rgba(255,80,0,0.7)');
-      nucGrad.addColorStop(1, 'rgba(255,100,0,0)');
-      ctx.globalAlpha = 0.9 * pulse;
-      ctx.fillStyle = nucGrad;
-      ctx.fillRect(bx - beamW / 2, 0, beamW, by);
+        if (fy < -50 || fy > startY + 10) continue;
 
-      // Fire flicker particles along beam
-      ctx.globalAlpha = 0.35 * pulse;
-      ctx.fillStyle = '#ff6600';
-      for (let i = 0; i < 5; i++) {
-        const fy = (this.nuclearBlastAnimTime * 150 + i * 100) % (by || 1);
+        // Horizontal position oscillates within the spread width
+        const fx = bx + Math.sin(seed * 2.7 + t * (1.5 + (i % 5) * 0.4)) * spreadHalfWidth;
+
+        // Radius varies per fireball to create different-sized overlapping balls
+        const size = 12 + Math.abs(Math.sin(t * (5 + i % 6) + seed * 1.3)) * 26;
+
+        const bright = 0.75 + Math.sin(t * 13 + seed) * 0.2;
+
+        const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, size);
+        fg.addColorStop(0, `rgba(255,245,80,${bright})`);
+        fg.addColorStop(0.3, `rgba(255,100,0,${(bright * 0.85).toFixed(2)})`);
+        fg.addColorStop(0.65, 'rgba(200,15,0,0.4)');
+        fg.addColorStop(1, 'rgba(100,0,0,0)');
+        ctx.fillStyle = fg;
         ctx.beginPath();
-        ctx.arc(bx + (Math.sin(this.nuclearBlastAnimTime * 6 + i) * 12), fy, 6 + Math.sin(i * 2) * 3, 0, Math.PI * 2);
+        ctx.arc(fx, fy, size, 0, Math.PI * 2);
         ctx.fill();
       }
 

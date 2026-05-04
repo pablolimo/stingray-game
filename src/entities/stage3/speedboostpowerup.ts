@@ -4,7 +4,7 @@ const ARROW_COLORS = ['#ffee00', '#ff8800', '#ff2200', '#ff00cc', '#8800ff', '#0
 
 function createSpeedBoostSprite(): HTMLCanvasElement {
   const c = document.createElement('canvas');
-  c.width = 38;
+  c.width = 56;
   c.height = 46;
   const ctx = c.getContext('2d')!;
 
@@ -17,12 +17,12 @@ function createSpeedBoostSprite(): HTMLCanvasElement {
     ctx.shadowColor = colors[i];
     ctx.shadowBlur = 6;
     ctx.beginPath();
-    ctx.moveTo(19, y - 10);     // top point
+    ctx.moveTo(28, y - 10);     // top point
     ctx.lineTo(4, y + 2);       // bottom-left
-    ctx.lineTo(10, y + 2);      // inner left
-    ctx.lineTo(19, y - 3);      // center
-    ctx.lineTo(28, y + 2);      // inner right
-    ctx.lineTo(34, y + 2);      // bottom-right
+    ctx.lineTo(11, y + 2);      // inner left
+    ctx.lineTo(28, y - 3);      // center
+    ctx.lineTo(45, y + 2);      // inner right
+    ctx.lineTo(52, y + 2);      // bottom-right
     ctx.closePath();
     ctx.fill();
   }
@@ -34,7 +34,7 @@ function createSpeedBoostSprite(): HTMLCanvasElement {
 export class SpeedBoostPowerup extends SpeedBoostCollectible {
   x: number;
   y: number;
-  width: number = 76;
+  width: number = 120;
   height: number = 46;
   collected: boolean = false;
 
@@ -71,12 +71,12 @@ export class SpeedBoostPowerup extends SpeedBoostCollectible {
     const haloAlpha = 0.25 + Math.abs(Math.sin(this.glowTimer)) * 0.2;
     ctx.globalAlpha = haloAlpha;
     const hue = (this.glowTimer * 40) % 360;
-    const grd = ctx.createRadialGradient(this.x, this.y, 4, this.x, this.y, 32);
+    const grd = ctx.createRadialGradient(this.x, this.y, 4, this.x, this.y, 50);
     grd.addColorStop(0, `hsla(${hue},100%,70%,0.8)`);
     grd.addColorStop(1, `hsla(${hue + 60},100%,50%,0)`);
     ctx.fillStyle = grd;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, 32, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, 50, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
