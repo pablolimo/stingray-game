@@ -177,12 +177,13 @@ export class Player {
 
       // Glowing red eyes
       ctx.save();
+      const SPRITE_BASE_SIZE = 24; // sprite source canvas is 24×24 pixels
       const eyePulse = 0.7 + Math.sin(this.glowTimer * 12) * 0.3;
       // Eye positions derived from sprite layout (24×24 → 96×96, scale=4)
       // Left eye at sprite px (10,8), right eye at (13,8)
-      const leftEyeX = this.x - this.width / 2 + (10.5 / 24) * this.width;
-      const rightEyeX = this.x - this.width / 2 + (13.5 / 24) * this.width;
-      const eyeY = this.y - this.height / 2 + (8.5 / 24) * this.height;
+      const leftEyeX = this.x - this.width / 2 + (10.5 / SPRITE_BASE_SIZE) * this.width;
+      const rightEyeX = this.x - this.width / 2 + (13.5 / SPRITE_BASE_SIZE) * this.width;
+      const eyeY = this.y - this.height / 2 + (8.5 / SPRITE_BASE_SIZE) * this.height;
       const eyeR = 6;
       for (const ex of [leftEyeX, rightEyeX]) {
         // Outer red glow

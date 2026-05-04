@@ -39,6 +39,7 @@ import {
   SPEED_BOOST_MULTIPLIER, SPEED_BOOST_DURATION,
   NUCLEAR_BLAST_DURATION, NUCLEAR_BLAST_HALF_WIDTH, NUCLEAR_DAMAGE_MULTIPLIER,
   HOOK_DURATION,
+  BOMB_DEATH_ANIM_DURATION, BOMB_BURST_FREQUENCY,
 } from './constants';
 
 function aabb(
@@ -548,7 +549,7 @@ export class Game {
             if (!this.player.isInvincible() && this.bombDeathAnimTimer <= 0) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
-                this.bombDeathAnimTimer = 1.8;
+                this.bombDeathAnimTimer = BOMB_DEATH_ANIM_DURATION;
                 this.bombDeathAnimTime = 0;
                 this.bombDeathX = this.player.x;
                 this.bombDeathY = this.player.y;
@@ -824,7 +825,7 @@ export class Game {
           this.bombDeathAnimTimer -= dt;
           this.bombDeathAnimTime += dt;
           // Spawn extra burst particles periodically for drama
-          if (Math.floor((this.bombDeathAnimTime - dt) * 6) < Math.floor(this.bombDeathAnimTime * 6)) {
+          if (Math.floor((this.bombDeathAnimTime - dt) * BOMB_BURST_FREQUENCY) < Math.floor(this.bombDeathAnimTime * BOMB_BURST_FREQUENCY)) {
             this.spawnBombDeathExplosion(
               this.bombDeathX + (Math.random() - 0.5) * 60,
               this.bombDeathY + (Math.random() - 0.5) * 60,
@@ -1385,7 +1386,7 @@ export class Game {
     // When bomb death animation is active, render dramatic fireball instead of player
     if (this.bombDeathAnimTimer > 0) {
       const t = this.bombDeathAnimTime;
-      const fadeOut = Math.max(0, this.bombDeathAnimTimer / 1.8);
+      const fadeOut = Math.max(0, this.bombDeathAnimTimer / BOMB_DEATH_ANIM_DURATION);
       ctx.save();
       // Central fireball expanding over time
       const fireRadius = 30 + t * 80;

@@ -52,3 +52,5 @@ export const HOOK_DURATION = 1.5; // seconds player is pulled by frog tongue
 export const NUCLEAR_DAMAGE_MULTIPLIER = 3; // nuclear blast deals 3× laser damage per tick
 export const EEL_MAX_HP = 3; // electric eel hit points (same scale as ScubaKitten)
 export const EEL_LASER_HIT_INTERVAL = 0.25; // seconds between laser ticks on eel
+export const BOMB_DEATH_ANIM_DURATION = 1.8; // seconds for bomb death animation before game over
+export const BOMB_BURST_FREQUENCY = 6; // extra particle bursts per second during bomb death anim

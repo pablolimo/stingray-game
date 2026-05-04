@@ -189,8 +189,8 @@ export class Spawner {
       if (this.speedBoostTimer >= this.speedBoostInterval) {
         this.speedBoostTimer = 0;
         this.speedBoostInterval = 8.0 + Math.random() * 6.0;
-        const count = Math.random() < 0.5 ? 1 : 2;
-        for (let i = 0; i < count; i++) {
+        const speedBoostCount = Math.random() < 0.5 ? 1 : 2;
+        for (let i = 0; i < speedBoostCount; i++) {
           const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
           spawned.push(this.config.createSpeedBoost(x, -40 - i * 120));
         }
