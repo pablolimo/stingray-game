@@ -39,7 +39,6 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean, t: number): 
   }
 
   // Back legs / Front arms – muscular in rage mode
-  const armSwing = Math.sin(t * 3) * (rage ? 5 : 8);
   if (rage) {
     // Thick muscular thighs
     ctx.fillStyle = baseColor;
@@ -50,35 +49,38 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean, t: number): 
     ctx.beginPath(); ctx.ellipse(12, 80, 9, 13, -0.4, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(76, 80, 9, 13, 0.4, 0, Math.PI * 2); ctx.fill();
 
-    // Muscular arms – bicep + forearm + fist
+    // Muscular arms swinging in full circles around shoulder pivots
+    // Left arm: rotates counterclockwise (t = 0..2π over 8 frames)
+    ctx.save();
+    ctx.translate(10, 58);
+    ctx.rotate(t);
     ctx.fillStyle = baseColor;
-    // Left upper arm (bicep)
-    ctx.beginPath(); ctx.ellipse(10, 57 + armSwing, 12, 20, -0.85, 0, Math.PI * 2); ctx.fill();
-    // Left forearm
-    ctx.beginPath(); ctx.ellipse(5, 76 + armSwing * 0.7, 9, 15, -0.25, 0, Math.PI * 2); ctx.fill();
-    // Left fist
-    ctx.beginPath(); ctx.arc(3, 88 + armSwing * 0.4, 8, 0, Math.PI * 2); ctx.fill();
-    // Left bicep highlight
+    ctx.beginPath(); ctx.ellipse(0, 14, 11, 19, 0, 0, Math.PI * 2); ctx.fill(); // bicep
+    ctx.beginPath(); ctx.ellipse(0, 30, 9, 14, 0, 0, Math.PI * 2); ctx.fill(); // forearm
+    ctx.beginPath(); ctx.arc(0, 42, 8, 0, Math.PI * 2); ctx.fill();            // fist
     ctx.fillStyle = skinColor;
-    ctx.beginPath(); ctx.ellipse(9, 51 + armSwing, 7, 10, -0.85, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 8, 7, 10, 0, 0, Math.PI * 2); ctx.fill(); // bicep highlight
+    ctx.restore();
 
+    // Right arm: rotates clockwise (opposite direction for windmill effect)
+    ctx.save();
+    ctx.translate(78, 58);
+    ctx.rotate(-t);
     ctx.fillStyle = baseColor;
-    // Right upper arm (bicep)
-    ctx.beginPath(); ctx.ellipse(78, 57 - armSwing, 12, 20, 0.85, 0, Math.PI * 2); ctx.fill();
-    // Right forearm
-    ctx.beginPath(); ctx.ellipse(83, 76 - armSwing * 0.7, 9, 15, 0.25, 0, Math.PI * 2); ctx.fill();
-    // Right fist
-    ctx.beginPath(); ctx.arc(85, 88 - armSwing * 0.4, 8, 0, Math.PI * 2); ctx.fill();
-    // Right bicep highlight
+    ctx.beginPath(); ctx.ellipse(0, 14, 11, 19, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 30, 9, 14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 42, 8, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = skinColor;
-    ctx.beginPath(); ctx.ellipse(79, 51 - armSwing, 7, 10, 0.85, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 8, 7, 10, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   } else {
     // Back legs
     ctx.fillStyle = baseColor;
     ctx.beginPath(); ctx.ellipse(12, 90, 12, 24, -0.5, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(76, 90, 12, 24, 0.5, 0, Math.PI * 2); ctx.fill();
 
-    // Front arms
+    // Front arms (oscillate gently)
+    const armSwing = Math.sin(t * 3) * 8;
     ctx.beginPath(); ctx.ellipse(16, 62 + armSwing, 8, 18, -0.7, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(72, 62 - armSwing, 8, 18, 0.7, 0, Math.PI * 2); ctx.fill();
   }
@@ -166,7 +168,8 @@ function createFrogNormalSprites(): HTMLCanvasElement[] {
 }
 
 function createFrogRageSprites(): HTMLCanvasElement[] {
-  return [0, 1].map(frame => {
+  const FRAMES = 8;
+  return Array.from({ length: FRAMES }, (_, frame) => {
     const c = document.createElement('canvas');
     c.width = 88;
     c.height = 90;
@@ -179,7 +182,7 @@ function createFrogRageSprites(): HTMLCanvasElement[] {
     ctx.fillStyle = aura;
     ctx.fillRect(0, 0, 88, 90);
 
-    drawFrogBody(ctx, true, frame * Math.PI);
+    drawFrogBody(ctx, true, (frame / FRAMES) * Math.PI * 2);
     return c;
   });
 }
@@ -249,7 +252,9 @@ export class MutantFrogBoss extends BossEnemy {
     }
 
     this.animTimer += dt;
-    if (this.animTimer >= 0.4) { this.animTimer -= 0.4; this.animFrame = (this.animFrame + 1) % 2; }
+    const frameInterval = this.isRaging ? 0.1 : 0.4;
+    const frameCount = this.isRaging ? this.rageSprites.length : this.normalSprites.length;
+    if (this.animTimer >= frameInterval) { this.animTimer -= frameInterval; this.animFrame = (this.animFrame + 1) % frameCount; }
 
     if (this.isRaging) {
       this.updateRage(dt);
@@ -286,6 +291,8 @@ export class MutantFrogBoss extends BossEnemy {
       this.rageTimer = 0;
       this.rageShootTimer = 0;
       this.spinAngle = 0;
+      this.animFrame = 0;
+      this.animTimer = 0;
       this.nextRageIdx++;
       this.attackState = 'idle';
       this.attackTimer = 0;
@@ -413,6 +420,8 @@ export class MutantFrogBoss extends BossEnemy {
       this.isRaging = true;
       this.rageTimer = 0;
       this.rageShootTimer = 0;
+      this.animFrame = 0;
+      this.animTimer = 0;
     }
   }
 
