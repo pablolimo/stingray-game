@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, SQUID_MAX_HP, SQUID_LASER_HIT_INTERVAL } from '../../constants';
+import { CANVAS_WIDTH, BLACK_SQUID_MAX_HP, SQUID_LASER_HIT_INTERVAL } from '../../constants';
 import { MediumEnemy } from '../entityRoles';
 
 // Black squid – faster spin and chase than the regular Squid
@@ -70,7 +70,7 @@ export class BlackSquid extends MediumEnemy {
   height: number = 52;
   expired: boolean = false;
   targetX: number;
-  hp: number = SQUID_MAX_HP;
+  hp: number = BLACK_SQUID_MAX_HP;
 
   private sprite: HTMLCanvasElement;
   private spinAngle: number = 0;
@@ -138,7 +138,7 @@ export class BlackSquid extends MediumEnemy {
 
     ctx.drawImage(this.sprite, -this.width / 2, -this.height / 2, this.width, this.height);
 
-    if (this.hp < SQUID_MAX_HP && this.hp > 0) {
+    if (this.hp < BLACK_SQUID_MAX_HP && this.hp > 0) {
       ctx.filter = 'none';
       ctx.globalAlpha = 0.9;
       for (let i = 0; i < this.hp; i++) {

@@ -14,86 +14,76 @@ const FROG_RETREAT_SPEED = 350;
 
 type FrogState = 'idle' | 'jumping' | 'retreating' | 'shooting' | 'tongue';
 
-function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean, t: number): void {
+function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean): void {
   const baseColor = rage ? '#88cc00' : '#5a9a00';
   const skinColor = rage ? '#aaee22' : '#7acc22';
   const bellColor = rage ? '#ddffa0' : '#c8f580';
+  const darkColor = rage ? '#4a7a00' : '#2a5800';
 
-  // Main body
+  // Main body with outline for crisp silhouette
+  ctx.strokeStyle = darkColor;
+  ctx.lineWidth = 2;
   ctx.fillStyle = baseColor;
   ctx.beginPath();
-  ctx.ellipse(44, 60, 38, 42, 0, 0, Math.PI * 2);
+  ctx.ellipse(44, 58, 38, 40, 0, 0, Math.PI * 2);
   ctx.fill();
+  ctx.stroke();
 
   // Belly
   ctx.fillStyle = bellColor;
   ctx.beginPath();
-  ctx.ellipse(44, 64, 24, 30, 0, 0, Math.PI * 2);
+  ctx.ellipse(44, 62, 24, 28, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Belly highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.ellipse(40, 54, 13, 14, -0.2, 0, Math.PI * 2);
   ctx.fill();
 
   // Texture bumps
   ctx.fillStyle = skinColor;
-  const bumps = [[30, 48, 4], [58, 44, 3.5], [22, 60, 3], [66, 62, 3.5], [44, 42, 3]];
+  const bumps = [[30, 46, 4], [58, 42, 3.5], [22, 58, 3], [66, 60, 3.5], [44, 40, 3]];
   for (const [bx, by, br] of bumps) {
     ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
   }
 
+  // Legs
+  ctx.fillStyle = baseColor;
+  ctx.strokeStyle = darkColor;
+  ctx.lineWidth = 1.5;
   if (rage) {
-    // Thick muscular thighs
-    ctx.fillStyle = baseColor;
-    ctx.beginPath(); ctx.ellipse(14, 88, 16, 26, -0.4, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(74, 88, 16, 26, 0.4, 0, Math.PI * 2); ctx.fill();
-    // Quad definition highlight
+    // Thick muscular thighs (kept shorter to avoid sprite clipping)
+    ctx.beginPath(); ctx.ellipse(14, 72, 15, 18, -0.4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(74, 72, 15, 18, 0.4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // Quad highlight
     ctx.fillStyle = skinColor;
-    ctx.beginPath(); ctx.ellipse(12, 80, 9, 13, -0.4, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(76, 80, 9, 13, 0.4, 0, Math.PI * 2); ctx.fill();
-
-    // Muscular arms swinging in full circles around shoulder pivots
-    // Left arm: rotates counterclockwise (t = 0..2π over 8 frames)
-    ctx.save();
-    ctx.translate(10, 58);
-    ctx.rotate(t);
-    ctx.fillStyle = baseColor;
-    ctx.beginPath(); ctx.ellipse(0, 14, 11, 19, 0, 0, Math.PI * 2); ctx.fill(); // bicep
-    ctx.beginPath(); ctx.ellipse(0, 30, 9, 14, 0, 0, Math.PI * 2); ctx.fill(); // forearm
-    ctx.beginPath(); ctx.arc(0, 42, 8, 0, Math.PI * 2); ctx.fill();            // fist
-    ctx.fillStyle = skinColor;
-    ctx.beginPath(); ctx.ellipse(0, 8, 7, 10, 0, 0, Math.PI * 2); ctx.fill(); // bicep highlight
-    ctx.restore();
-
-    // Right arm: rotates clockwise (opposite direction for windmill effect)
-    ctx.save();
-    ctx.translate(78, 58);
-    ctx.rotate(-t);
-    ctx.fillStyle = baseColor;
-    ctx.beginPath(); ctx.ellipse(0, 14, 11, 19, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(0, 30, 9, 14, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(0, 42, 8, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = skinColor;
-    ctx.beginPath(); ctx.ellipse(0, 8, 7, 10, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
+    ctx.beginPath(); ctx.ellipse(12, 65, 8, 10, -0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(76, 65, 8, 10, 0.4, 0, Math.PI * 2); ctx.fill();
   } else {
-    // Back legs
+    // Normal back legs
     ctx.fillStyle = baseColor;
-    ctx.beginPath(); ctx.ellipse(12, 90, 12, 24, -0.5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(76, 90, 12, 24, 0.5, 0, Math.PI * 2); ctx.fill();
-
+    ctx.beginPath(); ctx.ellipse(12, 76, 12, 16, -0.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(76, 76, 12, 16, 0.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     // Shoulder sockets – visible attachment points for the separately-spinning arms
-    ctx.fillStyle = '#2a6a00';
-    ctx.beginPath(); ctx.arc(10, 58, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = darkColor;
+    ctx.beginPath(); ctx.arc(10, 56, 8, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = baseColor;
-    ctx.beginPath(); ctx.arc(10, 58, 4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#2a6a00';
-    ctx.beginPath(); ctx.arc(78, 58, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(10, 56, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = darkColor;
+    ctx.beginPath(); ctx.arc(78, 56, 8, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = baseColor;
-    ctx.beginPath(); ctx.arc(78, 58, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(78, 56, 5, 0, Math.PI * 2); ctx.fill();
   }
 
-  // Head
+  // Head with outline
   ctx.fillStyle = baseColor;
+  ctx.strokeStyle = darkColor;
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.ellipse(44, 22, 34, 28, 0, 0, Math.PI * 2);
+  ctx.ellipse(44, 22, 34, 27, 0, 0, Math.PI * 2);
   ctx.fill();
+  ctx.stroke();
 
   // Head texture
   ctx.fillStyle = skinColor;
@@ -103,32 +93,25 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean, t: number): 
 
   // 8 eyes
   const eyeData: [number, number, number, string][] = [
-    // Main large pair
     [30, 10, 7, '#dddd00'],
     [58, 10, 7, '#dddd00'],
-    // Second pair
     [18, 22, 4.5, '#ffcc00'],
     [70, 22, 4.5, '#ffcc00'],
-    // Third pair
-    [24, 34, 3.5, '#ff8800'],
-    [64, 34, 3.5, '#ff8800'],
-    // Fourth pair (tiny)
+    [24, 33, 3.5, '#ff8800'],
+    [64, 33, 3.5, '#ff8800'],
     [36, 6, 2.5, '#ffee44'],
     [52, 6, 2.5, '#ffee44'],
   ];
 
   const eyeGlow = rage ? 12 : 6;
   for (const [ex, ey, er, ecolor] of eyeData) {
-    // Eyeball
     ctx.fillStyle = '#111';
     ctx.beginPath(); ctx.arc(ex, ey, er + 1, 0, Math.PI * 2); ctx.fill();
-    // Iris
     ctx.fillStyle = ecolor;
     ctx.shadowColor = ecolor;
     ctx.shadowBlur = eyeGlow;
     ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
-    // Slit pupil
     ctx.fillStyle = '#000';
     ctx.beginPath(); ctx.ellipse(ex, ey, er * 0.25, er * 0.8, 0, 0, Math.PI * 2); ctx.fill();
   }
@@ -138,15 +121,13 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean, t: number): 
   ctx.lineWidth = 2.5;
   ctx.beginPath();
   if (rage) {
-    // Open wide with teeth
-    ctx.arc(44, 36, 20, 0.05 * Math.PI, 0.95 * Math.PI);
+    ctx.arc(44, 35, 18, 0.05 * Math.PI, 0.95 * Math.PI);
     ctx.stroke();
-    // Teeth
     ctx.fillStyle = '#eeeedd';
     for (let i = 0; i < 6; i++) {
       const ta = (0.1 + i * 0.15) * Math.PI;
-      const tx = 44 + Math.cos(ta) * 18;
-      const ty = 36 + Math.sin(ta) * 18;
+      const tx = 44 + Math.cos(ta) * 16;
+      const ty = 35 + Math.sin(ta) * 16;
       ctx.beginPath();
       ctx.moveTo(tx, ty);
       ctx.lineTo(tx - 3, ty + 5);
@@ -155,23 +136,31 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean, t: number): 
       ctx.fill();
     }
   } else {
-    ctx.arc(44, 36, 14, 0.1 * Math.PI, 0.9 * Math.PI);
+    ctx.arc(44, 35, 13, 0.1 * Math.PI, 0.9 * Math.PI);
     ctx.stroke();
   }
 }
 
 function createFrogNormalSprites(): HTMLCanvasElement[] {
+  // Two frames with a subtle belly-breathe: frame 0 = rest, frame 1 = slight inhale
   return [0, 1].map(frame => {
     const c = document.createElement('canvas');
     c.width = 88;
     c.height = 90;
     const ctx = c.getContext('2d')!;
-    drawFrogBody(ctx, false, frame * Math.PI);
+    drawFrogBody(ctx, false);
+    if (frame === 1) {
+      // Subtle inhale: slightly brighter belly highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      ctx.beginPath(); ctx.ellipse(44, 62, 20, 24, 0, 0, Math.PI * 2); ctx.fill();
+    }
     return c;
   });
 }
 
 function createFrogRageSprites(): HTMLCanvasElement[] {
+  // 8 frames with a pulsing toxic glow intensity (body animation; arms are drawn
+  // separately in render() so they don't need to be baked in here)
   const FRAMES = 8;
   return Array.from({ length: FRAMES }, (_, frame) => {
     const c = document.createElement('canvas');
@@ -179,14 +168,20 @@ function createFrogRageSprites(): HTMLCanvasElement[] {
     c.height = 90;
     const ctx = c.getContext('2d')!;
 
-    // Toxic glow aura
+    // Pulsing toxic aura – intensity varies per frame
+    const pulse = Math.sin((frame / FRAMES) * Math.PI * 2) * 0.5 + 0.5;
     const aura = ctx.createRadialGradient(44, 45, 10, 44, 45, 46);
-    aura.addColorStop(0, 'rgba(150,255,0,0.3)');
+    aura.addColorStop(0, `rgba(150,255,0,${0.18 + pulse * 0.22})`);
     aura.addColorStop(1, 'transparent');
     ctx.fillStyle = aura;
     ctx.fillRect(0, 0, 88, 90);
 
-    drawFrogBody(ctx, true, (frame / FRAMES) * Math.PI * 2);
+    drawFrogBody(ctx, true);
+
+    // Additional per-frame brightness pulse on the belly
+    ctx.fillStyle = `rgba(200,255,100,${0.04 + pulse * 0.08})`;
+    ctx.beginPath(); ctx.ellipse(44, 62, 22, 26, 0, 0, Math.PI * 2); ctx.fill();
+
     return c;
   });
 }
@@ -447,65 +442,82 @@ export class MutantFrogBoss extends BossEnemy {
     ctx.save();
     ctx.translate(this.x, this.y);
     if (this.isRaging) ctx.rotate(this.spinAngle);
-    if (this.hitFlash > 0) ctx.filter = 'brightness(3)';
 
-    const sprites = this.isRaging ? this.rageSprites : this.normalSprites;
-    ctx.drawImage(sprites[this.animFrame], -this.width / 2, -this.height / 2, this.width, this.height);
+    // Scale factors from sprite-space (88×90) to world-space (FROG_WIDTH × FROG_HEIGHT)
+    const sx = this.width / 88;
+    const sy = this.height / 90;
 
-    ctx.filter = 'none';
+    // Shoulder pivot positions in world-space (relative to frog centre)
+    // Sprite sockets at (10, 56) and (78, 56) → world: (10*sx−w/2, 56*sy−h/2)
+    const leftPivotX  = 10 * sx - this.width / 2;   // ≈ −65
+    const leftPivotY  = 56 * sy - this.height / 2;  // ≈  22
+    const rightPivotX = 78 * sx - this.width / 2;   // ≈  65
+    const rightPivotY = leftPivotY;
 
-    // In normal mode, draw spinning arms separately so they look detached from the body
-    if (!this.isRaging) {
-      // Scale from sprite-space (88×90) to canvas-space (FROG_WIDTH × FROG_HEIGHT)
-      const sx = this.width / 88;
-      const sy = this.height / 90;
-      const baseColor = '#5a9a00';
-      const skinColor = '#7acc22';
+    const baseColor = this.isRaging ? '#88cc00' : '#5a9a00';
+    const skinColor = this.isRaging ? '#aaee22' : '#7acc22';
+    const darkColor = this.isRaging ? '#4a7a00' : '#2a5800';
 
-      // Left shoulder pivot in canvas space
-      const leftPivotX = 10 * sx - this.width / 2;
-      const leftPivotY = 58 * sy - this.height / 2;
-      // Right shoulder pivot
-      const rightPivotX = 78 * sx - this.width / 2;
-      const rightPivotY = 58 * sy - this.height / 2;
+    // ── Draw spinning arms (BEHIND body so shoulder is buried in the torso) ────
+    const drawArm = (pivotX: number, pivotY: number, angle: number) => {
+      ctx.save();
+      ctx.translate(pivotX, pivotY);
+      ctx.rotate(angle);
 
-      // Helper: draw one muscular arm (in sprite-space units, scaled)
-      const drawSpinningArm = (pivotX: number, pivotY: number, angle: number) => {
-        ctx.save();
-        ctx.translate(pivotX, pivotY);
-        ctx.rotate(angle);
-        ctx.scale(sx, sy);
-        ctx.fillStyle = baseColor;
-        ctx.beginPath(); ctx.ellipse(0, 14, 11, 19, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(0, 30, 9, 14, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(0, 42, 8, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = skinColor;
-        ctx.beginPath(); ctx.ellipse(0, 8, 7, 10, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
-      };
-
-      drawSpinningArm(leftPivotX, leftPivotY, this.armAngle);
-      drawSpinningArm(rightPivotX, rightPivotY, -this.armAngle);
-
-      // Re-draw shoulder socket circles on top of arm connection points
-      ctx.fillStyle = '#2a6a00';
-      ctx.beginPath(); ctx.arc(leftPivotX, leftPivotY, 6 * sx, 0, Math.PI * 2); ctx.fill();
+      // Upper arm
+      ctx.strokeStyle = darkColor;
+      ctx.lineWidth = 2;
       ctx.fillStyle = baseColor;
-      ctx.beginPath(); ctx.arc(leftPivotX, leftPivotY, 4 * sx, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#2a6a00';
-      ctx.beginPath(); ctx.arc(rightPivotX, rightPivotY, 6 * sx, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = baseColor;
-      ctx.beginPath(); ctx.arc(rightPivotX, rightPivotY, 4 * sx, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, 22, 16, 28, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      // Forearm (slightly narrower, further out)
+      ctx.beginPath(); ctx.ellipse(0, 52, 12, 20, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      // Fist
+      ctx.beginPath(); ctx.arc(0, 72, 14, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      // Muscle highlight
+      ctx.fillStyle = skinColor;
+      ctx.beginPath(); ctx.ellipse(0, 14, 8, 12, 0, 0, Math.PI * 2); ctx.fill();
+      // Knuckle dots on fist
+      ctx.fillStyle = darkColor;
+      for (let k = -1; k <= 1; k++) {
+        ctx.beginPath(); ctx.arc(k * 7, 68, 3, 0, Math.PI * 2); ctx.fill();
+      }
+
+      ctx.restore();
+    };
+
+    if (this.hitFlash <= 0) {
+      drawArm(leftPivotX, leftPivotY, this.armAngle);
+      drawArm(rightPivotX, rightPivotY, -this.armAngle);
     }
 
+    // ── Body sprite ─────────────────────────────────────────────────────────────
+    if (this.hitFlash > 0) ctx.filter = 'brightness(3)';
+    const sprites = this.isRaging ? this.rageSprites : this.normalSprites;
+    ctx.drawImage(sprites[this.animFrame], -this.width / 2, -this.height / 2, this.width, this.height);
+    ctx.filter = 'none';
+
+    // ── Re-draw shoulder sockets on top of the arm root (non-rage only) ─────────
+    if (!this.isRaging) {
+      ctx.fillStyle = darkColor;
+      ctx.beginPath(); ctx.arc(leftPivotX, leftPivotY, 9 * sx, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = baseColor;
+      ctx.beginPath(); ctx.arc(leftPivotX, leftPivotY, 6 * sx, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = darkColor;
+      ctx.beginPath(); ctx.arc(rightPivotX, rightPivotY, 9 * sx, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = baseColor;
+      ctx.beginPath(); ctx.arc(rightPivotX, rightPivotY, 6 * sx, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // ── Rage aura ────────────────────────────────────────────────────────────────
     if (this.isRaging) {
       ctx.save();
-      const aura = ctx.createRadialGradient(0, 0, 20, 0, 0, this.width * 0.6);
-      aura.addColorStop(0, 'rgba(150,255,0,0.2)');
+      const aura = ctx.createRadialGradient(0, 0, 20, 0, 0, this.width * 0.7);
+      aura.addColorStop(0, 'rgba(150,255,0,0.22)');
+      aura.addColorStop(0.5, 'rgba(100,200,0,0.1)');
       aura.addColorStop(1, 'rgba(100,200,0,0)');
       ctx.fillStyle = aura;
       ctx.beginPath();
-      ctx.arc(0, 0, this.width * 0.6, 0, Math.PI * 2);
+      ctx.arc(0, 0, this.width * 0.7, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
