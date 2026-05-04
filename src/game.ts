@@ -1321,7 +1321,7 @@ export class Game {
       }
     }
 
-    this.player.render(ctx, this.activePowerupStyle === 'nuclear' && this.powerupActive);
+    this.player.render(ctx, this.nuclearBlastActive);
     // Pick the right gauge/label to show based on active powerup
     const showNuclear = this.powerupActive && this.activePowerupStyle === 'nuclear';
     const displayGauge = showNuclear ? this.nuclearGaugeLevel : this.gaugeLevel;

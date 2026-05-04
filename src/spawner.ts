@@ -157,36 +157,42 @@ export class Spawner {
       }
     }
 
-    // Floating bombs (stage 3 obstacle): all levels, random interval
+    // Floating bombs (stage 3 obstacle): spawn 3 at a time for 3× abundance
     if (this.config.createObstacle) {
       this.obstacleTimer += dt;
       if (this.obstacleTimer >= this.obstacleInterval) {
         this.obstacleTimer = 0;
         this.obstacleInterval = 7.0 + Math.random() * 6.0;
-        const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
-        spawned.push(this.config.createObstacle(x, -30));
+        for (let i = 0; i < 3; i++) {
+          const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
+          spawned.push(this.config.createObstacle(x, -30 - Math.random() * 60));
+        }
       }
     }
 
-    // Radioactive barrels (stage 3 hazard): all levels, random interval
+    // Radioactive barrels (stage 3 hazard): spawn 3 at a time for 3× abundance
     if (this.config.createHazard) {
       this.hazardTimer += dt;
       if (this.hazardTimer >= this.hazardInterval) {
         this.hazardTimer = 0;
         this.hazardInterval = 14.0 + Math.random() * 8.0;
-        const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
-        spawned.push(this.config.createHazard(x, -40));
+        for (let i = 0; i < 3; i++) {
+          const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
+          spawned.push(this.config.createHazard(x, -40 - Math.random() * 60));
+        }
       }
     }
 
-    // Speed boost (stage 3, level 2+): every ~25-40s
+    // Speed boost (stage 3, level 2+): spawn 5 at a time for 5× abundance
     if (this.config.createSpeedBoost && level >= 2) {
       this.speedBoostTimer += dt;
       if (this.speedBoostTimer >= this.speedBoostInterval) {
         this.speedBoostTimer = 0;
         this.speedBoostInterval = 25.0 + Math.random() * 15.0;
-        const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
-        spawned.push(this.config.createSpeedBoost(x, -40));
+        for (let i = 0; i < 5; i++) {
+          const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
+          spawned.push(this.config.createSpeedBoost(x, -40 - Math.random() * 80));
+        }
       }
     }
 
