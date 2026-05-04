@@ -171,14 +171,44 @@ export class Player {
       }
       ctx.restore();
 
-      // Draw stingray at 2× scale (grows when gauge is full)
-      ctx.save();
-      ctx.translate(this.x, this.y);
-      ctx.scale(2, 2);
-      ctx.translate(-this.x, -this.y);
+      // Draw stingray at normal scale
       const sprite = this.sprites[this.animFrame];
-      ctx.globalAlpha = 0.92;
       ctx.drawImage(sprite, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+
+      // Glowing red eyes
+      ctx.save();
+      const SPRITE_BASE_SIZE = 24; // sprite source canvas is 24×24 pixels
+      const eyePulse = 0.7 + Math.sin(this.glowTimer * 12) * 0.3;
+      // Eye positions derived from sprite layout (24×24 → 96×96, scale=4)
+      // Left eye at sprite px (10,8), right eye at (13,8)
+      const leftEyeX = this.x - this.width / 2 + (10.5 / SPRITE_BASE_SIZE) * this.width;
+      const rightEyeX = this.x - this.width / 2 + (13.5 / SPRITE_BASE_SIZE) * this.width;
+      const eyeY = this.y - this.height / 2 + (8.5 / SPRITE_BASE_SIZE) * this.height;
+      const eyeR = 6;
+      for (const ex of [leftEyeX, rightEyeX]) {
+        // Outer red glow
+        const eg = ctx.createRadialGradient(ex, eyeY, 0, ex, eyeY, eyeR * 4);
+        eg.addColorStop(0, `rgba(255,0,0,${eyePulse})`);
+        eg.addColorStop(0.4, `rgba(255,40,0,${eyePulse * 0.5})`);
+        eg.addColorStop(1, 'rgba(200,0,0,0)');
+        ctx.fillStyle = eg;
+        ctx.beginPath();
+        ctx.arc(ex, eyeY, eyeR * 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Bright core
+        ctx.globalAlpha = eyePulse;
+        ctx.fillStyle = '#ff4444';
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 16;
+        ctx.beginPath();
+        ctx.arc(ex, eyeY, eyeR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(ex - 1, eyeY - 1, eyeR * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
     } else {
       const sprite = this.sprites[this.animFrame];

@@ -25,7 +25,7 @@ export class Spawner {
   private hazardTimer: number = 0;
   private hazardInterval: number = 15.0 + Math.random() * 8.0;
   private speedBoostTimer: number = 0;
-  private speedBoostInterval: number = 25.0 + Math.random() * 15.0;
+  private speedBoostInterval: number = 8.0 + Math.random() * 6.0;
 
   constructor(config: StageSpawnConfig) {
     this.config = config;
@@ -183,15 +183,16 @@ export class Spawner {
       }
     }
 
-    // Speed boost (stage 3, level 2+): spawn 5 at a time for 5× abundance
+    // Speed boost (stage 3, level 2+): 1–2 at a time, spread vertically, frequent
     if (this.config.createSpeedBoost && level >= 2) {
       this.speedBoostTimer += dt;
       if (this.speedBoostTimer >= this.speedBoostInterval) {
         this.speedBoostTimer = 0;
-        this.speedBoostInterval = 25.0 + Math.random() * 15.0;
-        for (let i = 0; i < 5; i++) {
+        this.speedBoostInterval = 8.0 + Math.random() * 6.0;
+        const speedBoostCount = Math.random() < 0.5 ? 1 : 2;
+        for (let i = 0; i < speedBoostCount; i++) {
           const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
-          spawned.push(this.config.createSpeedBoost(x, -40 - Math.random() * 80));
+          spawned.push(this.config.createSpeedBoost(x, -40 - i * 120));
         }
       }
     }
@@ -220,6 +221,6 @@ export class Spawner {
     this.hazardTimer = 0;
     this.hazardInterval = 15.0 + Math.random() * 8.0;
     this.speedBoostTimer = 0;
-    this.speedBoostInterval = 25.0 + Math.random() * 15.0;
+    this.speedBoostInterval = 8.0 + Math.random() * 6.0;
   }
 }
