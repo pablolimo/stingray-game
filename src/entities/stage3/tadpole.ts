@@ -64,8 +64,7 @@ export class Tadpole extends ProjectileEntity {
     this.wobblePhase = Math.random() * Math.PI * 2;
   }
 
-  update(dt: number, scrollSpeed: number): void {
-    this.y += scrollSpeed * dt;
+  update(dt: number, _scrollSpeed: number): void {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     this.wobblePhase += dt * 8;
