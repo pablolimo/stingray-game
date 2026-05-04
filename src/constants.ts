@@ -55,5 +55,5 @@ export const EEL_LASER_HIT_INTERVAL = 0.25; // seconds between laser ticks on ee
 export const BOMB_DEATH_ANIM_DURATION = 1.8; // seconds for bomb death animation before game over
 export const BOMB_BURST_FREQUENCY = 6; // extra particle bursts per second during bomb death anim
 export const OTTER_MAX_HP = 6000; // rock-throwing otter hit points (20× the original 300)
-export const BLACK_SQUID_MAX_HP = SQUID_MAX_HP * 4; // black squid is 4× tougher than regular squid
+export const BLACK_SQUID_MAX_HP = SQUID_MAX_HP * 4; // black squid has 4× base squid HP (twice as tough as before)
 export const OTTER_LASER_HIT_INTERVAL = 0.22; // seconds between laser ticks on otter
