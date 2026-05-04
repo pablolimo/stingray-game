@@ -27,6 +27,7 @@ import { PlayerArcBall } from './entities/playerarcball';
 import { FloatingBomb } from './entities/stage3/floatingbomb';
 import { RadioactiveBarrel } from './entities/stage3/radioactivebarrel';
 import { FrogTongue } from './entities/stage3/frogtongue';
+import { ToxicCloud } from './entities/stage3/toxiccloud';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
@@ -39,6 +40,7 @@ import {
   NUCLEAR_BLAST_DURATION, NUCLEAR_BLAST_HALF_WIDTH, NUCLEAR_DAMAGE_MULTIPLIER,
   HOOK_DURATION,
   BOMB_DEATH_ANIM_DURATION, BOMB_BURST_FREQUENCY,
+  SPEED_BOOST_KILL_SCORE,
 } from './constants';
 
 function aabb(
@@ -98,6 +100,7 @@ export class Game {
   private nuclearGaugeLevel: number = 0;  // separate gauge that persists through damage
   private nuclearBlastActive: boolean = false;
   private nuclearBlastTimer: number = 0;
+  private nuclearHitCount: number = 0;    // hits taken while nuclear gauge is charged
   private nuclearBlastAnimTime: number = 0;
   private speedBoostTimer: number = 0;
   private baseScrollSpeed: number = INITIAL_SCROLL_SPEED; // scroll before boost
@@ -211,6 +214,10 @@ export class Game {
           if (e instanceof BigEnemy && this.level >= 3) {
             e.targetX = this.player.x;
           }
+          if (e instanceof ToxicCloud) {
+            e.targetX = this.player.x;
+            e.targetY = this.player.y;
+          }
           e.update(dt, this.scrollSpeed);
         }
 
@@ -235,7 +242,7 @@ export class Game {
 
         // Spawn (disabled during Level 4 boss fight)
         if (this.level < 4) {
-          const newEntities = this.spawner.update(dt, this.scrollSpeed, this.player.x, this.level);
+          const newEntities = this.spawner.update(dt, this.scrollSpeed, this.player.x, this.level, this.score);
           this.entities.push(...newEntities);
         }
 
@@ -497,10 +504,11 @@ export class Game {
               this.spawnParticles(e.x, e.y, glowColor, 20);
               if (this.activePowerupStyle === 'nuclear') {
                 this.powerupActive = true;
-                // Metal chest fully recharges the gauge and activates the blast
-                this.nuclearGaugeLevel = 1;
-                this.nuclearBlastActive = true;
+                // Metal chest starts empty – must eat to charge the gauge
+                this.nuclearGaugeLevel = 0;
+                this.nuclearBlastActive = false;
                 this.nuclearBlastAnimTime = 0;
+                this.nuclearHitCount = 0;
               } else if (this.powerupActive) {
                 // Already have the gauge – fill it to 100% and start firing
                 this.gaugeLevel = 1;
@@ -578,7 +586,7 @@ export class Game {
               }
             }
           } else if (e instanceof SmallEnemy && !(e instanceof FloatingBomb)) {
-            if (!this.player.isInvincible()) {
+            if (!this.player.isInvincible() && this.speedBoostTimer <= 0) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
                 const tookDamage = this.player.takeDamage();
@@ -589,7 +597,7 @@ export class Game {
               }
             }
           } else if (e instanceof BigEnemy && !(e instanceof RadioactiveBarrel)) {
-            if (!this.player.isInvincible()) {
+            if (!this.player.isInvincible() && this.speedBoostTimer <= 0) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
                 const tookDamage = this.player.takeDamage();
@@ -600,7 +608,7 @@ export class Game {
               }
             }
           } else if (e instanceof MediumEnemy) {
-            if (!this.player.isInvincible()) {
+            if (!this.player.isInvincible() && this.speedBoostTimer <= 0) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
                 const tookDamage = this.player.takeDamage();
@@ -611,6 +619,17 @@ export class Game {
               }
             }
           } else if (e instanceof Level3Enemy) {
+            if (!this.player.isInvincible() && this.speedBoostTimer <= 0) {
+              const bounds = e.getBounds();
+              if (aabb(playerBounds, bounds)) {
+                const tookDamage = this.player.takeDamage();
+                if (tookDamage) {
+                  this.shakeTimer = SCREEN_SHAKE_DURATION;
+                  this.deactivatePowerup();
+                }
+              }
+            }
+          } else if (e instanceof ToxicCloud && e.active) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
@@ -621,7 +640,7 @@ export class Game {
                 }
               }
             }
-          } else if (e instanceof ProjectileEntity && e.active && !(e instanceof PlayerArcBall)) {
+          } else if (e instanceof ProjectileEntity && e.active && !(e instanceof PlayerArcBall) && !(e instanceof ToxicCloud)) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
@@ -649,6 +668,23 @@ export class Game {
               }
             }
           }
+        }
+
+        // Speed boost: ram and kill minor enemies on contact
+        if (this.speedBoostTimer > 0) {
+          this.entities = this.entities.filter(e => {
+            if (e instanceof FloatingBomb || e instanceof RadioactiveBarrel) return true;
+            if (e instanceof SmallEnemy || e instanceof BigEnemy || e instanceof MediumEnemy) {
+              if (aabb(playerBounds, e.getBounds())) {
+                this.score += SPEED_BOOST_KILL_SCORE;
+                if (e instanceof SmallEnemy) this.spawnDisintegration(e.x, e.y, this.stageDef.smallEnemyDisintColors);
+                else if (e instanceof BigEnemy) this.spawnDisintegration(e.x, e.y, this.stageDef.bigEnemyDisintColors);
+                else this.spawnDisintegration(e.x, e.y, this.stageDef.mediumEnemyDisintColors);
+                return false;
+              }
+            }
+            return true;
+          });
         }
 
         // Orbital pearls – rotate, collide with enemies
@@ -893,6 +929,7 @@ export class Game {
     this.nuclearBlastActive = false;
     this.nuclearBlastTimer = 0;
     this.nuclearBlastAnimTime = 0;
+    this.nuclearHitCount = 0;
     this.speedBoostTimer = 0;
     this.baseScrollSpeed = INITIAL_SCROLL_SPEED;
     this.bombDeathAnimTimer = 0;
@@ -918,8 +955,17 @@ export class Game {
 
   private deactivatePowerup(): void {
     if (this.activePowerupStyle === 'nuclear') {
-      // Nuclear gauge persists through damage; only deactivate laser/arc portion
-      this.laserActive = false;
+      // Nuclear blast deactivates immediately on any hit
+      this.nuclearBlastActive = false;
+      // Gauge drains on the 2nd hit (counter only increments while gauge is charged)
+      if (this.nuclearGaugeLevel > 0) {
+        this.nuclearHitCount++;
+        if (this.nuclearHitCount >= 2) {
+          this.nuclearGaugeLevel = 0;
+          this.powerupActive = false;
+          this.nuclearHitCount = 0;
+        }
+      }
       return;
     }
     this.powerupActive = false;

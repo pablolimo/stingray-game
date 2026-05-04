@@ -1,11 +1,14 @@
 import { CANVAS_WIDTH, BLACK_SQUID_MAX_HP, SQUID_LASER_HIT_INTERVAL } from '../../constants';
 import { MediumEnemy } from '../entityRoles';
 
-// Black squid – faster spin and chase than the regular Squid
+// Black squid – faster spin and chase than the regular Squid, with erratic lateral dashes
 const BLACK_SQUID_LIFETIME = 4.5;
 const BLACK_SQUID_FADE_TIME = 0.5;
 const BLACK_SQUID_SPIN_SPEED = 6.0; // faster than normal (3.5)
-const BLACK_SQUID_CHASE_SPEED = 220; // faster than normal (140)
+const BLACK_SQUID_CHASE_SPEED = 260; // faster than normal (140)
+const BLACK_SQUID_ERRATIC_SPEED = 340; // lateral dash speed
+const BLACK_SQUID_ERRATIC_INTERVAL_MIN = 0.2;
+const BLACK_SQUID_ERRATIC_INTERVAL_MAX = 0.5;
 
 function createBlackSquidSprite(): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -77,6 +80,8 @@ export class BlackSquid extends MediumEnemy {
   private lifetime: number = 0;
   laserHitCooldown: number = 0;
   private hitFlash: number = 0;
+  private erraticTimer: number = 0;
+  private erraticVx: number = 0;
 
   constructor(x: number, y: number, targetX: number) {
     super();
@@ -85,6 +90,7 @@ export class BlackSquid extends MediumEnemy {
     this.targetX = targetX;
     this.sprite = createBlackSquidSprite();
     this.spinAngle = Math.random() * Math.PI * 2;
+    this.erraticTimer = Math.random() * BLACK_SQUID_ERRATIC_INTERVAL_MAX;
   }
 
   update(dt: number, scrollSpeed: number): void {
@@ -95,6 +101,17 @@ export class BlackSquid extends MediumEnemy {
     if (this.hitFlash > 0) this.hitFlash -= dt;
 
     this.spinAngle += BLACK_SQUID_SPIN_SPEED * dt;
+
+    // Erratic lateral dashes
+    this.erraticTimer -= dt;
+    if (this.erraticTimer <= 0) {
+      this.erraticTimer = BLACK_SQUID_ERRATIC_INTERVAL_MIN +
+        Math.random() * (BLACK_SQUID_ERRATIC_INTERVAL_MAX - BLACK_SQUID_ERRATIC_INTERVAL_MIN);
+      this.erraticVx = (Math.random() - 0.5) * 2 * BLACK_SQUID_ERRATIC_SPEED;
+    }
+    this.x += this.erraticVx * dt;
+    // Decay the erratic velocity between dashes
+    this.erraticVx *= Math.pow(0.3, dt);
 
     const dx = this.targetX - this.x;
     const step = BLACK_SQUID_CHASE_SPEED * dt;

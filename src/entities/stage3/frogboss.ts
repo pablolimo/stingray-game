@@ -3,6 +3,7 @@ import { CANVAS_WIDTH, FROG_BOSS_MAX_HP, BOSS_LASER_HIT_INTERVAL, BOSS_RAGE_DURA
 import { BossEnemy } from '../entityRoles';
 import { Tadpole } from './tadpole';
 import { FrogTongue } from './frogtongue';
+import { ToxicCloud } from './toxiccloud';
 
 const FROG_WIDTH = 168;
 const FROG_HEIGHT = 180;
@@ -223,6 +224,7 @@ export class MutantFrogBoss extends BossEnemy {
 
   private rageThresholds: number[];
   private nextRageIdx: number = 0;
+  private tadpoleToggle: boolean = false; // alternates between tadpoles and toxic cloud
 
   constructor(x: number, startY: number) {
     super();
@@ -377,11 +379,17 @@ export class MutantFrogBoss extends BossEnemy {
       case 'shooting':
         if (this.attackTimer >= 0.15) {
           this.attackTimer = 0;
-          // Burst of 3 tadpoles aimed at player
-          for (let i = 0; i < 3; i++) {
-            const spread = (i - 1) * 30;
-            this._pendingProjectiles.push(new Tadpole(this.x, this.y + 20, this.targetX + spread, this.targetY));
+          if (!this.tadpoleToggle) {
+            // Burst of 3 tadpoles aimed at player
+            for (let i = 0; i < 3; i++) {
+              const spread = (i - 1) * 30;
+              this._pendingProjectiles.push(new Tadpole(this.x, this.y + 20, this.targetX + spread, this.targetY));
+            }
+          } else {
+            // Fart a toxic green cloud that chases the stingray
+            this._pendingProjectiles.push(new ToxicCloud(this.x, this.y + 20, this.targetX, this.targetY));
           }
+          this.tadpoleToggle = !this.tadpoleToggle;
           this.attackState = 'idle';
           this.idleWait = 1.2;
         }
