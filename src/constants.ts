@@ -49,3 +49,6 @@ export const NUCLEAR_BLAST_HALF_WIDTH = 50; // wider than regular laser
 export const NUCLEAR_EEL_FIELD_RADIUS = 55; // electric field radius around eel
 export const FROG_BOSS_MAX_HP = BOSS_MAX_HP; // same HP as other bosses
 export const HOOK_DURATION = 1.5; // seconds player is pulled by frog tongue
+export const NUCLEAR_DAMAGE_MULTIPLIER = 3; // nuclear blast deals 3× laser damage per tick
+export const EEL_MAX_HP = 3; // electric eel hit points (same scale as ScubaKitten)
+export const EEL_LASER_HIT_INTERVAL = 0.25; // seconds between laser ticks on eel

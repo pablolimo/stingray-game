@@ -1,5 +1,5 @@
 import { Entity } from '../../types';
-import { CANVAS_WIDTH, SCUBA_KITTEN_MAX_HP, SCUBA_KITTEN_LASER_HIT_INTERVAL, NUCLEAR_EEL_FIELD_RADIUS } from '../../constants';
+import { CANVAS_WIDTH, EEL_MAX_HP, EEL_LASER_HIT_INTERVAL, NUCLEAR_EEL_FIELD_RADIUS } from '../../constants';
 import { Level3Enemy } from '../entityRoles';
 
 const EEL_LIFETIME = 8.0;
@@ -116,7 +116,7 @@ export class ElectricEel extends Level3Enemy {
   expired: boolean = false;
   targetX: number;
   targetY: number;
-  hp: number = SCUBA_KITTEN_MAX_HP;
+  hp: number = EEL_MAX_HP;
   laserHitCooldown: number = 0;
   readonly fieldRadius: number = NUCLEAR_EEL_FIELD_RADIUS;
 
@@ -164,7 +164,7 @@ export class ElectricEel extends Level3Enemy {
 
   takeLaserHit(): boolean {
     if (this.laserHitCooldown > 0) return false;
-    this.laserHitCooldown = SCUBA_KITTEN_LASER_HIT_INTERVAL;
+    this.laserHitCooldown = EEL_LASER_HIT_INTERVAL;
     this.hitFlash = 0.1;
     this.hp -= 1;
     return this.hp <= 0;
@@ -224,7 +224,7 @@ export class ElectricEel extends Level3Enemy {
       ctx.restore();
     }
 
-    if (this.hp < SCUBA_KITTEN_MAX_HP && this.hp > 0) {
+    if (this.hp < EEL_MAX_HP && this.hp > 0) {
       ctx.filter = 'none';
       ctx.globalAlpha = 0.9;
       for (let i = 0; i < this.hp; i++) {

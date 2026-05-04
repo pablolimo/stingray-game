@@ -96,7 +96,7 @@ export class Player {
       // Shield absorbs the hit without consuming it immediately
       return false;
     }
-    this.hp -= amount;
+    this.hp = Math.max(0, this.hp - amount);
     this.invincibleTimer = INVINCIBILITY_DURATION;
     return true;
   }

@@ -61,7 +61,7 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean, t: number): 
   ctx.beginPath(); ctx.arc(44, 12, 2, 0, Math.PI * 2); ctx.fill();
 
   // 8 eyes
-  const eyeData = [
+  const eyeData: [number, number, number, string][] = [
     // Main large pair
     [30, 10, 7, '#dddd00'],
     [58, 10, 7, '#dddd00'],
@@ -74,7 +74,7 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean, t: number): 
     // Fourth pair (tiny)
     [36, 6, 2.5, '#ffee44'],
     [52, 6, 2.5, '#ffee44'],
-  ] as [number, number, number, string][];
+  ];
 
   const eyeGlow = rage ? 12 : 6;
   for (const [ex, ey, er, ecolor] of eyeData) {

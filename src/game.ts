@@ -37,7 +37,7 @@ import {
   PEARL_ORBIT_RADIUS, PEARL_SPIN_SPEED, PEARL_HIT_RADIUS, PEARL_DRAW_RADIUS,
   EXPLOSION_PARTICLE_COUNT, SHOCKWAVE_INITIAL_RADIUS, SHOCKWAVE_MAX_RADIUS, SHOCKWAVE_DURATION,
   SPEED_BOOST_MULTIPLIER, SPEED_BOOST_DURATION,
-  NUCLEAR_BLAST_DURATION, NUCLEAR_BLAST_HALF_WIDTH,
+  NUCLEAR_BLAST_DURATION, NUCLEAR_BLAST_HALF_WIDTH, NUCLEAR_DAMAGE_MULTIPLIER,
   HOOK_DURATION,
 } from './constants';
 
@@ -310,8 +310,8 @@ export class Game {
             if (e instanceof SmallEnemy || e instanceof BigEnemy || e instanceof MediumEnemy || e instanceof Level3Enemy) {
               if (Math.abs(e.x - this.player.x) < nuclearHalfWidth + e.width / 2 && e.y < this.player.y) {
                 if (e instanceof MediumEnemy) {
-                  // Nuclear does 3× laser damage
-                  for (let _i = 0; _i < 3; _i++) {
+                  // Nuclear does NUCLEAR_DAMAGE_MULTIPLIER× laser damage
+                  for (let _i = 0; _i < NUCLEAR_DAMAGE_MULTIPLIER; _i++) {
                     const dead = e.takeLaserHit();
                     if (dead) {
                       this.spawnDisintegration(e.x, e.y, this.stageDef.mediumEnemyDisintColors);
@@ -322,7 +322,7 @@ export class Game {
                   return true;
                 }
                 if (e instanceof Level3Enemy) {
-                  for (let _i = 0; _i < 3; _i++) {
+                  for (let _i = 0; _i < NUCLEAR_DAMAGE_MULTIPLIER; _i++) {
                     const dead = e.takeLaserHit();
                     if (dead) {
                       this.spawnDisintegration(e.x, e.y, this.stageDef.level3EnemyDisintColors);
@@ -347,9 +347,8 @@ export class Game {
               Math.abs(this.boss.x - this.player.x) < nuclearHalfWidth + this.boss.width / 2 &&
               this.boss.y < this.player.y
             ) {
-              // Nuclear does 3× hits per tick
               let dead = false;
-              for (let _i = 0; _i < 3; _i++) {
+              for (let _i = 0; _i < NUCLEAR_DAMAGE_MULTIPLIER; _i++) {
                 dead = this.boss.takeLaserHit();
                 if (dead) break;
               }
