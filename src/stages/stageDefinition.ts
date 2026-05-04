@@ -18,6 +18,7 @@ export interface StageSpawnConfig {
   createHazard?: (x: number, y: number) => Entity;
   createSpeedBoost?: (x: number, y: number) => Entity;
   glowingClamInterval?: number;
+  mediumEnemyGroupSize?: number; // how many medium enemies to spawn per wave (default 1)
 }
 
 export interface StageDefinition {
