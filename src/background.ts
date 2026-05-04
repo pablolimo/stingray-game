@@ -19,6 +19,10 @@ export class Background {
       this.layer1 = this.createLayer1_s2();
       this.layer2 = this.createLayer2_s2();
       this.layer3 = this.createLayer3_s2();
+    } else if (stageId === 3) {
+      this.layer1 = this.createLayer1_s3();
+      this.layer2 = this.createLayer2_s3();
+      this.layer3 = this.createLayer3_s3();
     } else {
       this.layer1 = this.createLayer1();
       this.layer2 = this.createLayer2();
@@ -509,6 +513,18 @@ export class Background {
       }
       return;
     }
+    if (this.stageId === 3) {
+      // Murky greenish bubbles
+      for (let i = 0; i < 6; i++) {
+        this.bubbles.push({
+          x: Math.random() * CANVAS_WIDTH,
+          y: Math.random() * CANVAS_HEIGHT,
+          radius: 2 + Math.random() * 4,
+          speed: 18 + Math.random() * 25,
+        });
+      }
+      return;
+    }
     for (let i = 0; i < 8; i++) {
       this.bubbles.push({
         x: Math.random() * CANVAS_WIDTH,
@@ -547,6 +563,8 @@ export class Background {
 
     if (this.stageId === 2) {
       this.renderStage2Water(ctx);
+    } else if (this.stageId === 3) {
+      this.renderStage3Water(ctx);
     } else {
       this.renderStage1Water(ctx);
     }
@@ -635,6 +653,184 @@ export class Background {
       ctx.fillRect(cx - shaftW, 0, shaftW * 2, CANVAS_HEIGHT);
     }
     ctx.restore();
+  }
+
+  private renderStage3Water(ctx: CanvasRenderingContext2D): void {
+    // Caribbean daytime hue with a slight toxic-green tint
+    ctx.fillStyle = 'rgba(0, 150, 120, 0.22)';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    gradient.addColorStop(0, 'rgba(0, 120, 100, 0.28)');
+    gradient.addColorStop(0.5, 'rgba(0, 140, 90, 0.10)');
+    gradient.addColorStop(1, 'rgba(0, 80, 60, 0.04)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    this.renderCaustics(ctx);
+
+    // Murky green-tinged bubbles
+    for (const b of this.bubbles) {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = 'rgba(180,255,180,0.55)';
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.beginPath();
+      ctx.arc(b.x - b.radius * 0.3, b.y - b.radius * 0.3, b.radius * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // ─── Stage 3 layer creators ────────────────────────────────────────────────
+
+  private createLayer1_s3(): HTMLCanvasElement {
+    const c = document.createElement('canvas');
+    c.width = CANVAS_WIDTH;
+    c.height = this.LAYER_HEIGHT;
+    const ctx = c.getContext('2d')!;
+
+    // Sandy Caribbean base with slight grayish tinge (wasteland)
+    ctx.fillStyle = '#d8c878';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, this.LAYER_HEIGHT);
+
+    for (let i = 0; i < 1800; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      const light = Math.random() > 0.5;
+      ctx.fillStyle = light ? 'rgba(240,220,160,0.45)' : 'rgba(140,110,50,0.22)';
+      ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
+    }
+
+    // Subtle yellowish-green sickly tinge bands
+    for (let y = 0; y < this.LAYER_HEIGHT; y += 50) {
+      const alpha = (Math.sin(y * 0.06) + 1) * 0.025;
+      ctx.fillStyle = `rgba(180,200,80,${alpha})`;
+      ctx.fillRect(0, y, CANVAS_WIDTH, 22);
+    }
+
+    return c;
+  }
+
+  private createLayer2_s3(): HTMLCanvasElement {
+    const c = document.createElement('canvas');
+    c.width = CANVAS_WIDTH;
+    c.height = this.LAYER_HEIGHT;
+    const ctx = c.getContext('2d')!;
+
+    // Pebbles with nuclear sheen
+    for (let i = 0; i < 22; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      const r = 2 + Math.random() * 5;
+      const gray = Math.floor(90 + Math.random() * 70);
+      ctx.fillStyle = `rgb(${gray},${gray + 10},${gray - 10})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.7, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Sand ripples (same as stage 1 but slightly murkier)
+    ctx.strokeStyle = 'rgba(160,140,70,0.22)';
+    ctx.lineWidth = 1;
+    for (let y = 30; y < this.LAYER_HEIGHT; y += 55 + Math.random() * 30) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 0; x < CANVAS_WIDTH; x += 10) {
+        ctx.lineTo(x, y + Math.sin(x * 0.05) * 5);
+      }
+      ctx.stroke();
+    }
+
+    // Toxic puddles / green stains
+    for (let i = 0; i < 6; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      const grd = ctx.createRadialGradient(x, y, 2, x, y, 18 + Math.random() * 12);
+      grd.addColorStop(0, 'rgba(80,200,80,0.22)');
+      grd.addColorStop(1, 'rgba(40,120,40,0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 20 + Math.random() * 14, 10 + Math.random() * 8, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Scattered debris: broken pipes, screws
+    for (let i = 0; i < 4; i++) {
+      const x = 15 + Math.random() * (CANVAS_WIDTH - 30);
+      const y = 15 + Math.random() * (this.LAYER_HEIGHT - 30);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(Math.random() * Math.PI);
+      // Pipe segment
+      ctx.fillStyle = 'rgba(120,120,110,0.55)';
+      ctx.fillRect(-10, -3, 20, 6);
+      ctx.strokeStyle = 'rgba(180,180,160,0.4)';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(-10, -3, 20, 6);
+      ctx.restore();
+    }
+
+    return c;
+  }
+
+  private createLayer3_s3(): HTMLCanvasElement {
+    const c = document.createElement('canvas');
+    c.width = CANVAS_WIDTH;
+    c.height = this.LAYER_HEIGHT;
+    const ctx = c.getContext('2d')!;
+
+    // Dead/pale seaweed
+    for (let i = 0; i < 7; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const baseY = Math.random() * this.LAYER_HEIGHT;
+      ctx.strokeStyle = `rgba(${140 + Math.random() * 30},${140 + Math.random() * 20},${60 + Math.random() * 20},0.65)`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, baseY);
+      const height = 18 + Math.random() * 28;
+      for (let seg = 0; seg < 5; seg++) {
+        const sy = baseY - (seg / 5) * height;
+        ctx.quadraticCurveTo(
+          x + (seg % 2 === 0 ? 7 : -7), sy - height / 10,
+          x + (seg % 2 === 0 ? 3 : -3), sy - height / 5,
+        );
+      }
+      ctx.stroke();
+    }
+
+    // Rocks
+    for (let i = 0; i < 7; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      const r = 4 + Math.random() * 7;
+      ctx.fillStyle = `rgba(${75 + Math.random() * 35},${70 + Math.random() * 25},${55 + Math.random() * 18},0.88)`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.75, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Glowing radioactive pools on the sea floor
+    for (let i = 0; i < 3; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      const pgrd = ctx.createRadialGradient(x, y, 2, x, y, 14);
+      pgrd.addColorStop(0, 'rgba(0,255,80,0.7)');
+      pgrd.addColorStop(1, 'rgba(0,180,40,0)');
+      ctx.fillStyle = pgrd;
+      ctx.beginPath();
+      ctx.arc(x, y, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    return c;
   }
 
   private renderCaustics(ctx: CanvasRenderingContext2D): void {

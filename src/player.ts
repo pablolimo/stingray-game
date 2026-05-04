@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT, PLAYER_MAX_SPEED, PLAYER_ACCELERATION, PLAYER_DAMPING, INVINCIBILITY_DURATION, PLAYER_MAX_HP, SHIELD_DURATION } from './constants';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, PLAYER_MAX_SPEED, PLAYER_ACCELERATION, PLAYER_DAMPING, INVINCIBILITY_DURATION, PLAYER_MAX_HP, SHIELD_DURATION, GREEN_GLOW_DURATION } from './constants';
 import { InputHandler } from './input';
 import { createStingraySprites } from './sprites';
 
@@ -16,6 +16,11 @@ export class Player {
   private glowTimer: number = 0;
   width: number = 96;
   height: number = 96;
+  // Stage 3 states
+  greenGlowTimer: number = 0;  // radioactive barrel effect
+  hookedTimer: number = 0;     // frog tongue hook
+  hookVx: number = 0;
+  hookVy: number = 0;
 
   private sprites: HTMLCanvasElement[];
 
@@ -26,11 +31,21 @@ export class Player {
   }
 
   update(dt: number, input: InputHandler): void {
-    // Apply acceleration
-    if (input.left) this.vx -= PLAYER_ACCELERATION * dt;
-    if (input.right) this.vx += PLAYER_ACCELERATION * dt;
-    if (input.up) this.vy -= PLAYER_ACCELERATION * dt;
-    if (input.down) this.vy += PLAYER_ACCELERATION * dt;
+    // Green glow timer
+    if (this.greenGlowTimer > 0) this.greenGlowTimer -= dt;
+
+    // Hooked state – override movement
+    if (this.hookedTimer > 0) {
+      this.hookedTimer -= dt;
+      this.vx = this.hookVx;
+      this.vy = this.hookVy;
+    } else {
+      // Apply acceleration
+      if (input.left) this.vx -= PLAYER_ACCELERATION * dt;
+      if (input.right) this.vx += PLAYER_ACCELERATION * dt;
+      if (input.up) this.vy -= PLAYER_ACCELERATION * dt;
+      if (input.down) this.vy += PLAYER_ACCELERATION * dt;
+    }
 
     // Damping
     const dampFactor = Math.pow(PLAYER_DAMPING, dt * 10);
@@ -75,13 +90,13 @@ export class Player {
     }
   }
 
-  takeDamage(): boolean {
+  takeDamage(amount: number = 1): boolean {
     if (this.invincibleTimer > 0) return false;
     if (this.shieldActive) {
       // Shield absorbs the hit without consuming it immediately
       return false;
     }
-    this.hp -= 1;
+    this.hp -= amount;
     this.invincibleTimer = INVINCIBILITY_DURATION;
     return true;
   }
@@ -89,6 +104,10 @@ export class Player {
   activateShield(): void {
     this.shieldActive = true;
     this.shieldTimer = SHIELD_DURATION;
+  }
+
+  activateGreenGlow(): void {
+    this.greenGlowTimer = GREEN_GLOW_DURATION;
   }
 
   healHp(): void {
@@ -108,7 +127,7 @@ export class Player {
     };
   }
 
-  render(ctx: CanvasRenderingContext2D): void {
+  render(ctx: CanvasRenderingContext2D, nuclearActive: boolean = false): void {
     if (this.invincibleTimer > 0 && Math.sin(this.invincibleTimer * 20) > 0) {
       return;
     }
@@ -126,7 +145,23 @@ export class Player {
     ctx.fill();
     ctx.restore();
 
-    const sprite = this.sprites[this.animFrame];
-    ctx.drawImage(sprite, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+    if (nuclearActive) {
+      // Draw player 2× size with red tint
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.scale(2, 2);
+      ctx.translate(-this.x, -this.y);
+      const sprite = this.sprites[this.animFrame];
+      // Red tint overlay
+      ctx.globalAlpha = 0.85;
+      ctx.drawImage(sprite, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = '#ff2200';
+      ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+      ctx.restore();
+    } else {
+      const sprite = this.sprites[this.animFrame];
+      ctx.drawImage(sprite, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+    }
   }
 }

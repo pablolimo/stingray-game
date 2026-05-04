@@ -23,10 +23,12 @@ const game = new Game(canvas, ctx);
 // Stage selector buttons
 const stageBtn1 = document.getElementById('stage-btn-1') as HTMLButtonElement;
 const stageBtn2 = document.getElementById('stage-btn-2') as HTMLButtonElement;
+const stageBtn3 = document.getElementById('stage-btn-3') as HTMLButtonElement;
 
 function setActiveStageButton(id: number): void {
   stageBtn1.classList.toggle('active', id === 1);
   stageBtn2.classList.toggle('active', id === 2);
+  stageBtn3.classList.toggle('active', id === 3);
 }
 
 stageBtn1.addEventListener('click', () => {
@@ -36,6 +38,10 @@ stageBtn1.addEventListener('click', () => {
 stageBtn2.addEventListener('click', () => {
   game.setStage(2);
   setActiveStageButton(2);
+});
+stageBtn3.addEventListener('click', () => {
+  game.setStage(3);
+  setActiveStageButton(3);
 });
 
 let lastTime = 0;

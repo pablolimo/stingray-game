@@ -19,6 +19,13 @@ export class Spawner {
   private glowingClamTimer: number = 0;
   private coinTimer: number = 0;
   private coinInterval: number = 12.0 + Math.random() * 6.0;
+  // Stage 3 optional timers
+  private obstacleTimer: number = 0;
+  private obstacleInterval: number = 8.0 + Math.random() * 5.0;
+  private hazardTimer: number = 0;
+  private hazardInterval: number = 15.0 + Math.random() * 8.0;
+  private speedBoostTimer: number = 0;
+  private speedBoostInterval: number = 25.0 + Math.random() * 15.0;
 
   constructor(config: StageSpawnConfig) {
     this.config = config;
@@ -31,15 +38,21 @@ export class Spawner {
     // Difficulty multiplier
     const diff = Math.min(this.time / 60, 1); // 0 to 1 over 60 seconds
 
-    // Fish: starts at 2s interval, decreases to 0.8s
+    // Food: stage 3 uses sardine school groups; others use regular fish
     const fishInterval = 2.0 - diff * 1.2;
     this.fishTimer += dt;
     if (this.fishTimer >= fishInterval) {
       this.fishTimer -= fishInterval;
-      const count = Math.random() < 0.3 ? 2 : 1;
-      for (let i = 0; i < count; i++) {
-        const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
-        spawned.push(this.config.createFood(x, -20));
+      if (this.config.createFoodGroup) {
+        // Sardine school – spawn as a group
+        const school = this.config.createFoodGroup(30 + Math.random() * (CANVAS_WIDTH - 60), -20);
+        spawned.push(...school);
+      } else {
+        const count = Math.random() < 0.3 ? 2 : 1;
+        for (let i = 0; i < count; i++) {
+          const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
+          spawned.push(this.config.createFood(x, -20));
+        }
       }
     }
 
@@ -111,16 +124,17 @@ export class Spawner {
         spawned.push(this.config.createMediumEnemy(x, -30, playerX));
       }
 
-      // Glowing clam: level 2 only, every 30s
+      // Glowing clam: every glowingClamInterval (default 30s, stage 3 uses shorter)
+      const clamInterval = this.config.glowingClamInterval ?? 30.0;
       this.glowingClamTimer += dt;
-      if (this.glowingClamTimer >= 30.0) {
+      if (this.glowingClamTimer >= clamInterval) {
         this.glowingClamTimer = 0;
         const x = 50 + Math.random() * (CANVAS_WIDTH - 100);
         spawned.push(this.config.createGlowingClam(x, -40));
       }
     }
 
-    // Scuba kitten: level 3 only, every 10-15s
+    // Scuba kitten/eel: level 3 only, every 10-15s
     if (level >= 3) {
       this.kittenTimer += dt;
       if (this.kittenTimer >= this.kittenInterval) {
@@ -143,6 +157,39 @@ export class Spawner {
       }
     }
 
+    // Floating bombs (stage 3 obstacle): all levels, random interval
+    if (this.config.createObstacle) {
+      this.obstacleTimer += dt;
+      if (this.obstacleTimer >= this.obstacleInterval) {
+        this.obstacleTimer = 0;
+        this.obstacleInterval = 7.0 + Math.random() * 6.0;
+        const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
+        spawned.push(this.config.createObstacle(x, -30));
+      }
+    }
+
+    // Radioactive barrels (stage 3 hazard): all levels, random interval
+    if (this.config.createHazard) {
+      this.hazardTimer += dt;
+      if (this.hazardTimer >= this.hazardInterval) {
+        this.hazardTimer = 0;
+        this.hazardInterval = 14.0 + Math.random() * 8.0;
+        const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
+        spawned.push(this.config.createHazard(x, -40));
+      }
+    }
+
+    // Speed boost (stage 3, level 2+): every ~25-40s
+    if (this.config.createSpeedBoost && level >= 2) {
+      this.speedBoostTimer += dt;
+      if (this.speedBoostTimer >= this.speedBoostInterval) {
+        this.speedBoostTimer = 0;
+        this.speedBoostInterval = 25.0 + Math.random() * 15.0;
+        const x = 40 + Math.random() * (CANVAS_WIDTH - 80);
+        spawned.push(this.config.createSpeedBoost(x, -40));
+      }
+    }
+
     return spawned;
   }
 
@@ -162,5 +209,11 @@ export class Spawner {
     this.glowingClamTimer = 0;
     this.coinTimer = 0;
     this.coinInterval = 12.0 + Math.random() * 6.0;
+    this.obstacleTimer = 0;
+    this.obstacleInterval = 8.0 + Math.random() * 5.0;
+    this.hazardTimer = 0;
+    this.hazardInterval = 15.0 + Math.random() * 8.0;
+    this.speedBoostTimer = 0;
+    this.speedBoostInterval = 25.0 + Math.random() * 15.0;
   }
 }

@@ -16,13 +16,18 @@ interface ShockwaveRing {
 import {
   SmallEnemy, BigEnemy, MediumEnemy, Level3Enemy,
   FoodCollectible, BonusFoodCollectible, TreasureCollectible, PowerupCollectible,
-  HealCollectible, OrbitalCollectible, CoinCollectible,
+  HealCollectible, OrbitalCollectible, CoinCollectible, SpeedBoostCollectible,
   ProjectileEntity, BossEnemy,
 } from './entities/entityRoles';
 import { StageDefinition } from './stages/stageDefinition';
 import { stage1Definition } from './stages/stage1';
 import { stage2Definition } from './stages/stage2';
+import { stage3Definition } from './stages/stage3';
 import { PlayerArcBall } from './entities/playerarcball';
+import { FloatingBomb } from './entities/stage3/floatingbomb';
+import { RadioactiveBarrel } from './entities/stage3/radioactivebarrel';
+import { ElectricEel } from './entities/stage3/electriceel';
+import { FrogTongue } from './entities/stage3/frogtongue';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
@@ -31,6 +36,9 @@ import {
   LEVEL2_SCORE_THRESHOLD, LEVEL3_SCORE_THRESHOLD, LEVEL4_SCORE_THRESHOLD,
   PEARL_ORBIT_RADIUS, PEARL_SPIN_SPEED, PEARL_HIT_RADIUS, PEARL_DRAW_RADIUS,
   EXPLOSION_PARTICLE_COUNT, SHOCKWAVE_INITIAL_RADIUS, SHOCKWAVE_MAX_RADIUS, SHOCKWAVE_DURATION,
+  SPEED_BOOST_MULTIPLIER, SPEED_BOOST_DURATION,
+  NUCLEAR_BLAST_DURATION, NUCLEAR_BLAST_HALF_WIDTH,
+  HOOK_DURATION,
 } from './constants';
 
 function aabb(
@@ -84,8 +92,15 @@ export class Game {
   private level4BlueChestTimer: number = 0;
   private currentStageId: number = 1;
   private stageDef: StageDefinition = stage1Definition;
-  private activePowerupStyle: 'laser' | 'arc' = 'laser';
+  private activePowerupStyle: 'laser' | 'arc' | 'nuclear' = 'laser';
   private arcBallTimer: number = 0;
+  // Stage 3 specific state
+  private nuclearGaugeLevel: number = 0;  // separate gauge that persists through damage
+  private nuclearBlastActive: boolean = false;
+  private nuclearBlastTimer: number = 0;
+  private nuclearBlastAnimTime: number = 0;
+  private speedBoostTimer: number = 0;
+  private baseScrollSpeed: number = INITIAL_SCROLL_SPEED; // scroll before boost
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
@@ -100,7 +115,13 @@ export class Game {
 
   setStage(stageId: number): void {
     this.currentStageId = stageId;
-    this.stageDef = stageId === 2 ? stage2Definition : stage1Definition;
+    if (stageId === 3) {
+      this.stageDef = stage3Definition;
+    } else if (stageId === 2) {
+      this.stageDef = stage2Definition;
+    } else {
+      this.stageDef = stage1Definition;
+    }
     this.background = new Background(stageId);
   }
 
@@ -122,9 +143,27 @@ export class Game {
           this.state = GameState.Paused;
           break;
         }
-        this.scrollSpeed = Math.min(this.scrollSpeed + SCROLL_SPEED_INCREMENT * dt, MAX_SCROLL_SPEED);
+        // Speed boost: modulate scroll speed
+        if (this.speedBoostTimer > 0) {
+          this.speedBoostTimer -= dt;
+          this.baseScrollSpeed = Math.min(this.baseScrollSpeed + SCROLL_SPEED_INCREMENT * dt, MAX_SCROLL_SPEED);
+          this.scrollSpeed = Math.min(this.baseScrollSpeed * SPEED_BOOST_MULTIPLIER, MAX_SCROLL_SPEED * SPEED_BOOST_MULTIPLIER);
+        } else {
+          this.baseScrollSpeed = Math.min(this.baseScrollSpeed + SCROLL_SPEED_INCREMENT * dt, MAX_SCROLL_SPEED);
+          this.scrollSpeed = this.baseScrollSpeed;
+        }
         this.background.update(dt, this.scrollSpeed);
         this.player.update(dt, this.input);
+
+        // Nuclear blast timer
+        if (this.nuclearBlastActive) {
+          this.nuclearBlastTimer -= dt;
+          this.nuclearBlastAnimTime += dt;
+          if (this.nuclearBlastTimer <= 0) {
+            this.nuclearBlastActive = false;
+            this.nuclearGaugeLevel = 0;
+          }
+        }
 
         // Powerup timers
         if (this.powerupActive) {
@@ -264,6 +303,65 @@ export class Game {
           }
         }
 
+        // Nuclear blast beam – stronger than laser, wider, deals multiple hits per tick
+        if (this.nuclearBlastActive) {
+          const nuclearHalfWidth = NUCLEAR_BLAST_HALF_WIDTH;
+          this.entities = this.entities.filter(e => {
+            if (e instanceof SmallEnemy || e instanceof BigEnemy || e instanceof MediumEnemy || e instanceof Level3Enemy) {
+              if (Math.abs(e.x - this.player.x) < nuclearHalfWidth + e.width / 2 && e.y < this.player.y) {
+                if (e instanceof MediumEnemy) {
+                  // Nuclear does 3× laser damage
+                  for (let _i = 0; _i < 3; _i++) {
+                    const dead = e.takeLaserHit();
+                    if (dead) {
+                      this.spawnDisintegration(e.x, e.y, this.stageDef.mediumEnemyDisintColors);
+                      return false;
+                    }
+                  }
+                  this.spawnParticles(e.x, e.y, '#ff4400', 8);
+                  return true;
+                }
+                if (e instanceof Level3Enemy) {
+                  for (let _i = 0; _i < 3; _i++) {
+                    const dead = e.takeLaserHit();
+                    if (dead) {
+                      this.spawnDisintegration(e.x, e.y, this.stageDef.level3EnemyDisintColors);
+                      return false;
+                    }
+                  }
+                  this.spawnParticles(e.x, e.y, '#ff6600', 8);
+                  return true;
+                }
+                const colors = e instanceof SmallEnemy
+                  ? this.stageDef.smallEnemyDisintColors
+                  : this.stageDef.bigEnemyDisintColors;
+                this.spawnDisintegration(e.x, e.y, colors);
+                return false;
+              }
+            }
+            return true;
+          });
+
+          if (this.boss && !this.boss.defeated) {
+            if (
+              Math.abs(this.boss.x - this.player.x) < nuclearHalfWidth + this.boss.width / 2 &&
+              this.boss.y < this.player.y
+            ) {
+              // Nuclear does 3× hits per tick
+              let dead = false;
+              for (let _i = 0; _i < 3; _i++) {
+                dead = this.boss.takeLaserHit();
+                if (dead) break;
+              }
+              if (dead) {
+                this.spawnBossDefeatExplosion();
+              } else {
+                this.spawnParticles(this.boss.x, this.boss.y, '#ff4400', 10);
+              }
+            }
+          }
+        }
+
         // Arc energy balls – player projectiles hitting enemies
         if (this.activePowerupStyle === 'arc') {
           const arcBalls = this.entities.filter(
@@ -346,6 +444,16 @@ export class Game {
 
         for (const e of this.entities) {
           if (e instanceof FoodCollectible && !e.collected) {
+            // Green glow: food melts (disappears) before reaching the stingray
+            if (this.player.greenGlowTimer > 0) {
+              const dx = e.x - this.player.x;
+              const dy = e.y - this.player.y;
+              if (Math.sqrt(dx * dx + dy * dy) < 80) {
+                e.collected = true; // silently melt – no score
+                this.spawnParticles(e.x, e.y, '#44ff44', 4);
+              }
+              continue;
+            }
             const bounds = e.getBounds();
             if (aabb(playerBounds, bounds)) {
               e.collected = true;
@@ -375,9 +483,14 @@ export class Game {
               e.collected = true;
               this.score += e.score;
               this.activePowerupStyle = e.powerupStyle;
-              const glowColor = this.activePowerupStyle === 'arc' ? '#ffffff' : '#00e5ff';
+              const glowColor = this.activePowerupStyle === 'arc' ? '#ffffff'
+                              : this.activePowerupStyle === 'nuclear' ? '#44ff88'
+                              : '#00e5ff';
               this.spawnParticles(e.x, e.y, glowColor, 20);
-              if (this.powerupActive) {
+              if (this.activePowerupStyle === 'nuclear') {
+                this.powerupActive = true;
+                if (this.nuclearGaugeLevel === 0) this.nuclearGaugeLevel = 0.3;
+              } else if (this.powerupActive) {
                 // Already have the gauge – fill it to 100% and start firing
                 this.gaugeLevel = 1;
                 this.laserActive = true;
@@ -388,6 +501,13 @@ export class Game {
                 this.gaugeLevel = 0.5;
                 this.laserActive = false;
               }
+            }
+          } else if (e instanceof SpeedBoostCollectible && !e.collected) {
+            const bounds = e.getBounds();
+            if (aabb(playerBounds, bounds)) {
+              e.collected = true;
+              this.speedBoostTimer = SPEED_BOOST_DURATION;
+              this.spawnParticles(e.x, e.y, '#ffee00', 24);
             }
           } else if (e instanceof HealCollectible && !e.collected) {
             const bounds = e.getBounds();
@@ -419,7 +539,55 @@ export class Game {
               this.goldScore += 1;
               this.spawnParticles(e.x, e.y, '#ffd700', 12);
             }
-          } else if (e instanceof SmallEnemy) {
+          } else if (e instanceof FloatingBomb) {
+            // Floating bomb: instant death
+            if (!this.player.isInvincible()) {
+              const bounds = e.getBounds();
+              if (aabb(playerBounds, bounds)) {
+                this.player.hp = 0;
+                this.shakeTimer = SCREEN_SHAKE_DURATION * 3;
+                this.spawnExplosion(e.x, e.y);
+              }
+            }
+          } else if (e instanceof RadioactiveBarrel) {
+            // Radioactive barrel: 2-damage + green glow
+            if (!this.player.isInvincible()) {
+              const bounds = e.getBounds();
+              if (aabb(playerBounds, bounds)) {
+                const tookDamage = this.player.takeDamage(2);
+                if (tookDamage) {
+                  this.player.activateGreenGlow();
+                  this.shakeTimer = SCREEN_SHAKE_DURATION * 1.5;
+                  this.deactivatePowerup();
+                  this.spawnParticles(e.x, e.y, '#44ff44', 16);
+                }
+              }
+            }
+          } else if (e instanceof ElectricEel) {
+            // Electric eel: field = 1 damage, body = 2 damage
+            if (!this.player.isInvincible()) {
+              const bodyBounds = e.getBounds();
+              if (aabb(playerBounds, bodyBounds)) {
+                const tookDamage = this.player.takeDamage(2);
+                if (tookDamage) {
+                  this.shakeTimer = SCREEN_SHAKE_DURATION;
+                  this.deactivatePowerup();
+                  this.spawnParticles(e.x, e.y, '#00ccff', 12);
+                }
+              } else {
+                // Check electric field (outer zone)
+                const fieldBounds = e.getFieldBounds();
+                if (aabb(playerBounds, fieldBounds)) {
+                  const tookDamage = this.player.takeDamage(1);
+                  if (tookDamage) {
+                    this.shakeTimer = SCREEN_SHAKE_DURATION * 0.5;
+                    this.deactivatePowerup();
+                    this.spawnParticles(e.x, e.y, '#88eeff', 8);
+                  }
+                }
+              }
+            }
+          } else if (e instanceof SmallEnemy && !(e instanceof FloatingBomb)) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
@@ -430,7 +598,7 @@ export class Game {
                 }
               }
             }
-          } else if (e instanceof BigEnemy) {
+          } else if (e instanceof BigEnemy && !(e instanceof RadioactiveBarrel)) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
@@ -452,7 +620,7 @@ export class Game {
                 }
               }
             }
-          } else if (e instanceof Level3Enemy) {
+          } else if (e instanceof Level3Enemy && !(e instanceof ElectricEel)) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
@@ -467,11 +635,26 @@ export class Game {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
-                e.active = false;
-                const tookDamage = this.player.takeDamage();
-                if (tookDamage) {
-                  this.shakeTimer = SCREEN_SHAKE_DURATION;
-                  this.deactivatePowerup();
+                // FrogTongue: hook the player
+                if (e instanceof FrogTongue && !e.hitPlayer) {
+                  e.hitPlayer = true;
+                  e.active = false;
+                  if (this.boss) {
+                    const dx = this.boss.x - this.player.x;
+                    const dy = this.boss.y - this.player.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                    const pullSpeed = 180;
+                    this.player.hookedTimer = HOOK_DURATION;
+                    this.player.hookVx = (dx / dist) * pullSpeed;
+                    this.player.hookVy = (dy / dist) * pullSpeed;
+                  }
+                } else {
+                  e.active = false;
+                  const tookDamage = this.player.takeDamage();
+                  if (tookDamage) {
+                    this.shakeTimer = SCREEN_SHAKE_DURATION;
+                    this.deactivatePowerup();
+                  }
                 }
               }
             }
@@ -685,6 +868,7 @@ export class Game {
     this.level = 1;
     this.levelUpBannerTimer = 0;
     this.scrollSpeed = INITIAL_SCROLL_SPEED;
+    this.baseScrollSpeed = INITIAL_SCROLL_SPEED;
     this.spawner = new Spawner(this.stageDef.spawnConfig);
     this.powerupActive = false;
     this.gaugeLevel = 0;
@@ -699,10 +883,25 @@ export class Game {
     this.level4BlueChestTimer = 0;
     this.activePowerupStyle = 'laser';
     this.arcBallTimer = 0;
+    this.nuclearGaugeLevel = 0;
+    this.nuclearBlastActive = false;
+    this.nuclearBlastTimer = 0;
+    this.nuclearBlastAnimTime = 0;
+    this.speedBoostTimer = 0;
+    this.baseScrollSpeed = INITIAL_SCROLL_SPEED;
   }
 
   private incrementLaserGauge(): void {
     if (!this.powerupActive) return;
+    if (this.activePowerupStyle === 'nuclear') {
+      this.nuclearGaugeLevel = Math.min(1, this.nuclearGaugeLevel + GAUGE_PER_EAT);
+      if (this.nuclearGaugeLevel >= 1 && !this.nuclearBlastActive) {
+        this.nuclearBlastActive = true;
+        this.nuclearBlastTimer = NUCLEAR_BLAST_DURATION;
+        this.nuclearBlastAnimTime = 0;
+      }
+      return;
+    }
     this.gaugeLevel = Math.min(1, this.gaugeLevel + GAUGE_PER_EAT);
     if (this.gaugeLevel >= 1 && !this.laserActive) {
       this.laserActive = true;
@@ -711,6 +910,11 @@ export class Game {
   }
 
   private deactivatePowerup(): void {
+    if (this.activePowerupStyle === 'nuclear') {
+      // Nuclear gauge persists through damage; only deactivate laser/arc portion
+      this.laserActive = false;
+      return;
+    }
     this.powerupActive = false;
     this.gaugeLevel = 0;
     this.laserActive = false;
@@ -953,6 +1157,9 @@ export class Game {
       if (this.activePowerupStyle === 'arc') {
         glowGrad.addColorStop(0, 'rgba(220,220,255,0.9)');
         glowGrad.addColorStop(1, 'rgba(160,160,255,0)');
+      } else if (this.activePowerupStyle === 'nuclear') {
+        glowGrad.addColorStop(0, 'rgba(255,60,0,0.9)');
+        glowGrad.addColorStop(1, 'rgba(200,20,0,0)');
       } else {
         glowGrad.addColorStop(0, 'rgba(0,229,255,0.9)');
         glowGrad.addColorStop(1, 'rgba(0,100,255,0)');
@@ -1008,6 +1215,72 @@ export class Game {
       ctx.restore();
     }
 
+    // Nuclear blast beam (red fire beam, wider and stronger)
+    if (this.nuclearBlastActive) {
+      ctx.save();
+      const bx = this.player.x;
+      const by = this.player.y - this.player.height / 2;
+      const beamW = NUCLEAR_BLAST_HALF_WIDTH * 2;
+      const pulse = 0.7 + Math.sin(this.nuclearBlastAnimTime * 18) * 0.3;
+
+      // Outer fire glow
+      ctx.globalAlpha = 0.18 * pulse;
+      ctx.fillStyle = '#ff4400';
+      ctx.fillRect(bx - beamW, 0, beamW * 2, by);
+
+      // Inner beam
+      const nucGrad = ctx.createLinearGradient(bx - beamW / 2, 0, bx + beamW / 2, 0);
+      nucGrad.addColorStop(0, 'rgba(255,100,0,0)');
+      nucGrad.addColorStop(0.3, 'rgba(255,80,0,0.7)');
+      nucGrad.addColorStop(0.5, 'rgba(255,255,100,0.95)');
+      nucGrad.addColorStop(0.7, 'rgba(255,80,0,0.7)');
+      nucGrad.addColorStop(1, 'rgba(255,100,0,0)');
+      ctx.globalAlpha = 0.9 * pulse;
+      ctx.fillStyle = nucGrad;
+      ctx.fillRect(bx - beamW / 2, 0, beamW, by);
+
+      // Fire flicker particles along beam
+      ctx.globalAlpha = 0.35 * pulse;
+      ctx.fillStyle = '#ff6600';
+      for (let i = 0; i < 5; i++) {
+        const fy = (this.nuclearBlastAnimTime * 150 + i * 100) % (by || 1);
+        ctx.beginPath();
+        ctx.arc(bx + (Math.sin(this.nuclearBlastAnimTime * 6 + i) * 12), fy, 6 + Math.sin(i * 2) * 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    // Green glow aura when radioactive (player hit by barrel)
+    if (this.player.greenGlowTimer > 0) {
+      ctx.save();
+      const phase = (1 - this.player.greenGlowTimer / 10) * Math.PI * 2;
+      const ga = 0.22 + Math.abs(Math.sin(Date.now() / 200)) * 0.14;
+      ctx.globalAlpha = ga;
+      const gGrd = ctx.createRadialGradient(
+        this.player.x, this.player.y, this.player.width * 0.15,
+        this.player.x, this.player.y, this.player.width * 0.9,
+      );
+      gGrd.addColorStop(0, 'rgba(0,255,80,0.85)');
+      gGrd.addColorStop(1, 'rgba(0,200,50,0)');
+      ctx.fillStyle = gGrd;
+      ctx.beginPath();
+      ctx.ellipse(this.player.x, this.player.y, this.player.width * 0.9, this.player.height * 0.75, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Dripping green sparks
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = '#88ff44';
+      for (let i = 0; i < 4; i++) {
+        const sx = this.player.x + Math.cos(phase + i * Math.PI / 2) * this.player.width * 0.4;
+        const sy = this.player.y + Math.sin((phase + i * Math.PI / 2) * 1.2) * this.player.height * 0.35;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
     // Orbital pearls – draw glowing pearls orbiting the player
     if (this.orbitalPearls.length > 0) {
       const pr = PEARL_DRAW_RADIUS;
@@ -1049,8 +1322,12 @@ export class Game {
       }
     }
 
-    this.player.render(ctx);
-    this.hud.render(ctx, this.score, this.player.hp, this.powerupActive, this.gaugeLevel, this.laserActive, this.player.shieldActive, this.player.shieldTimer, this.goldScore);
+    this.player.render(ctx, this.activePowerupStyle === 'nuclear' && this.powerupActive);
+    // Pick the right gauge/label to show based on active powerup
+    const showNuclear = this.powerupActive && this.activePowerupStyle === 'nuclear';
+    const displayGauge = showNuclear ? this.nuclearGaugeLevel : this.gaugeLevel;
+    const displayLaserActive = showNuclear ? this.nuclearBlastActive : this.laserActive;
+    this.hud.render(ctx, this.score, this.player.hp, this.powerupActive, displayGauge, displayLaserActive, this.player.shieldActive, this.player.shieldTimer, this.goldScore, this.activePowerupStyle, this.speedBoostTimer);
 
     // Pause button next to score (top-left area)
     const pbX = 120;

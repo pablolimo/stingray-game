@@ -18,6 +18,8 @@ export class HUD {
     shieldActive: boolean = false,
     shieldTimer: number = 0,
     goldScore: number = 0,
+    powerupStyle: 'laser' | 'arc' | 'nuclear' = 'laser',
+    speedBoostTimer: number = 0,
   ): void {
     // Score
     ctx.save();
@@ -68,59 +70,81 @@ export class HUD {
       const barX = 20;
       const barY = CANVAS_HEIGHT - 28;
 
+      const isNuclear = powerupStyle === 'nuclear';
+      const barColor = isNuclear ? '#ff4400' : '#00e5ff';
+      const barFillA = isNuclear ? '#ff8800' : '#0055aa';
+      const barFillB = isNuclear ? '#ffcc00' : '#00e5ff';
+      const barBorder = isNuclear ? '#ff4400' : '#00e5ff';
+
       ctx.save();
 
       // Label
       ctx.font = 'bold 10px monospace';
       ctx.textAlign = 'left';
       if (laserActive) {
-        ctx.fillStyle = '#00e5ff';
-        ctx.shadowColor = '#00e5ff';
+        ctx.fillStyle = barColor;
+        ctx.shadowColor = barColor;
         ctx.shadowBlur = 8;
-        ctx.fillText('LASER ACTIVE!', barX, barY - 4);
+        ctx.fillText(isNuclear ? 'NUCLEAR FIRE ACTIVE!' : 'LASER ACTIVE!', barX, barY - 4);
       } else if (gaugeLevel > 0) {
-        ctx.fillStyle = '#aef';
-        ctx.shadowColor = 'rgba(0,229,255,0.5)';
+        ctx.fillStyle = barColor;
+        ctx.shadowColor = `${barColor}88`;
         ctx.shadowBlur = 4;
-        ctx.fillText('LASER GAUGE', barX, barY - 4);
+        ctx.fillText(isNuclear ? 'NUCLEAR GAUGE' : 'LASER GAUGE', barX, barY - 4);
       } else {
         ctx.fillStyle = '#89c';
         ctx.shadowBlur = 0;
-        ctx.fillText('LASER GAUGE – eat to recharge!', barX, barY - 4);
+        ctx.fillText(isNuclear ? 'NUCLEAR GAUGE – eat to charge!' : 'LASER GAUGE – eat to recharge!', barX, barY - 4);
       }
 
       // Bar background
       ctx.globalAlpha = 0.5;
-      ctx.fillStyle = '#003344';
+      ctx.fillStyle = isNuclear ? '#330000' : '#003344';
       ctx.fillRect(barX, barY, barW, barH);
 
       // Bar fill
       ctx.globalAlpha = 1;
       const fillW = barW * Math.min(gaugeLevel, 1);
       if (laserActive) {
-        // Bright pulsing cyan when laser is firing
         const pulse = 0.7 + Math.sin(Date.now() / 80) * 0.3;
         ctx.globalAlpha = pulse;
         const grad = ctx.createLinearGradient(barX, 0, barX + fillW, 0);
-        grad.addColorStop(0, '#00bcd4');
+        grad.addColorStop(0, isNuclear ? '#cc4400' : '#00bcd4');
         grad.addColorStop(0.5, '#ffffff');
-        grad.addColorStop(1, '#00e5ff');
+        grad.addColorStop(1, barColor);
         ctx.fillStyle = grad;
         ctx.fillRect(barX, barY, fillW, barH);
       } else {
         const grad = ctx.createLinearGradient(barX, 0, barX + fillW, 0);
-        grad.addColorStop(0, '#0055aa');
-        grad.addColorStop(1, '#00e5ff');
+        grad.addColorStop(0, barFillA);
+        grad.addColorStop(1, barFillB);
         ctx.fillStyle = grad;
         ctx.fillRect(barX, barY, fillW, barH);
       }
 
       // Bar border
       ctx.globalAlpha = 0.8;
-      ctx.strokeStyle = '#00e5ff';
+      ctx.strokeStyle = barBorder;
       ctx.lineWidth = 1.5;
       ctx.strokeRect(barX, barY, barW, barH);
 
+      ctx.restore();
+    }
+
+    // Speed boost indicator (shown while active)
+    if (speedBoostTimer > 0) {
+      ctx.save();
+      const bx = 20;
+      const by = CANVAS_HEIGHT - 48;
+      const alpha = Math.min(1, speedBoostTimer);
+      const hue = (Date.now() / 10) % 360;
+      ctx.globalAlpha = alpha * (0.7 + Math.sin(Date.now() / 80) * 0.3);
+      ctx.font = 'bold 11px monospace';
+      ctx.fillStyle = `hsl(${hue},100%,65%)`;
+      ctx.shadowColor = `hsl(${hue},100%,50%)`;
+      ctx.shadowBlur = 8;
+      ctx.textAlign = 'left';
+      ctx.fillText(`⚡ SPEED BOOST ${speedBoostTimer.toFixed(1)}s`, bx, by);
       ctx.restore();
     }
   }
