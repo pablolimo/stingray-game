@@ -861,50 +861,147 @@ export class Background {
 
   private drawBuriedSkeleton(ctx: CanvasRenderingContext2D, x: number, y: number, hasTruckerHat: boolean): void {
     const scale = 0.7 + Math.random() * 0.5;
+    // Lay skeleton flat on the seafloor (horizontal), with slight random tilt variation
+    const rotationDirection = Math.random() < 0.5 ? 1 : -1;
+    const tilt = rotationDirection * (Math.PI / 2 + (Math.random() - 0.5) * 0.4);
     ctx.save();
     ctx.translate(x, y);
+    ctx.rotate(tilt);
     ctx.scale(scale, scale);
     ctx.globalAlpha = 0.72;
-
-    // Sand burial mask: lower half hidden (clipped below y=8)
-    ctx.beginPath();
-    ctx.rect(-30, -40, 60, 48);
-    ctx.clip();
 
     const boneColor = '#d4cdb0';
     const boneShadow = 'rgba(100,90,60,0.5)';
 
-    // Spine stub (just a short vertical line)
+    // === LOWER BODY (drawn first so upper body renders on top) ===
+
+    // Spine (full length from neck base down to pelvis)
     ctx.strokeStyle = boneColor;
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(0, 8);
-    ctx.lineTo(0, -6);
+    ctx.moveTo(0, -6);
+    ctx.lineTo(0, 24);
     ctx.stroke();
 
+    // Pelvis / hip bar
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(-15, 22);
+    ctx.lineTo(15, 22);
+    ctx.stroke();
+
+    // Ilium arcs (pelvis wings)
+    ctx.beginPath();
+    ctx.arc(-11, 24, 9, -Math.PI * 0.75, 0.25);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(11, 24, 9, Math.PI - 0.25, Math.PI * 1.75);
+    ctx.stroke();
+
+    // Pubic arch
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 30, 6, 0, Math.PI);
+    ctx.stroke();
+
+    // Femurs (upper leg bones, slightly splayed outward)
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-8, 33);
+    ctx.lineTo(-12, 55);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(8, 33);
+    ctx.lineTo(12, 55);
+    ctx.stroke();
+
+    // Knee caps
+    ctx.fillStyle = boneColor;
+    ctx.beginPath(); ctx.arc(-12, 55, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(12, 55, 3.5, 0, Math.PI * 2); ctx.fill();
+
+    // Tibias (shin bones)
+    ctx.strokeStyle = boneColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-12, 55);
+    ctx.lineTo(-10, 73);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(12, 55);
+    ctx.lineTo(10, 73);
+    ctx.stroke();
+
+    // Fibulas (thin side bones alongside shin)
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-14, 57);
+    ctx.lineTo(-12, 71);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(14, 57);
+    ctx.lineTo(12, 71);
+    ctx.stroke();
+
+    // Feet (metatarsal fans)
+    for (let toe = 0; toe < 4; toe++) {
+      ctx.beginPath();
+      ctx.moveTo(-10, 73);
+      ctx.lineTo(-14 + toe * 3, 81);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(10, 73);
+      ctx.lineTo(8 + toe * 3, 81);
+      ctx.stroke();
+    }
+
+    // === UPPER BODY ===
+
     // Clavicles / shoulder bones
+    ctx.strokeStyle = boneColor;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(-14, -4);
     ctx.lineTo(14, -4);
     ctx.stroke();
 
-    // Upper arm stubs (angled out from shoulders, half-buried)
+    // Upper arm bones (angled out from shoulders)
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(-14, -4);
-    ctx.lineTo(-20, 6);
+    ctx.lineTo(-22, 10);
     ctx.moveTo(14, -4);
-    ctx.lineTo(20, 6);
+    ctx.lineTo(22, 10);
     ctx.stroke();
 
-    // Ribcage arcs (3 pairs of ribs)
+    // Forearm bones
+    ctx.beginPath();
+    ctx.moveTo(-22, 10);
+    ctx.lineTo(-26, 24);
+    ctx.moveTo(22, 10);
+    ctx.lineTo(26, 24);
+    ctx.stroke();
+
+    // Hand / finger stubs
+    ctx.lineWidth = 1.5;
+    for (let digit = -1; digit <= 1; digit++) {
+      ctx.beginPath();
+      ctx.moveTo(-26, 24);
+      ctx.lineTo(-26 + digit * 3, 31);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(26, 24);
+      ctx.lineTo(26 + digit * 3, 31);
+      ctx.stroke();
+    }
+
+    // Ribcage arcs (4 pairs of ribs)
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = boneColor;
-    for (let r = 0; r < 3; r++) {
-      const ry2 = -2 + r * 4;
-      const rw = 10 - r * 1.5;
+    for (let r = 0; r < 4; r++) {
+      const ry2 = -2 + r * 4.5;
+      const rw = 11 - r * 1.2;
       ctx.beginPath();
       ctx.arc(0, ry2, rw, -Math.PI * 0.7, 0);
       ctx.stroke();
@@ -930,7 +1027,7 @@ export class Background {
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Jaw (lower half of skull, slightly offset)
+    // Jaw (lower half of skull)
     ctx.fillStyle = '#c8c0a0';
     ctx.beginPath();
     ctx.ellipse(0, -16, 7, 5, 0, 0, Math.PI);
@@ -955,7 +1052,7 @@ export class Background {
       ctx.fillRect(t * 3 - 1, -15, 2, 3);
     }
 
-    // Trucker hat (optional)
+    // Trucker hat (optional) – lies at the skull end of the horizontal skeleton
     if (hasTruckerHat) {
       // Brim
       ctx.fillStyle = '#cc4400';
