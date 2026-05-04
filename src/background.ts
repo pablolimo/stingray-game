@@ -833,8 +833,8 @@ export class Background {
       ctx.restore();
     }
 
-    // Half-buried skeletons (2-4 scattered); some wear a trucker's hat
-    const skelCount = 2 + Math.floor(Math.random() * 3);
+    // Half-buried skeletons (5-10 scattered, smaller scale); some wear a trucker's hat
+    const skelCount = 5 + Math.floor(Math.random() * 6);
     for (let i = 0; i < skelCount; i++) {
       const sx = 30 + Math.random() * (CANVAS_WIDTH - 60);
       const sy = 40 + Math.random() * (this.LAYER_HEIGHT - 60);
@@ -863,7 +863,7 @@ export class Background {
   }
 
   private drawBuriedSkeleton(ctx: CanvasRenderingContext2D, x: number, y: number, hasTruckerHat: boolean): void {
-    const scale = 0.7 + Math.random() * 0.5;
+    const scale = 0.28 + Math.random() * 0.20; // 2.5× smaller than original (was 0.7–1.2)
     // Varied positions: lying flat, diagonal, nearly upright, curled, etc.
     const poseChoice = Math.floor(Math.random() * 7);
     const tiltVariants = [
