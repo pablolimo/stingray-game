@@ -7,12 +7,17 @@ export interface StageSpawnConfig {
   createMediumEnemy: (x: number, y: number, targetX: number) => Entity;
   createLevel3Enemy: (x: number, y: number, targetX: number, targetY: number) => Entity;
   createFood: (x: number, y: number) => Entity;
+  createFoodGroup?: (x: number, y: number) => Entity[];
   createBonusFood: (x: number, y: number) => Entity;
   createTreasure: (x: number, y: number) => Entity;
   createPowerupChest: (x: number, y: number) => Entity;
   createRedTreasure: (x: number, y: number) => Entity;
   createGlowingClam: (x: number, y: number) => Entity;
   createCoin: (x: number, y: number) => Entity;
+  createObstacle?: (x: number, y: number) => Entity;
+  createHazard?: (x: number, y: number) => Entity;
+  createSpeedBoost?: (x: number, y: number) => Entity;
+  glowingClamInterval?: number;
 }
 
 export interface StageDefinition {

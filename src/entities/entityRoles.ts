@@ -98,7 +98,7 @@ export abstract class PowerupCollectible implements Entity {
   abstract height: number;
   abstract collected: boolean;
   abstract score: number;
-  get powerupStyle(): 'laser' | 'arc' { return 'laser'; }
+  get powerupStyle(): 'laser' | 'arc' | 'nuclear' { return 'laser'; }
   abstract update(dt: number, scrollSpeed: number): void;
   abstract render(ctx: CanvasRenderingContext2D): void;
   abstract getBounds(): { x: number; y: number; width: number; height: number };
@@ -128,6 +128,17 @@ export abstract class OrbitalCollectible implements Entity {
 }
 
 export abstract class CoinCollectible implements Entity {
+  abstract x: number;
+  abstract y: number;
+  abstract width: number;
+  abstract height: number;
+  abstract collected: boolean;
+  abstract update(dt: number, scrollSpeed: number): void;
+  abstract render(ctx: CanvasRenderingContext2D): void;
+  abstract getBounds(): { x: number; y: number; width: number; height: number };
+}
+
+export abstract class SpeedBoostCollectible implements Entity {
   abstract x: number;
   abstract y: number;
   abstract width: number;

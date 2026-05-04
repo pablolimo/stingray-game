@@ -37,3 +37,18 @@ export const LEVEL4_SCORE_THRESHOLD = 4000;
 export const BOSS_MAX_HP = SCUBA_KITTEN_MAX_HP * 3; // 3× the cat's HP
 export const BOSS_RAGE_DURATION = 3.5; // seconds per rage phase
 export const BOSS_LASER_HIT_INTERVAL = 0.2; // seconds between laser ticks on boss
+
+// ─── Stage 3 constants ────────────────────────────────────────────────────────
+export const SARDINE_SCORE = 5;
+export const SARDINE_SCHOOL_SIZE = 10;
+export const GREEN_GLOW_DURATION = SHIELD_DURATION; // same as shield (10 s)
+export const SPEED_BOOST_MULTIPLIER = 2.5; // scroll speed multiplier during boost
+export const SPEED_BOOST_DURATION = 10; // seconds
+export const NUCLEAR_BLAST_DURATION = 6; // half of LASER_DURATION
+export const NUCLEAR_BLAST_HALF_WIDTH = 50; // wider than regular laser
+export const NUCLEAR_EEL_FIELD_RADIUS = 55; // electric field radius around eel
+export const FROG_BOSS_MAX_HP = BOSS_MAX_HP; // same HP as other bosses
+export const HOOK_DURATION = 1.5; // seconds player is pulled by frog tongue
+export const NUCLEAR_DAMAGE_MULTIPLIER = 3; // nuclear blast deals 3× laser damage per tick
+export const EEL_MAX_HP = 3; // electric eel hit points (same scale as ScubaKitten)
+export const EEL_LASER_HIT_INTERVAL = 0.25; // seconds between laser ticks on eel
