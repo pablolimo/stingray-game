@@ -38,15 +38,50 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean, t: number): 
     ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
   }
 
-  // Back legs
-  ctx.fillStyle = baseColor;
-  ctx.beginPath(); ctx.ellipse(12, 90, 12, 24, -0.5, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(76, 90, 12, 24, 0.5, 0, Math.PI * 2); ctx.fill();
+  // Back legs / Front arms – muscular in rage mode
+  const armSwing = Math.sin(t * 3) * (rage ? 5 : 8);
+  if (rage) {
+    // Thick muscular thighs
+    ctx.fillStyle = baseColor;
+    ctx.beginPath(); ctx.ellipse(14, 88, 16, 26, -0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(74, 88, 16, 26, 0.4, 0, Math.PI * 2); ctx.fill();
+    // Quad definition highlight
+    ctx.fillStyle = skinColor;
+    ctx.beginPath(); ctx.ellipse(12, 80, 9, 13, -0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(76, 80, 9, 13, 0.4, 0, Math.PI * 2); ctx.fill();
 
-  // Front arms
-  const armSwing = Math.sin(t * 3) * 8;
-  ctx.beginPath(); ctx.ellipse(16, 62 + armSwing, 8, 18, -0.7, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(72, 62 - armSwing, 8, 18, 0.7, 0, Math.PI * 2); ctx.fill();
+    // Muscular arms – bicep + forearm + fist
+    ctx.fillStyle = baseColor;
+    // Left upper arm (bicep)
+    ctx.beginPath(); ctx.ellipse(10, 57 + armSwing, 12, 20, -0.85, 0, Math.PI * 2); ctx.fill();
+    // Left forearm
+    ctx.beginPath(); ctx.ellipse(5, 76 + armSwing * 0.7, 9, 15, -0.25, 0, Math.PI * 2); ctx.fill();
+    // Left fist
+    ctx.beginPath(); ctx.arc(3, 88 + armSwing * 0.4, 8, 0, Math.PI * 2); ctx.fill();
+    // Left bicep highlight
+    ctx.fillStyle = skinColor;
+    ctx.beginPath(); ctx.ellipse(9, 51 + armSwing, 7, 10, -0.85, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = baseColor;
+    // Right upper arm (bicep)
+    ctx.beginPath(); ctx.ellipse(78, 57 - armSwing, 12, 20, 0.85, 0, Math.PI * 2); ctx.fill();
+    // Right forearm
+    ctx.beginPath(); ctx.ellipse(83, 76 - armSwing * 0.7, 9, 15, 0.25, 0, Math.PI * 2); ctx.fill();
+    // Right fist
+    ctx.beginPath(); ctx.arc(85, 88 - armSwing * 0.4, 8, 0, Math.PI * 2); ctx.fill();
+    // Right bicep highlight
+    ctx.fillStyle = skinColor;
+    ctx.beginPath(); ctx.ellipse(79, 51 - armSwing, 7, 10, 0.85, 0, Math.PI * 2); ctx.fill();
+  } else {
+    // Back legs
+    ctx.fillStyle = baseColor;
+    ctx.beginPath(); ctx.ellipse(12, 90, 12, 24, -0.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(76, 90, 12, 24, 0.5, 0, Math.PI * 2); ctx.fill();
+
+    // Front arms
+    ctx.beginPath(); ctx.ellipse(16, 62 + armSwing, 8, 18, -0.7, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(72, 62 - armSwing, 8, 18, 0.7, 0, Math.PI * 2); ctx.fill();
+  }
 
   // Head
   ctx.fillStyle = baseColor;

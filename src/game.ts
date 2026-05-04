@@ -161,13 +161,14 @@ export class Game {
         this.background.update(dt, this.scrollSpeed);
         this.player.update(dt, this.input);
 
-        // Nuclear blast timer
+        // Nuclear blast – drain gauge while active (like laser gauge in stages 1/2)
         if (this.nuclearBlastActive) {
-          this.nuclearBlastTimer -= dt;
+          this.nuclearGaugeLevel -= LASER_DRAIN_RATE * dt;
           this.nuclearBlastAnimTime += dt;
-          if (this.nuclearBlastTimer <= 0) {
-            this.nuclearBlastActive = false;
+          if (this.nuclearGaugeLevel <= 0) {
             this.nuclearGaugeLevel = 0;
+            this.nuclearBlastActive = false;
+            this.nuclearBlastAnimTime = 0;
           }
         }
 
@@ -497,7 +498,10 @@ export class Game {
               this.spawnParticles(e.x, e.y, glowColor, 20);
               if (this.activePowerupStyle === 'nuclear') {
                 this.powerupActive = true;
-                if (this.nuclearGaugeLevel === 0) this.nuclearGaugeLevel = 0.3;
+                // Metal chest fully recharges the gauge and activates the blast
+                this.nuclearGaugeLevel = 1;
+                this.nuclearBlastActive = true;
+                this.nuclearBlastAnimTime = 0;
               } else if (this.powerupActive) {
                 // Already have the gauge – fill it to 100% and start firing
                 this.gaugeLevel = 1;
@@ -926,7 +930,6 @@ export class Game {
       this.nuclearGaugeLevel = Math.min(1, this.nuclearGaugeLevel + GAUGE_PER_EAT);
       if (this.nuclearGaugeLevel >= 1 && !this.nuclearBlastActive) {
         this.nuclearBlastActive = true;
-        this.nuclearBlastTimer = NUCLEAR_BLAST_DURATION;
         this.nuclearBlastAnimTime = 0;
       }
       return;
