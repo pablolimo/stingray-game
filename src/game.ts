@@ -26,7 +26,6 @@ import { stage3Definition } from './stages/stage3';
 import { PlayerArcBall } from './entities/playerarcball';
 import { FloatingBomb } from './entities/stage3/floatingbomb';
 import { RadioactiveBarrel } from './entities/stage3/radioactivebarrel';
-import { ElectricEel } from './entities/stage3/electriceel';
 import { FrogTongue } from './entities/stage3/frogtongue';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
@@ -578,30 +577,6 @@ export class Game {
                 }
               }
             }
-          } else if (e instanceof ElectricEel) {
-            // Electric eel: field = 1 damage, body = 2 damage
-            if (!this.player.isInvincible()) {
-              const bodyBounds = e.getBounds();
-              if (aabb(playerBounds, bodyBounds)) {
-                const tookDamage = this.player.takeDamage(2);
-                if (tookDamage) {
-                  this.shakeTimer = SCREEN_SHAKE_DURATION;
-                  this.deactivatePowerup();
-                  this.spawnParticles(e.x, e.y, '#00ccff', 12);
-                }
-              } else {
-                // Check electric field (outer zone)
-                const fieldBounds = e.getFieldBounds();
-                if (aabb(playerBounds, fieldBounds)) {
-                  const tookDamage = this.player.takeDamage(1);
-                  if (tookDamage) {
-                    this.shakeTimer = SCREEN_SHAKE_DURATION * 0.5;
-                    this.deactivatePowerup();
-                    this.spawnParticles(e.x, e.y, '#88eeff', 8);
-                  }
-                }
-              }
-            }
           } else if (e instanceof SmallEnemy && !(e instanceof FloatingBomb)) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
@@ -635,7 +610,7 @@ export class Game {
                 }
               }
             }
-          } else if (e instanceof Level3Enemy && !(e instanceof ElectricEel)) {
+          } else if (e instanceof Level3Enemy) {
             if (!this.player.isInvincible()) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {

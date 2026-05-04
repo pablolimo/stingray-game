@@ -713,6 +713,10 @@ export class Background {
       ctx.fillRect(0, y, CANVAS_WIDTH, 22);
     }
 
+    // Sunken car road – appears twice in the scrolling layer
+    this.drawSunkenRoad(ctx, Math.floor(this.LAYER_HEIGHT * 0.28));
+    this.drawSunkenRoad(ctx, Math.floor(this.LAYER_HEIGHT * 0.72));
+
     return c;
   }
 
@@ -861,9 +865,18 @@ export class Background {
 
   private drawBuriedSkeleton(ctx: CanvasRenderingContext2D, x: number, y: number, hasTruckerHat: boolean): void {
     const scale = 0.7 + Math.random() * 0.5;
-    // Lay skeleton flat on the seafloor (horizontal), with slight random tilt variation
-    const rotationDirection = Math.random() < 0.5 ? 1 : -1;
-    const tilt = rotationDirection * (Math.PI / 2 + (Math.random() - 0.5) * 0.4);
+    // Varied positions: lying flat, diagonal, nearly upright, curled, etc.
+    const poseChoice = Math.floor(Math.random() * 7);
+    const tiltVariants = [
+      Math.PI / 2 + (Math.random() - 0.5) * 0.35,   // lying flat (near horizontal)
+      -(Math.PI / 2 + (Math.random() - 0.5) * 0.35), // lying flat mirrored
+      Math.PI / 4 + (Math.random() - 0.5) * 0.3,     // 45° diagonal
+      -Math.PI / 4 + (Math.random() - 0.5) * 0.3,    // -45° diagonal
+      Math.PI / 6 + (Math.random() - 0.5) * 0.25,    // 30° slightly tilted
+      (Math.random() - 0.5) * 0.3,                   // nearly upright / slumped
+      Math.PI * 0.65 + (Math.random() - 0.5) * 0.25, // ~117° (past flat, slightly upside-down)
+    ];
+    const tilt = tiltVariants[poseChoice];
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(tilt);
@@ -1235,6 +1248,140 @@ export class Background {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('!', 0, -42);
+    }
+
+    ctx.restore();
+  }
+
+  /** Draws a sunken, partially-buried car road spanning the full canvas width at the given centre Y. */
+  private drawSunkenRoad(ctx: CanvasRenderingContext2D, centerY: number): void {
+    const roadH = 58;   // total road height (includes both lanes)
+    const roadTop = centerY - roadH / 2;
+    const roadBot = centerY + roadH / 2;
+    const W = CANVAS_WIDTH;
+
+    ctx.save();
+    ctx.globalAlpha = 0.82;
+
+    // ── Asphalt surface ─────────────────────────────────────────────────────
+    ctx.fillStyle = '#3a3830';
+    ctx.fillRect(0, roadTop, W, roadH);
+
+    // Subtle asphalt texture (fine noise)
+    ctx.globalAlpha = 0.12;
+    for (let i = 0; i < 280; i++) {
+      const px = Math.random() * W;
+      const py = roadTop + Math.random() * roadH;
+      ctx.fillStyle = Math.random() > 0.5 ? '#000' : '#666';
+      ctx.fillRect(Math.floor(px), Math.floor(py), 1, 1);
+    }
+    ctx.globalAlpha = 0.82;
+
+    // ── Road edges (raised curbs / painted lines) ────────────────────────────
+    ctx.fillStyle = '#f0e8c0';
+    ctx.fillRect(0, roadTop, W, 3);
+    ctx.fillRect(0, roadBot - 3, W, 3);
+
+    // ── Centre dashed line (yellow) ──────────────────────────────────────────
+    const dashLen = 26;
+    const gapLen = 18;
+    ctx.fillStyle = '#d4b820';
+    let dx = 0;
+    while (dx < W) {
+      const dw = Math.min(dashLen, W - dx);
+      ctx.fillRect(dx, centerY - 1.5, dw, 3);
+      dx += dashLen + gapLen;
+    }
+
+    // ── Cracks ───────────────────────────────────────────────────────────────
+    ctx.strokeStyle = '#1a1810';
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.75;
+    const numCracks = 8 + Math.floor(Math.random() * 6);
+    for (let c = 0; c < numCracks; c++) {
+      const cx = (c / numCracks) * W + Math.random() * (W / numCracks);
+      const cy = roadTop + Math.random() * roadH;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      let lx = cx, ly = cy;
+      const segs = 2 + Math.floor(Math.random() * 4);
+      for (let s = 0; s < segs; s++) {
+        lx += (Math.random() - 0.5) * 20;
+        ly += (Math.random() - 0.5) * 14;
+        ctx.lineTo(lx, ly);
+      }
+      ctx.stroke();
+    }
+
+    // ── Broken / collapsed sections (road surface missing) ───────────────────
+    ctx.globalAlpha = 1.0;
+    const numBreaks = 3 + Math.floor(Math.random() * 3);
+    for (let b = 0; b < numBreaks; b++) {
+      const bx = Math.random() * (W - 60) + 10;
+      const bw = 30 + Math.random() * 50;
+      const sinkDepth = 6 + Math.random() * 10;
+
+      // Pit / sunken dip – draw sand-coloured fill in the gap
+      ctx.fillStyle = '#c8b060';
+      ctx.beginPath();
+      ctx.moveTo(bx, roadTop);
+      ctx.lineTo(bx + bw, roadTop);
+      ctx.lineTo(bx + bw - 4, roadTop + sinkDepth);
+      ctx.lineTo(bx + 4, roadTop + sinkDepth);
+      ctx.closePath();
+      ctx.fill();
+      // Same at bottom
+      ctx.beginPath();
+      ctx.moveTo(bx, roadBot);
+      ctx.lineTo(bx + bw, roadBot);
+      ctx.lineTo(bx + bw - 4, roadBot - sinkDepth);
+      ctx.lineTo(bx + 4, roadBot - sinkDepth);
+      ctx.closePath();
+      ctx.fill();
+
+      // Jagged break edge highlight
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(bx, roadTop);
+      for (let jx = bx; jx < bx + bw; jx += 5) {
+        ctx.lineTo(jx + Math.random() * 5, roadTop + Math.random() * sinkDepth);
+      }
+      ctx.lineTo(bx + bw, roadTop);
+      ctx.stroke();
+    }
+
+    // ── Sand burial overlay (edges more buried than center) ──────────────────
+    ctx.globalAlpha = 0.55;
+    // Top edge burial
+    const topBurial = ctx.createLinearGradient(0, roadTop - 12, 0, roadTop + 14);
+    topBurial.addColorStop(0, '#d8c878');
+    topBurial.addColorStop(1, 'rgba(216,200,120,0)');
+    ctx.fillStyle = topBurial;
+    ctx.fillRect(0, roadTop - 12, W, 26);
+
+    // Bottom edge burial
+    const botBurial = ctx.createLinearGradient(0, roadBot - 14, 0, roadBot + 12);
+    botBurial.addColorStop(0, 'rgba(216,200,120,0)');
+    botBurial.addColorStop(1, '#d8c878');
+    ctx.fillStyle = botBurial;
+    ctx.fillRect(0, roadBot - 14, W, 26);
+
+    // Irregular sand patches covering parts of the road surface
+    ctx.globalAlpha = 0.45;
+    const numPatches = 5 + Math.floor(Math.random() * 4);
+    for (let p = 0; p < numPatches; p++) {
+      const px = Math.random() * W;
+      const py = roadTop + Math.random() * roadH;
+      const prx = 18 + Math.random() * 30;
+      const pry = 8 + Math.random() * 12;
+      const pgrd = ctx.createRadialGradient(px, py, 0, px, py, prx);
+      pgrd.addColorStop(0, 'rgba(216,200,120,0.9)');
+      pgrd.addColorStop(1, 'rgba(216,200,120,0)');
+      ctx.fillStyle = pgrd;
+      ctx.beginPath();
+      ctx.ellipse(px, py, prx, pry, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     ctx.restore();

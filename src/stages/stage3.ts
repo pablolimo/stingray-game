@@ -1,7 +1,7 @@
 import { FloatingBomb } from '../entities/stage3/floatingbomb';
 import { RadioactiveBarrel } from '../entities/stage3/radioactivebarrel';
 import { BlackSquid } from '../entities/stage3/blacksquid';
-import { ElectricEel } from '../entities/stage3/electriceel';
+import { RockThrowingOtter } from '../entities/stage3/otter';
 import { SpeedBoostPowerup } from '../entities/stage3/speedboostpowerup';
 import { NuclearChest } from '../entities/stage3/nuclearchest';
 import { MutantFrogBoss } from '../entities/stage3/frogboss';
@@ -26,8 +26,8 @@ export const stage3Definition: StageDefinition = {
     createBigEnemy: (x, y, targetX, level) => new Shark(x, y, targetX, level),
     // Medium enemy: black squid (faster)
     createMediumEnemy: (x, y, targetX) => new BlackSquid(x, y, targetX),
-    // Level 3 enemy: electric eel
-    createLevel3Enemy: (x, y, targetX, targetY) => new ElectricEel(x, y, targetX, targetY),
+    // Level 3 enemy: rock-throwing otter
+    createLevel3Enemy: (x, y, targetX, targetY) => new RockThrowingOtter(x, y, targetX, targetY),
     // Food: individual sardine (used as fallback; createFoodGroup is primary)
     createFood: (x, y) => new Sardine(x, y),
     // Food group: schools of 10 sardines
@@ -53,13 +53,13 @@ export const stage3Definition: StageDefinition = {
   createBoss: (x, startY) => new MutantFrogBoss(x, startY),
   bossName: 'The Mutant Frog',
   level2Message: 'Speed boosts spotted! Radioactive barrels in the water!',
-  level3Message: 'Electric Eels incoming! Watch for the shock field!',
+  level3Message: 'Beware the Rock-Throwing Otter! It gets angry when cornered!',
   level4BossMessage: 'BOSS INCOMING – The Mutant Frog King!',
   stageClearMessage: 'The Mutant Frog King has been defeated! The wasteland is safe!',
   smallEnemyDisintColors: ['#aaffaa', '#88cc44', '#ffff00', '#ffffff'],
   bigEnemyDisintColors: ['#556633', '#88aa55', '#ccee88', '#ffffff'],
   mediumEnemyDisintColors: ['#110011', '#440022', '#aa0044', '#ff4488'],
-  level3EnemyDisintColors: ['#00ccff', '#44eeff', '#00aacc', '#ffffff'],
+  level3EnemyDisintColors: ['#a07040', '#d4a870', '#8b6030', '#ffffff'],
   mediumEnemyLaserHitColor: '#ff0044',
-  level3EnemyLaserHitColor: '#00ccff',
+  level3EnemyLaserHitColor: '#d4a870',
 };
