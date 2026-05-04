@@ -830,7 +830,317 @@ export class Background {
       ctx.restore();
     }
 
+    // Half-buried skeletons (2-4 scattered); some wear a trucker's hat
+    const skelCount = 2 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < skelCount; i++) {
+      const sx = 30 + Math.random() * (CANVAS_WIDTH - 60);
+      const sy = 40 + Math.random() * (this.LAYER_HEIGHT - 60);
+      const hasTruckerHat = Math.random() < 0.5;
+      this.drawBuriedSkeleton(ctx, sx, sy, hasTruckerHat);
+    }
+
+    // Half-buried tires (1-3 scattered)
+    const tireCount = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < tireCount; i++) {
+      const tx = 25 + Math.random() * (CANVAS_WIDTH - 50);
+      const ty = 30 + Math.random() * (this.LAYER_HEIGHT - 50);
+      this.drawBuriedTire(ctx, tx, ty);
+    }
+
+    // Half-buried road signs (1-2 scattered)
+    const signCount = 1 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < signCount; i++) {
+      const rx = 30 + Math.random() * (CANVAS_WIDTH - 60);
+      const ry = 40 + Math.random() * (this.LAYER_HEIGHT - 60);
+      const signType = Math.floor(Math.random() * 3); // 0=stop, 1=speed limit, 2=caution
+      this.drawBuriedRoadSign(ctx, rx, ry, signType);
+    }
+
     return c;
+  }
+
+  private drawBuriedSkeleton(ctx: CanvasRenderingContext2D, x: number, y: number, hasTruckerHat: boolean): void {
+    const scale = 0.7 + Math.random() * 0.5;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = 0.72;
+
+    // Sand burial mask: lower half hidden (clipped below y=8)
+    ctx.beginPath();
+    ctx.rect(-30, -40, 60, 48);
+    ctx.clip();
+
+    const boneColor = '#d4cdb0';
+    const boneShadow = 'rgba(100,90,60,0.5)';
+
+    // Spine stub (just a short vertical line)
+    ctx.strokeStyle = boneColor;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 8);
+    ctx.lineTo(0, -6);
+    ctx.stroke();
+
+    // Clavicles / shoulder bones
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(-14, -4);
+    ctx.lineTo(14, -4);
+    ctx.stroke();
+
+    // Upper arm stubs (angled out from shoulders, half-buried)
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-14, -4);
+    ctx.lineTo(-20, 6);
+    ctx.moveTo(14, -4);
+    ctx.lineTo(20, 6);
+    ctx.stroke();
+
+    // Ribcage arcs (3 pairs of ribs)
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = boneColor;
+    for (let r = 0; r < 3; r++) {
+      const ry2 = -2 + r * 4;
+      const rw = 10 - r * 1.5;
+      ctx.beginPath();
+      ctx.arc(0, ry2, rw, -Math.PI * 0.7, 0);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, ry2, rw, Math.PI, Math.PI * 1.7);
+      ctx.stroke();
+    }
+
+    // Neck
+    ctx.strokeStyle = boneColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, -6);
+    ctx.lineTo(0, -14);
+    ctx.stroke();
+
+    // Skull
+    ctx.fillStyle = boneColor;
+    ctx.shadowColor = boneShadow;
+    ctx.shadowBlur = 4;
+    ctx.beginPath();
+    ctx.ellipse(0, -22, 10, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Jaw (lower half of skull, slightly offset)
+    ctx.fillStyle = '#c8c0a0';
+    ctx.beginPath();
+    ctx.ellipse(0, -16, 7, 5, 0, 0, Math.PI);
+    ctx.fill();
+
+    // Eye sockets
+    ctx.fillStyle = 'rgba(40,30,20,0.85)';
+    ctx.beginPath(); ctx.ellipse(-4, -23, 2.8, 3.2, -0.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(4, -23, 2.8, 3.2, 0.2, 0, Math.PI * 2); ctx.fill();
+
+    // Nose cavity (small triangle)
+    ctx.beginPath();
+    ctx.moveTo(0, -19);
+    ctx.lineTo(-1.5, -17);
+    ctx.lineTo(1.5, -17);
+    ctx.closePath();
+    ctx.fill();
+
+    // Teeth (3 small rectangles on jaw)
+    ctx.fillStyle = '#e0d8bc';
+    for (let t = -1; t <= 1; t++) {
+      ctx.fillRect(t * 3 - 1, -15, 2, 3);
+    }
+
+    // Trucker hat (optional)
+    if (hasTruckerHat) {
+      // Brim
+      ctx.fillStyle = '#cc4400';
+      ctx.beginPath();
+      ctx.ellipse(0, -33, 13, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Cap body (flat-front trucker style)
+      const hatGrd = ctx.createLinearGradient(-9, -44, 9, -33);
+      hatGrd.addColorStop(0, '#dd5500');
+      hatGrd.addColorStop(0.5, '#cc4400');
+      hatGrd.addColorStop(1, '#aa3300');
+      ctx.fillStyle = hatGrd;
+      ctx.beginPath();
+      ctx.moveTo(-9, -33);
+      ctx.lineTo(-8, -44);
+      ctx.lineTo(8, -44);
+      ctx.lineTo(9, -33);
+      ctx.closePath();
+      ctx.fill();
+      // Mesh side (right half - lighter)
+      ctx.fillStyle = 'rgba(255,200,150,0.25)';
+      ctx.beginPath();
+      ctx.moveTo(0, -33);
+      ctx.lineTo(1, -44);
+      ctx.lineTo(8, -44);
+      ctx.lineTo(9, -33);
+      ctx.closePath();
+      ctx.fill();
+      // Hat button/top
+      ctx.fillStyle = '#ff6600';
+      ctx.beginPath();
+      ctx.arc(0, -44, 2, 0, Math.PI * 2);
+      ctx.fill();
+      // Brim front overhang
+      ctx.fillStyle = '#aa3300';
+      ctx.beginPath();
+      ctx.ellipse(-1, -33, 14, 2.5, -0.1, Math.PI, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  private drawBuriedTire(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    const scale = 0.8 + Math.random() * 0.6;
+    const tiltAngle = (Math.random() - 0.5) * 0.5;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(tiltAngle);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = 0.68;
+
+    // Sand burial: only top ~60% visible
+    ctx.beginPath();
+    ctx.rect(-22, -22, 44, 33);
+    ctx.clip();
+
+    // Outer tire ring
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 18, 10, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Tire sidewall texture (tread lines)
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const ix = Math.cos(a) * 12;
+      const iy = Math.sin(a) * 7;
+      const ox = Math.cos(a) * 18;
+      const oy = Math.sin(a) * 10;
+      ctx.beginPath();
+      ctx.moveTo(ix, iy);
+      ctx.lineTo(ox, oy);
+      ctx.stroke();
+    }
+
+    // Rim (inner circle)
+    ctx.strokeStyle = '#777';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 9, 5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Rim spokes
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * 9, Math.sin(a) * 5);
+      ctx.stroke();
+    }
+
+    // Rust/algae patches
+    ctx.fillStyle = 'rgba(180,100,30,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(-8, -4, 5, 3, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  private drawBuriedRoadSign(ctx: CanvasRenderingContext2D, x: number, y: number, signType: number): void {
+    const scale = 0.65 + Math.random() * 0.4;
+    const lean = (Math.random() - 0.5) * 0.4;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(lean);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = 0.7;
+
+    // Post (partially buried – only top portion visible)
+    ctx.strokeStyle = '#aaa';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, 10);
+    ctx.lineTo(0, -30);
+    ctx.stroke();
+
+    if (signType === 0) {
+      // STOP sign (octagon, red)
+      const r = 14;
+      ctx.fillStyle = '#cc1111';
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 - Math.PI / 8;
+        const px = Math.cos(a) * r;
+        const py = -38 + Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      // STOP text
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 7px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('STOP', 0, -38);
+
+    } else if (signType === 1) {
+      // Speed limit sign (white rect with number)
+      ctx.fillStyle = '#f0f0e8';
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.rect(-12, -52, 24, 26);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#222';
+      ctx.font = 'bold 6px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('SPEED', 0, -46);
+      ctx.fillText('LIMIT', 0, -40);
+      ctx.font = 'bold 9px monospace';
+      ctx.fillStyle = '#111';
+      ctx.fillText('55', 0, -33);
+
+    } else {
+      // Caution/diamond sign (yellow)
+      ctx.save();
+      ctx.translate(0, -42);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = '#f0c020';
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.fillRect(-10, -10, 20, 20);
+      ctx.strokeRect(-10, -10, 20, 20);
+      ctx.restore();
+      // Exclamation mark
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('!', 0, -42);
+    }
+
+    ctx.restore();
   }
 
   private renderCaustics(ctx: CanvasRenderingContext2D): void {

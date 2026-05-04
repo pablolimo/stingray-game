@@ -316,8 +316,9 @@ export class Game {
             if (e instanceof SmallEnemy || e instanceof BigEnemy || e instanceof MediumEnemy || e instanceof Level3Enemy) {
               if (Math.abs(e.x - this.player.x) < nuclearHalfWidth + e.width / 2 && e.y < this.player.y) {
                 if (e instanceof MediumEnemy) {
-                  // Nuclear does NUCLEAR_DAMAGE_MULTIPLIER× laser damage
+                  // Nuclear does NUCLEAR_DAMAGE_MULTIPLIER× laser damage; bypass cooldown per hit
                   for (let _i = 0; _i < NUCLEAR_DAMAGE_MULTIPLIER; _i++) {
+                    e.laserHitCooldown = 0;
                     const dead = e.takeLaserHit();
                     if (dead) {
                       this.spawnDisintegration(e.x, e.y, this.stageDef.mediumEnemyDisintColors);
@@ -329,6 +330,7 @@ export class Game {
                 }
                 if (e instanceof Level3Enemy) {
                   for (let _i = 0; _i < NUCLEAR_DAMAGE_MULTIPLIER; _i++) {
+                    e.laserHitCooldown = 0;
                     const dead = e.takeLaserHit();
                     if (dead) {
                       this.spawnDisintegration(e.x, e.y, this.stageDef.level3EnemyDisintColors);
@@ -355,6 +357,7 @@ export class Game {
             ) {
               let dead = false;
               for (let _i = 0; _i < NUCLEAR_DAMAGE_MULTIPLIER; _i++) {
+                this.boss.laserHitCooldown = 0;
                 dead = this.boss.takeLaserHit();
                 if (dead) break;
               }
