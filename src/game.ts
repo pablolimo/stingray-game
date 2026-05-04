@@ -101,6 +101,11 @@ export class Game {
   private nuclearBlastAnimTime: number = 0;
   private speedBoostTimer: number = 0;
   private baseScrollSpeed: number = INITIAL_SCROLL_SPEED; // scroll before boost
+  // Bomb death animation state
+  private bombDeathAnimTimer: number = 0;
+  private bombDeathAnimTime: number = 0;
+  private bombDeathX: number = 0;
+  private bombDeathY: number = 0;
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
@@ -539,13 +544,16 @@ export class Game {
               this.spawnParticles(e.x, e.y, '#ffd700', 12);
             }
           } else if (e instanceof FloatingBomb) {
-            // Floating bomb: instant death
-            if (!this.player.isInvincible()) {
+            // Floating bomb: triggers dramatic death animation then game over
+            if (!this.player.isInvincible() && this.bombDeathAnimTimer <= 0) {
               const bounds = e.getBounds();
               if (aabb(playerBounds, bounds)) {
-                this.player.hp = 0;
-                this.shakeTimer = SCREEN_SHAKE_DURATION * 3;
-                this.spawnExplosion(e.x, e.y);
+                this.bombDeathAnimTimer = 1.8;
+                this.bombDeathAnimTime = 0;
+                this.bombDeathX = this.player.x;
+                this.bombDeathY = this.player.y;
+                this.shakeTimer = SCREEN_SHAKE_DURATION * 5;
+                this.spawnBombDeathExplosion(this.player.x, this.player.y);
               }
             }
           } else if (e instanceof RadioactiveBarrel) {
@@ -811,8 +819,24 @@ export class Game {
           this.shakeTimer -= dt;
         }
 
+        // Bomb death animation
+        if (this.bombDeathAnimTimer > 0) {
+          this.bombDeathAnimTimer -= dt;
+          this.bombDeathAnimTime += dt;
+          // Spawn extra burst particles periodically for drama
+          if (Math.floor((this.bombDeathAnimTime - dt) * 6) < Math.floor(this.bombDeathAnimTime * 6)) {
+            this.spawnBombDeathExplosion(
+              this.bombDeathX + (Math.random() - 0.5) * 60,
+              this.bombDeathY + (Math.random() - 0.5) * 60,
+            );
+          }
+          if (this.bombDeathAnimTimer <= 0) {
+            this.player.hp = 0;
+          }
+        }
+
         // Game over
-        if (this.player.hp <= 0) {
+        if (this.player.hp <= 0 && this.bombDeathAnimTimer <= 0) {
           this.state = GameState.GameOver;
         }
         break;
@@ -888,6 +912,8 @@ export class Game {
     this.nuclearBlastAnimTime = 0;
     this.speedBoostTimer = 0;
     this.baseScrollSpeed = INITIAL_SCROLL_SPEED;
+    this.bombDeathAnimTimer = 0;
+    this.bombDeathAnimTime = 0;
   }
 
   private incrementLaserGauge(): void {
@@ -960,6 +986,41 @@ export class Game {
       maxLife: SHOCKWAVE_DURATION,
     });
   }
+
+  private spawnBombDeathExplosion(x: number, y: number): void {
+    // Dramatic fire/explosion colors for stingray death
+    const colors = ['#ff4400', '#ff8800', '#ffcc00', '#ffffff', '#ff2200', '#ffff44', '#ff6600'];
+    const particleCount = 80;
+    for (let i = 0; i < particleCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 120 + Math.random() * 320;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const maxLife = 0.6 + Math.random() * 0.9;
+      this.particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: maxLife,
+        maxLife,
+        color,
+        size: 5 + Math.random() * 10,
+      });
+    }
+    // Add disintegration debris (stingray fragments)
+    const fragColors = ['#7a9ab8', '#5a7a9a', '#9ab8cc', '#ff4400', '#ffcc00'];
+    this.spawnDisintegration(x, y, fragColors);
+    // Multiple expanding shockwave rings for drama
+    for (let r = 0; r < 3; r++) {
+      this.shockwaveRings.push({
+        x, y,
+        radius: SHOCKWAVE_INITIAL_RADIUS + r * 8,
+        maxRadius: SHOCKWAVE_MAX_RADIUS * (2 + r),
+        life: SHOCKWAVE_DURATION * (1.5 + r * 0.4),
+        maxLife: SHOCKWAVE_DURATION * (1.5 + r * 0.4),
+      });
+    }
+  }
+
 
   private spawnDisintegration(x: number, y: number, colors: string[]): void {
     const count = 28;
@@ -1321,7 +1382,29 @@ export class Game {
       }
     }
 
-    this.player.render(ctx, this.nuclearBlastActive);
+    // When bomb death animation is active, render dramatic fireball instead of player
+    if (this.bombDeathAnimTimer > 0) {
+      const t = this.bombDeathAnimTime;
+      const fadeOut = Math.max(0, this.bombDeathAnimTimer / 1.8);
+      ctx.save();
+      // Central fireball expanding over time
+      const fireRadius = 30 + t * 80;
+      const fireAlpha = fadeOut * 0.85;
+      ctx.globalAlpha = fireAlpha;
+      const fg = ctx.createRadialGradient(this.bombDeathX, this.bombDeathY, 0, this.bombDeathX, this.bombDeathY, fireRadius);
+      fg.addColorStop(0, 'rgba(255,255,200,1)');
+      fg.addColorStop(0.25, 'rgba(255,180,0,0.9)');
+      fg.addColorStop(0.55, 'rgba(255,50,0,0.7)');
+      fg.addColorStop(0.8, 'rgba(100,10,0,0.4)');
+      fg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = fg;
+      ctx.beginPath();
+      ctx.arc(this.bombDeathX, this.bombDeathY, fireRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else {
+      this.player.render(ctx, this.nuclearBlastActive);
+    }
     // Pick the right gauge/label to show based on active powerup
     const showNuclear = this.powerupActive && this.activePowerupStyle === 'nuclear';
     const displayGauge = showNuclear ? this.nuclearGaugeLevel : this.gaugeLevel;

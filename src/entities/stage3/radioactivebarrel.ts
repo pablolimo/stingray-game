@@ -71,8 +71,8 @@ function createBarrelSprite(): HTMLCanvasElement {
 export class RadioactiveBarrel extends BigEnemy {
   x: number;
   y: number;
-  width: number = 36;
-  height: number = 44;
+  width: number = 72;
+  height: number = 88;
   targetX: number;
 
   private sprite: HTMLCanvasElement;
@@ -107,12 +107,12 @@ export class RadioactiveBarrel extends BigEnemy {
     ctx.save();
     const glowAlpha = 0.18 + Math.abs(Math.sin(this.glowTimer)) * 0.15;
     ctx.globalAlpha = glowAlpha;
-    const g = ctx.createRadialGradient(this.x, this.y + 6, 4, this.x, this.y + 6, 32);
+    const g = ctx.createRadialGradient(this.x, this.y + 12, 8, this.x, this.y + 12, 64);
     g.addColorStop(0, 'rgba(0,255,80,0.8)');
     g.addColorStop(1, 'rgba(0,180,40,0)');
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.arc(this.x, this.y + 6, 32, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y + 12, 64, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 

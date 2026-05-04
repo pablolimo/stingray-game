@@ -34,7 +34,7 @@ function createSpeedBoostSprite(): HTMLCanvasElement {
 export class SpeedBoostPowerup extends SpeedBoostCollectible {
   x: number;
   y: number;
-  width: number = 38;
+  width: number = 76;
   height: number = 46;
   collected: boolean = false;
 
