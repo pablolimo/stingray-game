@@ -45,8 +45,8 @@ function createBombSprite(): HTMLCanvasElement {
 export class FloatingBomb extends SmallEnemy {
   x: number;
   y: number;
-  width: number = 28;
-  height: number = 28;
+  width: number = 84;
+  height: number = 84;
 
   private sprite: HTMLCanvasElement;
   private vx: number;
@@ -87,15 +87,15 @@ export class FloatingBomb extends SmallEnemy {
   render(ctx: CanvasRenderingContext2D): void {
     ctx.drawImage(this.sprite, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
 
-    // Animated spark flicker
+    // Animated spark flicker (scaled 3× to match enlarged bomb)
     ctx.save();
     const sparkAlpha = 0.6 + Math.sin(this.sparkTimer * 18) * 0.4;
     ctx.globalAlpha = Math.max(0, sparkAlpha);
     ctx.fillStyle = '#ffee44';
     ctx.shadowColor = '#ffaa00';
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 24;
     ctx.beginPath();
-    ctx.arc(this.x + 8, this.y - this.height / 2 + 6, 3, 0, Math.PI * 2);
+    ctx.arc(this.x + 24, this.y - this.height / 2 + 18, 9, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }

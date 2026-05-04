@@ -146,18 +146,39 @@ export class Player {
     ctx.restore();
 
     if (nuclearActive) {
-      // Draw player 2× size with red tint
+      // Draw animated red fire around the stingray
+      ctx.save();
+      const t = this.glowTimer;
+      const numFlames = 14;
+      for (let i = 0; i < numFlames; i++) {
+        const baseAngle = (i / numFlames) * Math.PI * 2;
+        const angle = baseAngle + Math.sin(t * 4 + i * 0.9) * 0.25 + t * 1.2;
+        const dist = this.width * 0.52 + Math.sin(t * 7 + i * 1.7) * this.width * 0.12;
+        const fx = this.x + Math.cos(angle) * dist;
+        const fy = this.y + Math.sin(angle) * dist * 0.62;
+        const size = 26 + Math.sin(t * 11 + i * 2.3) * 10;
+
+        const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, size);
+        const bright = 0.8 + Math.sin(t * 14 + i) * 0.15;
+        fg.addColorStop(0, `rgba(255,240,80,${bright})`);
+        fg.addColorStop(0.35, 'rgba(255,90,0,0.75)');
+        fg.addColorStop(0.7, 'rgba(200,10,0,0.35)');
+        fg.addColorStop(1, 'rgba(100,0,0,0)');
+        ctx.fillStyle = fg;
+        ctx.beginPath();
+        ctx.arc(fx, fy, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // Draw stingray at 2× scale (grows when gauge is full)
       ctx.save();
       ctx.translate(this.x, this.y);
       ctx.scale(2, 2);
       ctx.translate(-this.x, -this.y);
       const sprite = this.sprites[this.animFrame];
-      // Red tint overlay
-      ctx.globalAlpha = 0.85;
+      ctx.globalAlpha = 0.92;
       ctx.drawImage(sprite, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
-      ctx.globalAlpha = 0.4;
-      ctx.fillStyle = '#ff2200';
-      ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
       ctx.restore();
     } else {
       const sprite = this.sprites[this.animFrame];
