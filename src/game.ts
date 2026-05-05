@@ -41,7 +41,7 @@ import {
   HOOK_DURATION,
   BOMB_DEATH_ANIM_DURATION, BOMB_BURST_FREQUENCY,
   SPEED_BOOST_KILL_SCORE,
-  BLACK_PEARL_COUNT, BLACK_PEARL_SPIN_SPEED, BLACK_PEARL_DRAW_RADIUS, BLACK_PEARL_HIT_RADIUS,
+  BLACK_PEARL_COUNT, BLACK_PEARL_ORBIT_RADIUS, BLACK_PEARL_SPIN_SPEED, BLACK_PEARL_DRAW_RADIUS, BLACK_PEARL_HIT_RADIUS,
   BLACK_PEARL_MAX_HITS, BLACK_PEARL_DAMAGE_MULTIPLIER, BLACK_PEARL_EXPLOSION_HITS, BLACK_PEARL_EXPLOSION_RADIUS,
 } from './constants';
 
@@ -89,8 +89,8 @@ export class Game {
   private laserAnimTime: number = 0;
   private shieldAnimTime: number = 0;
   private orbitalPearls: OrbitalPearl[] = [];
-  private orbitalPearlAngle: number = 0;
-  private orbitalPearlStyle: 'green' | 'black' = 'green';
+  private greenOrbitalPearlAngle: number = 0;
+  private blackOrbitalPearlAngle: number = 0;
   private shockwaveRings: ShockwaveRing[] = [];
   private goldScore: number = 0;
   private disintegrationParticles: DisintegrationParticle[] = [];
@@ -573,25 +573,28 @@ export class Game {
               if (e.pearlStyle === 'black') {
                 // Black pearl clam: 6 black pearls, faster spin, 5 hits each
                 this.spawnParticles(e.x, e.y, '#ffffff', 24);
-                this.orbitalPearlStyle = 'black';
-                this.orbitalPearls = Array.from({ length: BLACK_PEARL_COUNT }, (_, i) => ({
+                // Keep any existing green pearls; replace only black ones
+                this.orbitalPearls = this.orbitalPearls.filter(p => !p.isBlack);
+                const newBlackPearls = Array.from({ length: BLACK_PEARL_COUNT }, (_, i) => ({
                   angleOffset: (Math.PI * 2 * i) / BLACK_PEARL_COUNT,
                   killsRemaining: BLACK_PEARL_MAX_HITS,
                   glowTimer: (Math.PI * 2 * i) / BLACK_PEARL_COUNT,
                   isBlack: true,
                   trail: [] as { x: number; y: number }[],
                 }));
+                this.orbitalPearls.push(...newBlackPearls);
               } else {
                 // Green glowing clam: 5 white pearls, 2 kills each
                 this.spawnParticles(e.x, e.y, '#44ff88', 24);
-                this.orbitalPearlStyle = 'green';
-                this.orbitalPearls = [
+                // Keep any existing black pearls; replace only green ones
+                this.orbitalPearls = this.orbitalPearls.filter(p => !!p.isBlack);
+                this.orbitalPearls.push(
                   { angleOffset: 0,                      killsRemaining: 2, glowTimer: 0 },
                   { angleOffset: (Math.PI * 2) / 5,      killsRemaining: 2, glowTimer: Math.PI * 0.4 },
                   { angleOffset: (Math.PI * 4) / 5,      killsRemaining: 2, glowTimer: Math.PI * 0.8 },
                   { angleOffset: (Math.PI * 6) / 5,      killsRemaining: 2, glowTimer: Math.PI * 1.2 },
                   { angleOffset: (Math.PI * 8) / 5,      killsRemaining: 2, glowTimer: Math.PI * 1.6 },
-                ];
+                );
               }
             }
           } else if (e instanceof CoinCollectible && !e.collected) {
@@ -732,8 +735,8 @@ export class Game {
 
         // Orbital pearls – rotate, collide with enemies
         if (this.orbitalPearls.length > 0) {
-          const spinSpeed = this.orbitalPearlStyle === 'black' ? BLACK_PEARL_SPIN_SPEED : PEARL_SPIN_SPEED;
-          this.orbitalPearlAngle += spinSpeed * dt;
+          this.greenOrbitalPearlAngle += PEARL_SPIN_SPEED * dt;
+          this.blackOrbitalPearlAngle += BLACK_PEARL_SPIN_SPEED * dt;
 
           for (const pearl of this.orbitalPearls) {
             pearl.glowTimer += dt * 4;
@@ -742,9 +745,9 @@ export class Game {
           // Update trail positions for black pearls
           for (const pearl of this.orbitalPearls) {
             if (pearl.isBlack && pearl.trail !== undefined) {
-              const pa = this.orbitalPearlAngle + pearl.angleOffset;
-              const px = this.player.x + Math.cos(pa) * PEARL_ORBIT_RADIUS;
-              const py = this.player.y + Math.sin(pa) * PEARL_ORBIT_RADIUS;
+              const pa = this.blackOrbitalPearlAngle + pearl.angleOffset;
+              const px = this.player.x + Math.cos(pa) * BLACK_PEARL_ORBIT_RADIUS;
+              const py = this.player.y + Math.sin(pa) * BLACK_PEARL_ORBIT_RADIUS;
               pearl.trail.push({ x: px, y: py });
               if (pearl.trail.length > 14) pearl.trail.shift();
               pearl.lastX = px;
@@ -752,10 +755,6 @@ export class Game {
             }
           }
 
-          const hitRadius = this.orbitalPearlStyle === 'black' ? BLACK_PEARL_HIT_RADIUS : PEARL_HIT_RADIUS;
-          const damageMultiplier = this.orbitalPearlStyle === 'black' ? BLACK_PEARL_DAMAGE_MULTIPLIER : 1;
-
-          const angle = this.orbitalPearlAngle;
           // Collect positions of pearls that get spent this tick (for black pearl explosions)
           const spentBlackPearlPositions: { x: number; y: number }[] = [];
 
@@ -763,9 +762,13 @@ export class Game {
             if (!(e instanceof SmallEnemy || e instanceof BigEnemy || e instanceof MediumEnemy || e instanceof Level3Enemy)) return true;
             for (const pearl of this.orbitalPearls) {
               if (pearl.killsRemaining <= 0) continue;
-              const pa = angle + pearl.angleOffset;
-              const px = this.player.x + Math.cos(pa) * PEARL_ORBIT_RADIUS;
-              const py = this.player.y + Math.sin(pa) * PEARL_ORBIT_RADIUS;
+              const pearlAngle = pearl.isBlack ? this.blackOrbitalPearlAngle : this.greenOrbitalPearlAngle;
+              const orbitRadius = pearl.isBlack ? BLACK_PEARL_ORBIT_RADIUS : PEARL_ORBIT_RADIUS;
+              const hitRadius = pearl.isBlack ? BLACK_PEARL_HIT_RADIUS : PEARL_HIT_RADIUS;
+              const damageMultiplier = pearl.isBlack ? BLACK_PEARL_DAMAGE_MULTIPLIER : 1;
+              const pa = pearlAngle + pearl.angleOffset;
+              const px = this.player.x + Math.cos(pa) * orbitRadius;
+              const py = this.player.y + Math.sin(pa) * orbitRadius;
               const dx = e.x - px;
               const dy = e.y - py;
               if (Math.sqrt(dx * dx + dy * dy) < hitRadius + e.width * 0.4) {
@@ -810,9 +813,13 @@ export class Game {
             const bossBounds = this.boss.getBounds();
             for (const pearl of this.orbitalPearls) {
               if (pearl.killsRemaining <= 0) continue;
-              const pa = this.orbitalPearlAngle + pearl.angleOffset;
-              const ppx = this.player.x + Math.cos(pa) * PEARL_ORBIT_RADIUS;
-              const ppy = this.player.y + Math.sin(pa) * PEARL_ORBIT_RADIUS;
+              const pearlAngle = pearl.isBlack ? this.blackOrbitalPearlAngle : this.greenOrbitalPearlAngle;
+              const orbitRadius = pearl.isBlack ? BLACK_PEARL_ORBIT_RADIUS : PEARL_ORBIT_RADIUS;
+              const hitRadius = pearl.isBlack ? BLACK_PEARL_HIT_RADIUS : PEARL_HIT_RADIUS;
+              const damageMultiplier = pearl.isBlack ? BLACK_PEARL_DAMAGE_MULTIPLIER : 1;
+              const pa = pearlAngle + pearl.angleOffset;
+              const ppx = this.player.x + Math.cos(pa) * orbitRadius;
+              const ppy = this.player.y + Math.sin(pa) * orbitRadius;
               if (
                 ppx >= bossBounds.x && ppx <= bossBounds.x + bossBounds.width &&
                 ppy >= bossBounds.y && ppy <= bossBounds.y + bossBounds.height
@@ -1000,8 +1007,8 @@ export class Game {
     this.laserAnimTime = 0;
     this.shieldAnimTime = 0;
     this.orbitalPearls = [];
-    this.orbitalPearlAngle = 0;
-    this.orbitalPearlStyle = 'green';
+    this.greenOrbitalPearlAngle = 0;
+    this.blackOrbitalPearlAngle = 0;
     this.shockwaveRings = [];
     this.boss = null;
     this.bossDefeatedTimer = 0;
@@ -1551,15 +1558,16 @@ export class Game {
 
     // Orbital pearls – draw glowing pearls orbiting the player
     if (this.orbitalPearls.length > 0) {
-      const isBlackStyle = this.orbitalPearlStyle === 'black';
-      const pr = isBlackStyle ? BLACK_PEARL_DRAW_RADIUS : PEARL_DRAW_RADIUS;
-
       for (const pearl of this.orbitalPearls) {
-        const pa = this.orbitalPearlAngle + pearl.angleOffset;
-        const px = this.player.x + Math.cos(pa) * PEARL_ORBIT_RADIUS;
-        const py = this.player.y + Math.sin(pa) * PEARL_ORBIT_RADIUS;
+        const isBlack = !!pearl.isBlack;
+        const pr = isBlack ? BLACK_PEARL_DRAW_RADIUS : PEARL_DRAW_RADIUS;
+        const pearlAngle = isBlack ? this.blackOrbitalPearlAngle : this.greenOrbitalPearlAngle;
+        const orbitRadius = isBlack ? BLACK_PEARL_ORBIT_RADIUS : PEARL_ORBIT_RADIUS;
+        const pa = pearlAngle + pearl.angleOffset;
+        const px = this.player.x + Math.cos(pa) * orbitRadius;
+        const py = this.player.y + Math.sin(pa) * orbitRadius;
 
-        if (isBlackStyle && pearl.trail && pearl.trail.length > 1) {
+        if (isBlack && pearl.trail && pearl.trail.length > 1) {
           // Black fire contrail along trail positions
           ctx.save();
           const trailColors = ['#000000', '#1a0000', '#330000', '#660000', '#ff2200', '#ff6600'];
@@ -1577,7 +1585,7 @@ export class Game {
           ctx.restore();
         }
 
-        if (isBlackStyle) {
+        if (isBlack) {
           // Outer white glow halo
           ctx.save();
           const glow = ctx.createRadialGradient(px, py, pr * 0.3, px, py, pr * 2.5);

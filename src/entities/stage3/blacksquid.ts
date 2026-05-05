@@ -1,14 +1,15 @@
-import { CANVAS_WIDTH, BLACK_SQUID_MAX_HP, SQUID_LASER_HIT_INTERVAL } from '../../constants';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, BLACK_SQUID_MAX_HP, SQUID_LASER_HIT_INTERVAL } from '../../constants';
 import { MediumEnemy } from '../entityRoles';
 
-// Black squid – faster spin and chase than the regular Squid, with erratic lateral dashes
+// Black squid – faster spin and chase than the regular Squid, with erratic lateral and vertical dashes
 const BLACK_SQUID_LIFETIME = 4.5;
 const BLACK_SQUID_FADE_TIME = 0.5;
 const BLACK_SQUID_SPIN_SPEED = 6.0; // faster than normal (3.5)
 const BLACK_SQUID_CHASE_SPEED = 260; // faster than normal (140)
 const BLACK_SQUID_ERRATIC_SPEED = 520; // faster lateral dashes (more erratic)
-const BLACK_SQUID_ERRATIC_INTERVAL_MIN = 0.1;
-const BLACK_SQUID_ERRATIC_INTERVAL_MAX = 0.25;
+const BLACK_SQUID_ERRATIC_VERTICAL_SPEED = 380; // erratic vertical speed
+const BLACK_SQUID_ERRATIC_INTERVAL_MIN = 0.08;
+const BLACK_SQUID_ERRATIC_INTERVAL_MAX = 0.20;
 
 function createBlackSquidSprite(): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -82,6 +83,9 @@ export class BlackSquid extends MediumEnemy {
   private hitFlash: number = 0;
   private erraticTimer: number = 0;
   private erraticVx: number = 0;
+  private erraticVy: number = 0;
+  private verticalDriftTimer: number = 0;
+  private verticalDriftVy: number = 0;
 
   constructor(x: number, y: number, targetX: number) {
     super();
@@ -91,6 +95,8 @@ export class BlackSquid extends MediumEnemy {
     this.sprite = createBlackSquidSprite();
     this.spinAngle = Math.random() * Math.PI * 2;
     this.erraticTimer = Math.random() * BLACK_SQUID_ERRATIC_INTERVAL_MAX;
+    this.verticalDriftTimer = Math.random() * 0.4;
+    this.verticalDriftVy = (Math.random() - 0.5) * 2 * BLACK_SQUID_ERRATIC_VERTICAL_SPEED * 0.5;
   }
 
   update(dt: number, scrollSpeed: number): void {
@@ -102,16 +108,30 @@ export class BlackSquid extends MediumEnemy {
 
     this.spinAngle += BLACK_SQUID_SPIN_SPEED * dt;
 
-    // Erratic lateral dashes
+    // Erratic lateral and vertical dashes
     this.erraticTimer -= dt;
     if (this.erraticTimer <= 0) {
       this.erraticTimer = BLACK_SQUID_ERRATIC_INTERVAL_MIN +
         Math.random() * (BLACK_SQUID_ERRATIC_INTERVAL_MAX - BLACK_SQUID_ERRATIC_INTERVAL_MIN);
       this.erraticVx = (Math.random() - 0.5) * 2 * BLACK_SQUID_ERRATIC_SPEED;
+      // Occasionally add a strong vertical jerk
+      if (Math.random() < 0.6) {
+        this.erraticVy = (Math.random() - 0.5) * 2 * BLACK_SQUID_ERRATIC_VERTICAL_SPEED;
+      }
     }
     this.x += this.erraticVx * dt;
-    // Decay the erratic velocity between dashes
+    this.y += this.erraticVy * dt;
+    // Decay erratic velocities
     this.erraticVx *= (1 - 7 * dt);
+    this.erraticVy *= (1 - 6 * dt);
+
+    // Slow vertical drift that changes direction periodically
+    this.verticalDriftTimer -= dt;
+    if (this.verticalDriftTimer <= 0) {
+      this.verticalDriftTimer = 0.25 + Math.random() * 0.35;
+      this.verticalDriftVy = (Math.random() - 0.5) * 2 * BLACK_SQUID_ERRATIC_VERTICAL_SPEED * 0.4;
+    }
+    this.y += this.verticalDriftVy * dt;
 
     const dx = this.targetX - this.x;
     const step = BLACK_SQUID_CHASE_SPEED * dt;
@@ -119,6 +139,9 @@ export class BlackSquid extends MediumEnemy {
 
     this.y += scrollSpeed * 0.55 * dt;
     this.x = Math.max(this.width / 2, Math.min(CANVAS_WIDTH - this.width / 2, this.x));
+    // Keep squid on screen vertically (allow some overshoot for dynamism)
+    const yMargin = this.height;
+    this.y = Math.max(-yMargin, Math.min(CANVAS_HEIGHT + yMargin, this.y));
   }
 
   takeLaserHit(): boolean {
