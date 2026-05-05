@@ -7,7 +7,7 @@ const OTTER_THROW_INTERVAL_AGGRO = 0.85;
 const OTTER_AGGRO_THRESHOLD = 0.25; // 25% HP
 const OTTER_SCROLL_FACTOR = 0.28;
 const OTTER_ROCK_SPEED = 290;
-const OTTER_AGGRO_CHASE_SPEED = 145;
+const OTTER_AGGRO_CHASE_SPEED = 435;
 const OTTER_ERRATIC_CHANGE_INTERVAL = 0.6;
 
 // ── Rock projectile ──────────────────────────────────────────────────────────
