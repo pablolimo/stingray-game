@@ -8,19 +8,21 @@ export class FrogTongue extends ProjectileEntity {
   active: boolean = true;
   hitPlayer: boolean = false; // set by game.ts when it connects
 
-  private startX: number;
-  private startY: number;
+  private origin: { x: number; y: number };
+  private originOffsetY: number;
   private vx: number;
   private vy: number;
   private age: number = 0;
   private readonly MAX_AGE = 1.2;
 
-  constructor(startX: number, startY: number, targetX: number, targetY: number) {
+  constructor(origin: { x: number; y: number }, originOffsetY: number, targetX: number, targetY: number) {
     super();
+    const startX = origin.x;
+    const startY = origin.y + originOffsetY;
     this.x = startX;
     this.y = startY;
-    this.startX = startX;
-    this.startY = startY;
+    this.origin = origin;
+    this.originOffsetY = originOffsetY;
     const dx = targetX - startX;
     const dy = targetY - startY;
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -33,7 +35,6 @@ export class FrogTongue extends ProjectileEntity {
     if (!this.active) return;
     this.age += dt;
     this.y += scrollSpeed * dt;
-    this.startY += scrollSpeed * dt;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     if (this.age >= this.MAX_AGE) this.active = false;
@@ -51,6 +52,9 @@ export class FrogTongue extends ProjectileEntity {
   render(ctx: CanvasRenderingContext2D): void {
     if (!this.active) return;
 
+    const baseX = this.origin.x;
+    const baseY = this.origin.y + this.originOffsetY;
+
     // Tongue line from start to current pos
     ctx.save();
     ctx.strokeStyle = '#cc2244';
@@ -59,7 +63,7 @@ export class FrogTongue extends ProjectileEntity {
     ctx.shadowColor = '#ff4466';
     ctx.shadowBlur = 4;
     ctx.beginPath();
-    ctx.moveTo(this.startX, this.startY);
+    ctx.moveTo(baseX, baseY);
     ctx.lineTo(this.x, this.y);
     ctx.stroke();
 
