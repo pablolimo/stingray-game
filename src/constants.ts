@@ -59,3 +59,13 @@ export const BLACK_SQUID_MAX_HP = SQUID_MAX_HP * 12; // black squid has 12× bas
 export const OTTER_LASER_HIT_INTERVAL = 0.22; // seconds between laser ticks on otter
 export const TOXIC_CLOUD_DURATION = 4; // seconds toxic cloud chases player
 export const SPEED_BOOST_KILL_SCORE = 20; // points per enemy killed during speed boost
+
+// ─── Black Pearl Clam constants ───────────────────────────────────────────────
+export const BLACK_PEARL_COUNT = 6;               // pearls granted by the black clam
+export const BLACK_PEARL_SPIN_SPEED = PEARL_SPIN_SPEED * 2.5; // faster orbit than white
+export const BLACK_PEARL_DRAW_RADIUS = Math.round(PEARL_DRAW_RADIUS * 1.5); // 50% bigger
+export const BLACK_PEARL_HIT_RADIUS = Math.round(PEARL_HIT_RADIUS * 1.5);
+export const BLACK_PEARL_MAX_HITS = 5;            // kills per pearl before it explodes
+export const BLACK_PEARL_DAMAGE_MULTIPLIER = 3;   // damage multiplier vs medium/level3
+export const BLACK_PEARL_EXPLOSION_HITS = 5;      // takePearlHit() calls on explosion blast
+export const BLACK_PEARL_EXPLOSION_RADIUS = 110;  // blast radius of the final explosion

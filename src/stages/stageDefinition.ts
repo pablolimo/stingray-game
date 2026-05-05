@@ -17,9 +17,12 @@ export interface StageSpawnConfig {
   createObstacle?: (x: number, y: number) => Entity;
   createHazard?: (x: number, y: number) => Entity;
   createSpeedBoost?: (x: number, y: number) => Entity;
+  createBlackPearlClam?: (x: number, y: number) => Entity;
   glowingClamInterval?: number;
+  blackPearlClamInterval?: number; // seconds between black pearl clam spawns
   mediumEnemyGroupSize?: number; // how many medium enemies to spawn per wave (default 1)
   mediumEnemySpawnInterval?: number; // seconds between medium enemy waves (default 8)
+  maxLevel3EnemyCount?: number; // maximum number of Level3Enemies on screen at once
 }
 
 export interface StageDefinition {

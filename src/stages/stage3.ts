@@ -6,6 +6,7 @@ import { SpeedBoostPowerup } from '../entities/stage3/speedboostpowerup';
 import { NuclearChest } from '../entities/stage3/nuclearchest';
 import { MutantFrogBoss } from '../entities/stage3/frogboss';
 import { Sardine, createSardineSchool } from '../entities/stage3/sardine';
+import { BlackPearlClam } from '../entities/stage3/blackpearlclam';
 import { RedTreasure } from '../entities/redtreasure';
 import { GlowingClam } from '../entities/glowingclam';
 import { GoldenCoin } from '../entities/goldencoin';
@@ -45,12 +46,15 @@ export const stage3Definition: StageDefinition = {
     glowingClamInterval: 15.0,  // more frequent than stage 1/2's 30s
     mediumEnemyGroupSize: 10,   // black squids appear in schools of 10
     mediumEnemySpawnInterval: 5, // shorter interval – squids appear more often
+    maxLevel3EnemyCount: 2,      // at most 2 rock-throwing otters on screen at once
     // Coins
     createCoin: (x, y) => new GoldenCoin(x, y),
     // Stage 3 specific obstacles
     createObstacle: (x, y) => new FloatingBomb(x, y),
     createHazard: (x, y) => new RadioactiveBarrel(x, y, 0),
     createSpeedBoost: (x, y) => new SpeedBoostPowerup(x, y),
+    createBlackPearlClam: (x, y) => new BlackPearlClam(x, y),
+    blackPearlClamInterval: 28.0, // slightly less frequent than the green glowing clam
   },
   createBoss: (x, startY) => new MutantFrogBoss(x, startY),
   bossName: 'The Mutant Frog',
