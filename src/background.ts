@@ -733,6 +733,23 @@ export class Background {
       this.drawBuriedTire(ctx, tx, ty);
     }
 
+    // Half-buried road signs (same layer as road so they scroll together)
+    const signCount = 2 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < signCount; i++) {
+      const rx = 30 + Math.random() * (CANVAS_WIDTH - 60);
+      const ry = 40 + Math.random() * (this.LAYER_HEIGHT - 60);
+      const signType = Math.floor(Math.random() * 3); // 0=stop, 1=speed limit, 2=caution
+      this.drawBuriedRoadSign(ctx, rx, ry, signType);
+    }
+
+    // Randomly positioned bicycles laying in the sand
+    const bikeCount = 3 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < bikeCount; i++) {
+      const bx = 25 + Math.random() * (CANVAS_WIDTH - 50);
+      const by = 30 + Math.random() * (this.LAYER_HEIGHT - 50);
+      this.drawBuriedBicycle(ctx, bx, by);
+    }
+
     return c;
   }
 
@@ -848,15 +865,6 @@ export class Background {
       ctx.arc(x, y, 14, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
-    }
-
-    // Half-buried road signs (1-2 scattered)
-    const signCount = 1 + Math.floor(Math.random() * 2);
-    for (let i = 0; i < signCount; i++) {
-      const rx = 30 + Math.random() * (CANVAS_WIDTH - 60);
-      const ry = 40 + Math.random() * (this.LAYER_HEIGHT - 60);
-      const signType = Math.floor(Math.random() * 3); // 0=stop, 1=speed limit, 2=caution
-      this.drawBuriedRoadSign(ctx, rx, ry, signType);
     }
 
     return c;
@@ -1166,6 +1174,136 @@ export class Background {
     ctx.fillStyle = 'rgba(180,100,30,0.3)';
     ctx.beginPath();
     ctx.ellipse(-8, -4, 5, 3, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  private drawBuriedBicycle(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    const scale = 0.42 + Math.random() * 0.26;
+    const tilt = (Math.random() - 0.5) * 0.55;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(tilt);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = 0.65;
+
+    const metalColor = '#8a8a8a';
+    const rimColor = '#bbbbbb';
+    const tireColor = '#2a2a2a';
+
+    // Rear wheel
+    ctx.strokeStyle = tireColor;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(-28, 0, 16, 0, Math.PI * 2);
+    ctx.stroke();
+    // Rear rim
+    ctx.strokeStyle = rimColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(-28, 0, 11, 0, Math.PI * 2);
+    ctx.stroke();
+    // Rear spokes
+    ctx.strokeStyle = rimColor;
+    ctx.lineWidth = 1;
+    for (let s = 0; s < 6; s++) {
+      const a = (s / 6) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(-28, 0);
+      ctx.lineTo(-28 + Math.cos(a) * 11, Math.sin(a) * 11);
+      ctx.stroke();
+    }
+
+    // Front wheel
+    ctx.strokeStyle = tireColor;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(28, 0, 16, 0, Math.PI * 2);
+    ctx.stroke();
+    // Front rim
+    ctx.strokeStyle = rimColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(28, 0, 11, 0, Math.PI * 2);
+    ctx.stroke();
+    // Front spokes
+    ctx.strokeStyle = rimColor;
+    ctx.lineWidth = 1;
+    for (let s = 0; s < 6; s++) {
+      const a = (s / 6) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(28, 0);
+      ctx.lineTo(28 + Math.cos(a) * 11, Math.sin(a) * 11);
+      ctx.stroke();
+    }
+
+    // Frame: main triangle (rear axle → bottom bracket → front fork)
+    ctx.strokeStyle = metalColor;
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-28, 0);   // rear axle
+    ctx.lineTo(0, 10);    // bottom bracket
+    ctx.lineTo(28, 0);    // front axle
+    ctx.stroke();
+    // Seat tube (bottom bracket to seat)
+    ctx.beginPath();
+    ctx.moveTo(0, 10);    // bottom bracket
+    ctx.lineTo(-6, -16);  // seat post top
+    ctx.stroke();
+    // Top tube (seat post to head tube)
+    ctx.beginPath();
+    ctx.moveTo(-6, -16);  // seat
+    ctx.lineTo(22, -12);  // head tube top
+    ctx.stroke();
+    // Chain stay (rear axle to bottom bracket) – already drawn; add seat stay
+    ctx.beginPath();
+    ctx.moveTo(-28, 0);   // rear axle
+    ctx.lineTo(-6, -16);  // seat
+    ctx.stroke();
+
+    // Seat (saddle)
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-12, -18);
+    ctx.lineTo(0, -19);
+    ctx.stroke();
+
+    // Handlebar stem
+    ctx.strokeStyle = metalColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(22, -12);  // head tube top
+    ctx.lineTo(22, -22);  // stem top
+    ctx.stroke();
+    // Handlebar crossbar
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(16, -22);
+    ctx.lineTo(28, -22);
+    ctx.stroke();
+    // Handlebar grips (ends curve down slightly)
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(16, -22);
+    ctx.lineTo(14, -19);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(28, -22);
+    ctx.lineTo(30, -19);
+    ctx.stroke();
+
+    // Rust/algae patches
+    ctx.fillStyle = 'rgba(180,100,30,0.28)';
+    ctx.beginPath();
+    ctx.ellipse(-5, -2, 8, 3, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(18, 4, 5, 2, -0.2, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();

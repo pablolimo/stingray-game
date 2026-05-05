@@ -8,7 +8,6 @@ const OTTER_AGGRO_THRESHOLD = 0.25; // 25% HP
 const OTTER_SCROLL_FACTOR = 0.28;
 const OTTER_ROCK_SPEED = 290;
 const OTTER_AGGRO_CHASE_SPEED = 435;
-const OTTER_ERRATIC_CHANGE_INTERVAL = 0.22;
 
 // ── Rock projectile ──────────────────────────────────────────────────────────
 
@@ -410,10 +409,12 @@ export class RockThrowingOtter extends Level3Enemy {
   private floatPhase: number;
   private floatX: number;
 
-  // Aggressive erratic movement
-  private erraticVx: number = 0;
-  private erraticVy: number = 0;
-  private erraticTimer: number = 0;
+  // Aggressive directional charge movement
+  private chargePhase: number = 0; // 0=top, 1=right, 2=left, 3=bottom
+  private chargeState: 'repositioning' | 'charging' = 'repositioning';
+  private chargeAimX: number = 0;
+  private chargeAimY: number = 0;
+
   private calmDirY: number = 1;
 
   private _pendingProjectiles: Entity[] = [];
@@ -493,33 +494,59 @@ export class RockThrowingOtter extends Level3Enemy {
     }
   }
 
-  private updateAggressive(dt: number, scrollSpeed: number): void {
-    // Erratic movement: random velocity changes at shorter intervals
-    this.erraticTimer += dt;
-    if (this.erraticTimer >= OTTER_ERRATIC_CHANGE_INTERVAL) {
-      this.erraticTimer = 0;
-      const angle = Math.random() * Math.PI * 2;
-      const speed = OTTER_AGGRO_CHASE_SPEED * (0.8 + Math.random() * 1.4);
-      this.erraticVx = Math.cos(angle) * speed;
-      this.erraticVy = Math.sin(angle) * speed;
+  private updateAggressive(dt: number, _scrollSpeed: number): void {
+    const REPOSITION_SPEED = OTTER_AGGRO_CHASE_SPEED * 2.2;
+    const CHARGE_SPEED = OTTER_AGGRO_CHASE_SPEED * 2.8;
+    const REPOSITION_ARRIVE_DIST = 18;
+
+    if (this.chargeState === 'repositioning') {
+      // Compute the off-screen spawn point for this phase
+      let spawnX = this.x;
+      let spawnY = this.y;
+      switch (this.chargePhase) {
+        case 0: spawnX = this.targetX; spawnY = -this.height;            break; // top
+        case 1: spawnX = CANVAS_WIDTH + this.width; spawnY = this.targetY; break; // right
+        case 2: spawnX = -this.width; spawnY = this.targetY;              break; // left
+        case 3: spawnX = this.targetX; spawnY = CANVAS_HEIGHT + this.height; break; // bottom
+      }
+
+      const dxR = spawnX - this.x;
+      const dyR = spawnY - this.y;
+      const distR = Math.sqrt(dxR * dxR + dyR * dyR) || 1;
+
+      if (distR <= REPOSITION_ARRIVE_DIST) {
+        // Snap to spawn point, record player position, begin charge
+        this.x = spawnX;
+        this.y = spawnY;
+        this.chargeAimX = this.targetX;
+        this.chargeAimY = this.targetY;
+        this.chargeState = 'charging';
+      } else {
+        this.x += (dxR / distR) * REPOSITION_SPEED * dt;
+        this.y += (dyR / distR) * REPOSITION_SPEED * dt;
+      }
+
+    } else {
+      // Charging: move in a straight line toward the stored aim point
+      const dxC = this.chargeAimX - this.x;
+      const dyC = this.chargeAimY - this.y;
+      const distC = Math.sqrt(dxC * dxC + dyC * dyC) || 1;
+      this.x += (dxC / distC) * CHARGE_SPEED * dt;
+      this.y += (dyC / distC) * CHARGE_SPEED * dt;
+
+      // Detect when the otter has passed through the target and gone off-screen
+      const offScreen =
+        this.x < -this.width * 2 || this.x > CANVAS_WIDTH + this.width * 2 ||
+        this.y < -this.height * 2 || this.y > CANVAS_HEIGHT + this.height * 2;
+      const pastTarget =
+        (dxC * ((this.chargeAimX - this.x)) + dyC * ((this.chargeAimY - this.y))) < 0;
+
+      if (offScreen || pastTarget) {
+        // Advance to the next phase and start repositioning
+        this.chargePhase = (this.chargePhase + 1) % 4;
+        this.chargeState = 'repositioning';
+      }
     }
-
-    // Chase player with strong erratic component
-    const dx = this.targetX - this.x;
-    const dy = this.targetY - this.y;
-    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-    const chaseVx = (dx / dist) * OTTER_AGGRO_CHASE_SPEED * 0.4;
-    const chaseVy = (dy / dist) * OTTER_AGGRO_CHASE_SPEED * 0.4;
-
-    this.x += (chaseVx + this.erraticVx) * dt;
-    this.y += (chaseVy + this.erraticVy) * dt;
-    this.y += scrollSpeed * 0.1 * dt; // minimal scroll influence in aggro
-
-    // Clamp to screen – aggressive otter never leaves until killed
-    const margin = this.width * 0.45;
-    const marginY = this.height * 0.45;
-    this.x = Math.max(margin, Math.min(CANVAS_WIDTH - margin, this.x));
-    this.y = Math.max(marginY, Math.min(CANVAS_HEIGHT - marginY, this.y));
   }
 
   takeLaserHit(): boolean {
