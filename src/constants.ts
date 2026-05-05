@@ -62,6 +62,7 @@ export const SPEED_BOOST_KILL_SCORE = 20; // points per enemy killed during spee
 
 // ─── Black Pearl Clam constants ───────────────────────────────────────────────
 export const BLACK_PEARL_COUNT = 6;               // pearls granted by the black clam
+export const BLACK_PEARL_ORBIT_RADIUS = 120;      // larger orbit so pearls clear the stingray
 export const BLACK_PEARL_SPIN_SPEED = PEARL_SPIN_SPEED * 2.5; // faster orbit than white
 export const BLACK_PEARL_DRAW_RADIUS = Math.round(PEARL_DRAW_RADIUS * 1.5); // 50% bigger
 export const BLACK_PEARL_HIT_RADIUS = Math.round(PEARL_HIT_RADIUS * 1.5);
