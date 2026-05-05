@@ -6,9 +6,9 @@ const BLACK_SQUID_LIFETIME = 4.5;
 const BLACK_SQUID_FADE_TIME = 0.5;
 const BLACK_SQUID_SPIN_SPEED = 6.0; // faster than normal (3.5)
 const BLACK_SQUID_CHASE_SPEED = 260; // faster than normal (140)
-const BLACK_SQUID_ERRATIC_SPEED = 340; // lateral dash speed
-const BLACK_SQUID_ERRATIC_INTERVAL_MIN = 0.2;
-const BLACK_SQUID_ERRATIC_INTERVAL_MAX = 0.5;
+const BLACK_SQUID_ERRATIC_SPEED = 520; // faster lateral dashes (more erratic)
+const BLACK_SQUID_ERRATIC_INTERVAL_MIN = 0.1;
+const BLACK_SQUID_ERRATIC_INTERVAL_MAX = 0.25;
 
 function createBlackSquidSprite(): HTMLCanvasElement {
   const c = document.createElement('canvas');

@@ -504,11 +504,16 @@ export class Game {
               this.spawnParticles(e.x, e.y, glowColor, 20);
               if (this.activePowerupStyle === 'nuclear') {
                 this.powerupActive = true;
-                // Metal chest starts empty – must eat to charge the gauge
-                this.nuclearGaugeLevel = 0;
-                this.nuclearBlastActive = false;
-                this.nuclearBlastAnimTime = 0;
-                this.nuclearHitCount = 0;
+                if (this.nuclearBlastActive) {
+                  // Already shooting red fireballs – fill the gauge completely
+                  this.nuclearGaugeLevel = 1;
+                } else {
+                  // Metal chest starts empty – must eat to charge the gauge
+                  this.nuclearGaugeLevel = 0;
+                  this.nuclearBlastActive = false;
+                  this.nuclearBlastAnimTime = 0;
+                  this.nuclearHitCount = 0;
+                }
               } else if (this.powerupActive) {
                 // Already have the gauge – fill it to 100% and start firing
                 this.gaugeLevel = 1;
