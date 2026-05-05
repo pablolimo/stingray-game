@@ -534,14 +534,12 @@ export class RockThrowingOtter extends Level3Enemy {
       this.x += (dxC / distC) * CHARGE_SPEED * dt;
       this.y += (dyC / distC) * CHARGE_SPEED * dt;
 
-      // Detect when the otter has passed through the target and gone off-screen
+      // Detect when the otter has gone off-screen after the charge
       const offScreen =
         this.x < -this.width * 2 || this.x > CANVAS_WIDTH + this.width * 2 ||
         this.y < -this.height * 2 || this.y > CANVAS_HEIGHT + this.height * 2;
-      const pastTarget =
-        (dxC * ((this.chargeAimX - this.x)) + dyC * ((this.chargeAimY - this.y))) < 0;
 
-      if (offScreen || pastTarget) {
+      if (offScreen) {
         // Advance to the next phase and start repositioning
         this.chargePhase = (this.chargePhase + 1) % 4;
         this.chargeState = 'repositioning';
