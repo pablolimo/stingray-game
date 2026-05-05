@@ -414,6 +414,8 @@ export class RockThrowingOtter extends Level3Enemy {
   private chargeState: 'repositioning' | 'charging' = 'repositioning';
   private chargeAimX: number = 0;
   private chargeAimY: number = 0;
+  private chargeDirX: number = 0;
+  private chargeDirY: number = 0;
 
   private calmDirY: number = 1;
 
@@ -520,6 +522,11 @@ export class RockThrowingOtter extends Level3Enemy {
         this.y = spawnY;
         this.chargeAimX = this.targetX;
         this.chargeAimY = this.targetY;
+        const dxAim = this.chargeAimX - this.x;
+        const dyAim = this.chargeAimY - this.y;
+        const distAim = Math.sqrt(dxAim * dxAim + dyAim * dyAim) || 1;
+        this.chargeDirX = dxAim / distAim;
+        this.chargeDirY = dyAim / distAim;
         this.chargeState = 'charging';
       } else {
         this.x += (dxR / distR) * REPOSITION_SPEED * dt;
@@ -527,12 +534,9 @@ export class RockThrowingOtter extends Level3Enemy {
       }
 
     } else {
-      // Charging: move in a straight line toward the stored aim point
-      const dxC = this.chargeAimX - this.x;
-      const dyC = this.chargeAimY - this.y;
-      const distC = Math.sqrt(dxC * dxC + dyC * dyC) || 1;
-      this.x += (dxC / distC) * CHARGE_SPEED * dt;
-      this.y += (dyC / distC) * CHARGE_SPEED * dt;
+      // Charging: move in a straight line using pre-computed direction (so it never stalls at the aim point)
+      this.x += this.chargeDirX * CHARGE_SPEED * dt;
+      this.y += this.chargeDirY * CHARGE_SPEED * dt;
 
       // Detect when the otter has gone off-screen after the charge
       const offScreen =
