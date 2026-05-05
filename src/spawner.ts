@@ -26,6 +26,7 @@ export class Spawner {
   private hazardInterval: number = 15.0 + Math.random() * 8.0;
   private speedBoostTimer: number = 0;
   private speedBoostInterval: number = 8.0 + Math.random() * 6.0;
+  private blackPearlClamTimer: number = 0;
 
   constructor(config: StageSpawnConfig) {
     this.config = config;
@@ -203,6 +204,17 @@ export class Spawner {
       }
     }
 
+    // Black pearl clam (stage 3, level 2+): rarer treasure, one at a time
+    if (this.config.createBlackPearlClam && level >= 2) {
+      this.blackPearlClamTimer += dt;
+      const blackClamInterval = this.config.blackPearlClamInterval ?? 28.0;
+      if (this.blackPearlClamTimer >= blackClamInterval) {
+        this.blackPearlClamTimer = 0;
+        const x = 50 + Math.random() * (CANVAS_WIDTH - 100);
+        spawned.push(this.config.createBlackPearlClam(x, -40));
+      }
+    }
+
     return spawned;
   }
 
@@ -229,5 +241,6 @@ export class Spawner {
     this.hazardInterval = 15.0 + Math.random() * 8.0;
     this.speedBoostTimer = 0;
     this.speedBoostInterval = 8.0 + Math.random() * 6.0;
+    this.blackPearlClamTimer = 0;
   }
 }

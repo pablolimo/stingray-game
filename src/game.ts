@@ -41,6 +41,8 @@ import {
   HOOK_DURATION,
   BOMB_DEATH_ANIM_DURATION, BOMB_BURST_FREQUENCY,
   SPEED_BOOST_KILL_SCORE,
+  BLACK_PEARL_COUNT, BLACK_PEARL_SPIN_SPEED, BLACK_PEARL_DRAW_RADIUS, BLACK_PEARL_HIT_RADIUS,
+  BLACK_PEARL_MAX_HITS, BLACK_PEARL_DAMAGE_MULTIPLIER, BLACK_PEARL_EXPLOSION_HITS, BLACK_PEARL_EXPLOSION_RADIUS,
 } from './constants';
 
 function aabb(
@@ -57,6 +59,10 @@ interface OrbitalPearl {
   angleOffset: number;   // fixed angular offset from the shared rotation angle
   killsRemaining: number;
   glowTimer: number;
+  isBlack?: boolean;
+  lastX?: number;        // position during previous update tick (for trail)
+  lastY?: number;
+  trail?: { x: number; y: number }[]; // recent positions for fire contrail
 }
 
 export class Game {
@@ -84,6 +90,7 @@ export class Game {
   private shieldAnimTime: number = 0;
   private orbitalPearls: OrbitalPearl[] = [];
   private orbitalPearlAngle: number = 0;
+  private orbitalPearlStyle: 'green' | 'black' = 'green';
   private shockwaveRings: ShockwaveRing[] = [];
   private goldScore: number = 0;
   private disintegrationParticles: DisintegrationParticle[] = [];
@@ -243,7 +250,24 @@ export class Game {
         // Spawn (disabled during Level 4 boss fight)
         if (this.level < 4) {
           const newEntities = this.spawner.update(dt, this.scrollSpeed, this.player.x, this.level, this.score);
-          this.entities.push(...newEntities);
+          const maxL3 = this.stageDef.spawnConfig.maxLevel3EnemyCount;
+          if (maxL3 !== undefined) {
+            const currentL3Count = this.entities.filter(e => e instanceof Level3Enemy).length;
+            let addedL3 = 0;
+            for (const e of newEntities) {
+              if (e instanceof Level3Enemy) {
+                if (currentL3Count + addedL3 < maxL3) {
+                  this.entities.push(e);
+                  addedL3++;
+                }
+                // else: over the cap – drop this entity
+              } else {
+                this.entities.push(e);
+              }
+            }
+          } else {
+            this.entities.push(...newEntities);
+          }
         }
 
         // Level 4: spawn two powerup chests every 10 seconds
@@ -546,15 +570,29 @@ export class Game {
             const bounds = e.getBounds();
             if (aabb(playerBounds, bounds)) {
               e.collected = true;
-              this.spawnParticles(e.x, e.y, '#44ff88', 24);
-              // Grant 5 orbital pearls (reset if already active)
-              this.orbitalPearls = [
-                { angleOffset: 0,                      killsRemaining: 2, glowTimer: 0 },
-                { angleOffset: (Math.PI * 2) / 5,      killsRemaining: 2, glowTimer: Math.PI * 0.4 },
-                { angleOffset: (Math.PI * 4) / 5,      killsRemaining: 2, glowTimer: Math.PI * 0.8 },
-                { angleOffset: (Math.PI * 6) / 5,      killsRemaining: 2, glowTimer: Math.PI * 1.2 },
-                { angleOffset: (Math.PI * 8) / 5,      killsRemaining: 2, glowTimer: Math.PI * 1.6 },
-              ];
+              if (e.pearlStyle === 'black') {
+                // Black pearl clam: 6 black pearls, faster spin, 5 hits each
+                this.spawnParticles(e.x, e.y, '#ffffff', 24);
+                this.orbitalPearlStyle = 'black';
+                this.orbitalPearls = Array.from({ length: BLACK_PEARL_COUNT }, (_, i) => ({
+                  angleOffset: (Math.PI * 2 * i) / BLACK_PEARL_COUNT,
+                  killsRemaining: BLACK_PEARL_MAX_HITS,
+                  glowTimer: (Math.PI * 2 * i) / BLACK_PEARL_COUNT,
+                  isBlack: true,
+                  trail: [] as { x: number; y: number }[],
+                }));
+              } else {
+                // Green glowing clam: 5 white pearls, 2 kills each
+                this.spawnParticles(e.x, e.y, '#44ff88', 24);
+                this.orbitalPearlStyle = 'green';
+                this.orbitalPearls = [
+                  { angleOffset: 0,                      killsRemaining: 2, glowTimer: 0 },
+                  { angleOffset: (Math.PI * 2) / 5,      killsRemaining: 2, glowTimer: Math.PI * 0.4 },
+                  { angleOffset: (Math.PI * 4) / 5,      killsRemaining: 2, glowTimer: Math.PI * 0.8 },
+                  { angleOffset: (Math.PI * 6) / 5,      killsRemaining: 2, glowTimer: Math.PI * 1.2 },
+                  { angleOffset: (Math.PI * 8) / 5,      killsRemaining: 2, glowTimer: Math.PI * 1.6 },
+                ];
+              }
             }
           } else if (e instanceof CoinCollectible && !e.collected) {
             const bounds = e.getBounds();
@@ -694,13 +732,33 @@ export class Game {
 
         // Orbital pearls – rotate, collide with enemies
         if (this.orbitalPearls.length > 0) {
-          this.orbitalPearlAngle += PEARL_SPIN_SPEED * dt;
+          const spinSpeed = this.orbitalPearlStyle === 'black' ? BLACK_PEARL_SPIN_SPEED : PEARL_SPIN_SPEED;
+          this.orbitalPearlAngle += spinSpeed * dt;
 
           for (const pearl of this.orbitalPearls) {
             pearl.glowTimer += dt * 4;
           }
 
+          // Update trail positions for black pearls
+          for (const pearl of this.orbitalPearls) {
+            if (pearl.isBlack && pearl.trail !== undefined) {
+              const pa = this.orbitalPearlAngle + pearl.angleOffset;
+              const px = this.player.x + Math.cos(pa) * PEARL_ORBIT_RADIUS;
+              const py = this.player.y + Math.sin(pa) * PEARL_ORBIT_RADIUS;
+              pearl.trail.push({ x: px, y: py });
+              if (pearl.trail.length > 14) pearl.trail.shift();
+              pearl.lastX = px;
+              pearl.lastY = py;
+            }
+          }
+
+          const hitRadius = this.orbitalPearlStyle === 'black' ? BLACK_PEARL_HIT_RADIUS : PEARL_HIT_RADIUS;
+          const damageMultiplier = this.orbitalPearlStyle === 'black' ? BLACK_PEARL_DAMAGE_MULTIPLIER : 1;
+
           const angle = this.orbitalPearlAngle;
+          // Collect positions of pearls that get spent this tick (for black pearl explosions)
+          const spentBlackPearlPositions: { x: number; y: number }[] = [];
+
           this.entities = this.entities.filter(e => {
             if (!(e instanceof SmallEnemy || e instanceof BigEnemy || e instanceof MediumEnemy || e instanceof Level3Enemy)) return true;
             for (const pearl of this.orbitalPearls) {
@@ -710,20 +768,27 @@ export class Game {
               const py = this.player.y + Math.sin(pa) * PEARL_ORBIT_RADIUS;
               const dx = e.x - px;
               const dy = e.y - py;
-              if (Math.sqrt(dx * dx + dy * dy) < PEARL_HIT_RADIUS + e.width * 0.4) {
+              if (Math.sqrt(dx * dx + dy * dy) < hitRadius + e.width * 0.4) {
                 if (e instanceof MediumEnemy) {
-                  const dead = e.takePearlHit();
-                  if (!dead) {
-                    return true;
+                  let dead = false;
+                  for (let _d = 0; _d < damageMultiplier; _d++) {
+                    dead = e.takePearlHit();
+                    if (dead) break;
                   }
+                  if (!dead) return true;
                 }
                 if (e instanceof Level3Enemy) {
-                  const dead = e.takePearlHit();
-                  if (!dead) {
-                    return true;
+                  let dead = false;
+                  for (let _d = 0; _d < damageMultiplier; _d++) {
+                    dead = e.takePearlHit();
+                    if (dead) break;
                   }
+                  if (!dead) return true;
                 }
                 pearl.killsRemaining -= 1;
+                if (pearl.isBlack && pearl.killsRemaining <= 0) {
+                  spentBlackPearlPositions.push({ x: px, y: py });
+                }
                 this.spawnExplosion(e.x, e.y);
                 this.shakeTimer = Math.max(this.shakeTimer, SCREEN_SHAKE_DURATION * 0.6);
                 return false;
@@ -731,6 +796,11 @@ export class Game {
             }
             return true;
           });
+
+          // Black pearl area explosions (when a pearl is spent)
+          for (const pos of spentBlackPearlPositions) {
+            this.spawnBlackPearlExplosion(pos.x, pos.y);
+          }
 
           // Discard spent pearls
           this.orbitalPearls = this.orbitalPearls.filter(p => p.killsRemaining > 0);
@@ -747,8 +817,15 @@ export class Game {
                 ppx >= bossBounds.x && ppx <= bossBounds.x + bossBounds.width &&
                 ppy >= bossBounds.y && ppy <= bossBounds.y + bossBounds.height
               ) {
-                const dead = this.boss.takePearlHit();
+                let dead = false;
+                for (let _d = 0; _d < damageMultiplier; _d++) {
+                  dead = this.boss.takePearlHit();
+                  if (dead) break;
+                }
                 pearl.killsRemaining -= 1;
+                if (pearl.isBlack && pearl.killsRemaining <= 0) {
+                  this.spawnBlackPearlExplosion(ppx, ppy);
+                }
                 this.spawnExplosion(this.boss.x, this.boss.y);
                 this.shakeTimer = Math.max(this.shakeTimer, SCREEN_SHAKE_DURATION * 0.6);
                 if (dead) {
@@ -924,6 +1001,7 @@ export class Game {
     this.shieldAnimTime = 0;
     this.orbitalPearls = [];
     this.orbitalPearlAngle = 0;
+    this.orbitalPearlStyle = 'green';
     this.shockwaveRings = [];
     this.boss = null;
     this.bossDefeatedTimer = 0;
@@ -1018,6 +1096,93 @@ export class Game {
       life: SHOCKWAVE_DURATION,
       maxLife: SHOCKWAVE_DURATION,
     });
+  }
+
+  private spawnBlackPearlExplosion(x: number, y: number): void {
+    // Visual: dark fire explosion with white core
+    const colors = ['#000000', '#1a0000', '#330000', '#660000', '#ff2200', '#ff8800', '#ffffff'];
+    for (let i = 0; i < EXPLOSION_PARTICLE_COUNT * 2; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 100 + Math.random() * 280;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const maxLife = 0.5 + Math.random() * 0.6;
+      this.particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: maxLife,
+        maxLife,
+        color,
+        size: 3 + Math.random() * 6,
+      });
+    }
+    this.shockwaveRings.push({
+      x, y,
+      radius: SHOCKWAVE_INITIAL_RADIUS,
+      maxRadius: SHOCKWAVE_MAX_RADIUS * 1.6,
+      life: SHOCKWAVE_DURATION * 1.3,
+      maxLife: SHOCKWAVE_DURATION * 1.3,
+    });
+    this.shakeTimer = Math.max(this.shakeTimer, SCREEN_SHAKE_DURATION);
+
+    // Area damage: deal BLACK_PEARL_EXPLOSION_HITS pearl-equivalent hits to all nearby enemies
+    const blastR = BLACK_PEARL_EXPLOSION_RADIUS;
+    this.entities = this.entities.filter(e => {
+      if (!(e instanceof SmallEnemy || e instanceof BigEnemy || e instanceof MediumEnemy || e instanceof Level3Enemy)) return true;
+      const dx = e.x - x;
+      const dy = e.y - y;
+      if (Math.sqrt(dx * dx + dy * dy) > blastR + e.width * 0.4) return true;
+      if (e instanceof MediumEnemy) {
+        let dead = false;
+        for (let _i = 0; _i < BLACK_PEARL_EXPLOSION_HITS; _i++) {
+          dead = e.takePearlHit();
+          if (dead) break;
+        }
+        if (!dead) {
+          this.spawnParticles(e.x, e.y, '#ff2200', 8);
+          return true;
+        }
+        this.spawnDisintegration(e.x, e.y, this.stageDef.mediumEnemyDisintColors);
+        return false;
+      }
+      if (e instanceof Level3Enemy) {
+        let dead = false;
+        for (let _i = 0; _i < BLACK_PEARL_EXPLOSION_HITS; _i++) {
+          dead = e.takePearlHit();
+          if (dead) break;
+        }
+        if (!dead) {
+          this.spawnParticles(e.x, e.y, '#ff2200', 8);
+          return true;
+        }
+        this.spawnDisintegration(e.x, e.y, this.stageDef.level3EnemyDisintColors);
+        return false;
+      }
+      // SmallEnemy / BigEnemy – instant kill
+      const colors2 = e instanceof SmallEnemy
+        ? this.stageDef.smallEnemyDisintColors
+        : this.stageDef.bigEnemyDisintColors;
+      this.spawnDisintegration(e.x, e.y, colors2);
+      return false;
+    });
+
+    // Boss in blast radius also takes explosion damage
+    if (this.boss && !this.boss.defeated) {
+      const dx = this.boss.x - x;
+      const dy = this.boss.y - y;
+      if (Math.sqrt(dx * dx + dy * dy) < blastR + this.boss.width * 0.4) {
+        let dead = false;
+        for (let _i = 0; _i < BLACK_PEARL_EXPLOSION_HITS; _i++) {
+          dead = this.boss.takePearlHit();
+          if (dead) break;
+        }
+        if (dead) {
+          this.spawnBossDefeatExplosion();
+        } else {
+          this.spawnParticles(this.boss.x, this.boss.y, '#ff2200', 12);
+        }
+      }
+    }
   }
 
   private spawnBombDeathExplosion(x: number, y: number): void {
@@ -1386,42 +1551,96 @@ export class Game {
 
     // Orbital pearls – draw glowing pearls orbiting the player
     if (this.orbitalPearls.length > 0) {
-      const pr = PEARL_DRAW_RADIUS;
+      const isBlackStyle = this.orbitalPearlStyle === 'black';
+      const pr = isBlackStyle ? BLACK_PEARL_DRAW_RADIUS : PEARL_DRAW_RADIUS;
+
       for (const pearl of this.orbitalPearls) {
         const pa = this.orbitalPearlAngle + pearl.angleOffset;
         const px = this.player.x + Math.cos(pa) * PEARL_ORBIT_RADIUS;
         const py = this.player.y + Math.sin(pa) * PEARL_ORBIT_RADIUS;
 
-        // Outer glow
-        ctx.save();
-        const glow = ctx.createRadialGradient(px, py, pr * 0.3, px, py, pr * 2.2);
-        glow.addColorStop(0, 'rgba(180,255,200,0.7)');
-        glow.addColorStop(1, 'rgba(0,200,80,0)');
-        ctx.globalAlpha = 0.55 + Math.sin(pearl.glowTimer) * 0.2;
-        ctx.fillStyle = glow;
-        ctx.beginPath();
-        ctx.arc(px, py, pr * 2.2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        if (isBlackStyle && pearl.trail && pearl.trail.length > 1) {
+          // Black fire contrail along trail positions
+          ctx.save();
+          const trailColors = ['#000000', '#1a0000', '#330000', '#660000', '#ff2200', '#ff6600'];
+          for (let t = 0; t < pearl.trail.length - 1; t++) {
+            const tp = pearl.trail[t];
+            const frac = t / (pearl.trail.length - 1);
+            const colorIdx = Math.floor(frac * (trailColors.length - 1));
+            ctx.globalAlpha = frac * 0.65;
+            ctx.fillStyle = trailColors[colorIdx];
+            const trailR = pr * (0.25 + frac * 0.55);
+            ctx.beginPath();
+            ctx.arc(tp.x, tp.y, trailR, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
 
-        // Pearl body
-        ctx.save();
-        const pearlGrad = ctx.createRadialGradient(px - pr * 0.3, py - pr * 0.3, pr * 0.05, px, py, pr);
-        pearlGrad.addColorStop(0, '#ffffff');
-        pearlGrad.addColorStop(0.45, '#ccf5dd');
-        pearlGrad.addColorStop(1, '#44cc88');
-        ctx.fillStyle = pearlGrad;
-        ctx.beginPath();
-        ctx.arc(px, py, pr, 0, Math.PI * 2);
-        ctx.fill();
+        if (isBlackStyle) {
+          // Outer white glow halo
+          ctx.save();
+          const glow = ctx.createRadialGradient(px, py, pr * 0.3, px, py, pr * 2.5);
+          glow.addColorStop(0, 'rgba(255,255,255,0.65)');
+          glow.addColorStop(0.4, 'rgba(200,200,255,0.2)');
+          glow.addColorStop(1, 'rgba(200,200,255,0)');
+          ctx.globalAlpha = 0.6 + Math.sin(pearl.glowTimer) * 0.2;
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(px, py, pr * 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
 
-        // Shine highlight
-        ctx.globalAlpha = 0.8;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(px - pr * 0.35, py - pr * 0.35, pr * 0.3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+          // Black pearl body
+          ctx.save();
+          const pearlGrad = ctx.createRadialGradient(px - pr * 0.3, py - pr * 0.3, pr * 0.05, px, py, pr);
+          pearlGrad.addColorStop(0, '#444444');
+          pearlGrad.addColorStop(0.35, '#1a1a1a');
+          pearlGrad.addColorStop(1, '#000000');
+          ctx.fillStyle = pearlGrad;
+          ctx.beginPath();
+          ctx.arc(px, py, pr, 0, Math.PI * 2);
+          ctx.fill();
+
+          // White shine highlight
+          ctx.globalAlpha = 0.85;
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(px - pr * 0.32, py - pr * 0.32, pr * 0.28, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        } else {
+          // Outer green glow (original white pearl behaviour)
+          ctx.save();
+          const glow = ctx.createRadialGradient(px, py, pr * 0.3, px, py, pr * 2.2);
+          glow.addColorStop(0, 'rgba(180,255,200,0.7)');
+          glow.addColorStop(1, 'rgba(0,200,80,0)');
+          ctx.globalAlpha = 0.55 + Math.sin(pearl.glowTimer) * 0.2;
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(px, py, pr * 2.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // Pearl body
+          ctx.save();
+          const pearlGrad = ctx.createRadialGradient(px - pr * 0.3, py - pr * 0.3, pr * 0.05, px, py, pr);
+          pearlGrad.addColorStop(0, '#ffffff');
+          pearlGrad.addColorStop(0.45, '#ccf5dd');
+          pearlGrad.addColorStop(1, '#44cc88');
+          ctx.fillStyle = pearlGrad;
+          ctx.beginPath();
+          ctx.arc(px, py, pr, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Shine highlight
+          ctx.globalAlpha = 0.8;
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(px - pr * 0.35, py - pr * 0.35, pr * 0.3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
       }
     }
 

@@ -122,6 +122,7 @@ export abstract class OrbitalCollectible implements Entity {
   abstract width: number;
   abstract height: number;
   abstract collected: boolean;
+  get pearlStyle(): 'green' | 'black' { return 'green'; }
   abstract update(dt: number, scrollSpeed: number): void;
   abstract render(ctx: CanvasRenderingContext2D): void;
   abstract getBounds(): { x: number; y: number; width: number; height: number };
