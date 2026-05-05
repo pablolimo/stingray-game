@@ -21,52 +21,68 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean): void {
   const bellColor = rage ? '#ddffa0' : '#c8f580';
   const darkColor = rage ? '#4a7a00' : '#2a5800';
 
-  // Main body with outline for crisp silhouette
+  // ── V-shaped muscular torso ──────────────────────────────────────────────────
   ctx.strokeStyle = darkColor;
   ctx.lineWidth = 2;
   ctx.fillStyle = baseColor;
+  // Wide at chest (y≈36), narrows toward hip (y≈76) – crisp V silhouette
   ctx.beginPath();
-  ctx.ellipse(44, 58, 38, 40, 0, 0, Math.PI * 2);
+  ctx.moveTo(9, 36);
+  ctx.bezierCurveTo(3, 52, 17, 68, 20, 76);
+  ctx.lineTo(68, 76);
+  ctx.bezierCurveTo(71, 68, 85, 52, 79, 36);
+  ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
-  // Belly
-  ctx.fillStyle = bellColor;
-  ctx.beginPath();
-  ctx.ellipse(44, 62, 24, 28, 0, 0, Math.PI * 2);
-  ctx.fill();
+  // Pectoral muscles
+  ctx.fillStyle = skinColor;
+  ctx.beginPath(); ctx.ellipse(30, 47, 15, 11, -0.15, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(58, 47, 15, 11,  0.15, 0, Math.PI * 2); ctx.fill();
+
+  // Centre chest / sternum line
+  ctx.strokeStyle = darkColor;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(44, 37); ctx.lineTo(44, 64); ctx.stroke();
+
+  // Abs (two columns, three rows – tapering with body)
+  ctx.fillStyle = darkColor;
+  ctx.globalAlpha = 0.28;
+  for (let row = 0; row < 3; row++) {
+    const ay = 55 + row * 7;
+    const ar = 4.5 - row * 0.5;
+    ctx.beginPath(); ctx.ellipse(37, ay, ar, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(51, ay, ar, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 
   // Belly highlight
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.beginPath();
-  ctx.ellipse(40, 54, 13, 14, -0.2, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle = bellColor;
+  ctx.beginPath(); ctx.ellipse(44, 60, 15, 19, 0, 0, Math.PI * 2); ctx.fill();
 
-  // Texture bumps
+  // Belly inner shine
+  ctx.fillStyle = 'rgba(255,255,255,0.10)';
+  ctx.beginPath(); ctx.ellipse(40, 52, 9, 10, -0.2, 0, Math.PI * 2); ctx.fill();
+
+  // Texture bumps on the back
   ctx.fillStyle = skinColor;
-  const bumps = [[30, 46, 4], [58, 42, 3.5], [22, 58, 3], [66, 60, 3.5], [44, 40, 3]];
+  const bumps: [number, number, number][] = [[28, 44, 3.5], [60, 40, 3], [20, 56, 2.5], [67, 58, 3], [44, 38, 2.5]];
   for (const [bx, by, br] of bumps) {
     ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
   }
 
-  // Legs
+  // Hip joint sockets (where animated legs attach)
+  ctx.fillStyle = darkColor;
+  ctx.beginPath(); ctx.arc(16, 73, 7, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = baseColor;
-  ctx.strokeStyle = darkColor;
-  ctx.lineWidth = 1.5;
-  if (rage) {
-    // Thick muscular thighs (kept shorter to avoid sprite clipping)
-    ctx.beginPath(); ctx.ellipse(14, 72, 15, 18, -0.4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(74, 72, 15, 18, 0.4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    // Quad highlight
-    ctx.fillStyle = skinColor;
-    ctx.beginPath(); ctx.ellipse(12, 65, 8, 10, -0.4, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(76, 65, 8, 10, 0.4, 0, Math.PI * 2); ctx.fill();
-  } else {
-    // Normal back legs
-    ctx.fillStyle = baseColor;
-    ctx.beginPath(); ctx.ellipse(12, 76, 12, 16, -0.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(76, 76, 12, 16, 0.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    // Shoulder sockets – visible attachment points for the separately-spinning arms
+  ctx.beginPath(); ctx.arc(16, 73, 4.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = darkColor;
+  ctx.beginPath(); ctx.arc(72, 73, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = baseColor;
+  ctx.beginPath(); ctx.arc(72, 73, 4.5, 0, Math.PI * 2); ctx.fill();
+
+  // Shoulder sockets (arm pivots – non-rage keeps them baked in)
+  if (!rage) {
     ctx.fillStyle = darkColor;
     ctx.beginPath(); ctx.arc(10, 56, 8, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = baseColor;
@@ -77,10 +93,20 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean): void {
     ctx.beginPath(); ctx.arc(78, 56, 5, 0, Math.PI * 2); ctx.fill();
   }
 
-  // Head with outline
+  // ── Head ────────────────────────────────────────────────────────────────────
+  // Trapezoid-ish muscular neck / traps bridge
   ctx.fillStyle = baseColor;
   ctx.strokeStyle = darkColor;
   ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(22, 36);
+  ctx.lineTo(66, 36);
+  ctx.bezierCurveTo(66, 28, 56, 22, 44, 22);
+  ctx.bezierCurveTo(32, 22, 22, 28, 22, 36);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
   ctx.beginPath();
   ctx.ellipse(44, 22, 34, 27, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -140,6 +166,128 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean): void {
     ctx.arc(44, 35, 13, 0.1 * Math.PI, 0.9 * Math.PI);
     ctx.stroke();
   }
+}
+
+/** Draws one animated muscular frog leg in world-space coordinates.
+ *  @param hipX/hipY  – hip joint position (relative to the already-translated frog centre)
+ *  @param phase      – animation phase in [0, 2π]; legs from opposite sides are offset by π
+ *  @param sideSign   – −1 for left leg, +1 for right leg
+ *  @param rage       – use rage colour palette
+ */
+function drawFrogLeg(
+  ctx: CanvasRenderingContext2D,
+  hipX: number, hipY: number,
+  phase: number,
+  sideSign: number,
+  rage: boolean,
+): void {
+  const baseColor = rage ? '#88cc00' : '#5a9a00';
+  const skinColor = rage ? '#aaee22' : '#7acc22';
+  const darkColor = rage ? '#4a7a00' : '#2a5800';
+
+  // kick progress: 0 = fully folded (foot tucked near body), 1 = fully extended (kick)
+  const t = (Math.sin(phase) + 1) * 0.5;
+
+  // Knee position – moves from up-and-in (folded) to out-and-down (extended)
+  const kneeX = hipX + sideSign * 62;
+  const kneeY = hipY + (-18 + t * 60);
+
+  // Foot direction from knee: folded→points back toward body; extended→pushes far down-out
+  const fdx = sideSign * (0.25 + t * 0.45);
+  const fdy = -0.55 + t * 1.3;
+  const fdMag = Math.sqrt(fdx * fdx + fdy * fdy);
+  const shinLen = 72;
+  const footX = kneeX + (fdx / fdMag) * shinLen;
+  const footY = kneeY + (fdy / fdMag) * shinLen;
+
+  ctx.save();
+  ctx.strokeStyle = darkColor;
+  ctx.lineWidth = 2;
+
+  // ── Thigh (upper leg) – very thick rotated ellipse ──────────────────────────
+  {
+    const mx = (hipX + kneeX) * 0.5;
+    const my = (hipY + kneeY) * 0.5;
+    const angle = Math.atan2(kneeY - hipY, kneeX - hipX);
+    const half = Math.hypot(kneeX - hipX, kneeY - hipY) * 0.5;
+    ctx.save();
+    ctx.translate(mx, my);
+    ctx.rotate(angle);
+    ctx.fillStyle = baseColor;
+    ctx.beginPath(); ctx.ellipse(0, 0, half, 22, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = skinColor;
+    ctx.beginPath(); ctx.ellipse(-half * 0.15, -9, half * 0.4, 10, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── Shin (lower leg) ─────────────────────────────────────────────────────────
+  {
+    const mx = (kneeX + footX) * 0.5;
+    const my = (kneeY + footY) * 0.5;
+    const angle = Math.atan2(footY - kneeY, footX - kneeX);
+    const half = Math.hypot(footX - kneeX, footY - kneeY) * 0.5;
+    ctx.save();
+    ctx.translate(mx, my);
+    ctx.rotate(angle);
+    ctx.fillStyle = baseColor;
+    ctx.beginPath(); ctx.ellipse(0, 0, half, 14, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = skinColor;
+    ctx.beginPath(); ctx.ellipse(-half * 0.1, -6, half * 0.3, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── Knee joint ───────────────────────────────────────────────────────────────
+  ctx.fillStyle = darkColor;
+  ctx.beginPath(); ctx.arc(kneeX, kneeY, 14, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = baseColor;
+  ctx.beginPath(); ctx.arc(kneeX, kneeY, 10, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = skinColor;
+  ctx.beginPath(); ctx.arc(kneeX - sideSign * 3, kneeY - 3, 5, 0, Math.PI * 2); ctx.fill();
+
+  // ── Hip joint ────────────────────────────────────────────────────────────────
+  ctx.fillStyle = darkColor;
+  ctx.beginPath(); ctx.arc(hipX, hipY, 10, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = baseColor;
+  ctx.beginPath(); ctx.arc(hipX, hipY, 7, 0, Math.PI * 2); ctx.fill();
+
+  // ── Webbed foot ──────────────────────────────────────────────────────────────
+  {
+    const footAngle = Math.atan2(footY - kneeY, footX - kneeX);
+    ctx.save();
+    ctx.translate(footX, footY);
+    ctx.rotate(footAngle);
+    // Webbing fill
+    const toeData = [
+      { a: -0.55, len: 24 },
+      { a: -0.18, len: 30 },
+      { a:  0.18, len: 30 },
+      { a:  0.55, len: 24 },
+    ];
+    ctx.fillStyle = rage ? 'rgba(60,140,0,0.72)' : 'rgba(40,100,0,0.65)';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    for (const toe of toeData) {
+      ctx.lineTo(Math.cos(toe.a) * toe.len, Math.sin(toe.a) * toe.len);
+    }
+    ctx.closePath();
+    ctx.fill();
+    // Toes
+    for (const toe of toeData) {
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = baseColor;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(toe.a) * toe.len, Math.sin(toe.a) * toe.len);
+      ctx.stroke();
+      ctx.fillStyle = darkColor;
+      ctx.beginPath();
+      ctx.arc(Math.cos(toe.a) * toe.len, Math.sin(toe.a) * toe.len, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  ctx.restore();
 }
 
 function createFrogNormalSprites(): HTMLCanvasElement[] {
@@ -226,6 +374,10 @@ export class MutantFrogBoss extends BossEnemy {
   private nextRageIdx: number = 0;
   private tadpoleToggle: boolean = false; // alternates between tadpoles and toxic cloud
 
+  // ── Animated leg state ────────────────────────────────────────────────────────
+  private legPhaseLeft: number = 0;
+  private legPhaseRight: number = Math.PI; // opposite phase → alternating kicks
+
   constructor(x: number, startY: number) {
     super();
     this.x = x;
@@ -248,6 +400,10 @@ export class MutantFrogBoss extends BossEnemy {
     this.floatTime += dt;
     // Arm rotation: always spinning (slower in normal mode, faster in rage)
     this.armAngle += (this.isRaging ? 5.0 : 1.4) * dt;
+    // Leg kick animation: faster during rage
+    const legSpeed = this.isRaging ? 4.5 : 2.8;
+    this.legPhaseLeft  = (this.legPhaseLeft  + legSpeed * dt) % (Math.PI * 2);
+    this.legPhaseRight = (this.legPhaseRight + legSpeed * dt) % (Math.PI * 2);
 
     // Slide in from top
     if (this.y < FROG_TARGET_Y) {
@@ -496,6 +652,16 @@ export class MutantFrogBoss extends BossEnemy {
     if (this.hitFlash <= 0) {
       drawArm(leftPivotX, leftPivotY, this.armAngle);
       drawArm(rightPivotX, rightPivotY, -this.armAngle);
+    }
+
+    // ── Animated muscular frog legs (BEHIND body sprite) ─────────────────────────
+    // Hip joint world positions: sprite (16, 73) and (72, 73) → world (±56, 56)
+    const leftHipX  = 16 * sx - this.width / 2;   // ≈ −55
+    const rightHipX = 72 * sx - this.width / 2;   // ≈  53
+    const hipY      = 73 * sy - this.height / 2;  // ≈  56
+    if (this.hitFlash <= 0) {
+      drawFrogLeg(ctx, leftHipX,  hipY, this.legPhaseLeft,  -1, this.isRaging);
+      drawFrogLeg(ctx, rightHipX, hipY, this.legPhaseRight,  1, this.isRaging);
     }
 
     // ── Body sprite ─────────────────────────────────────────────────────────────

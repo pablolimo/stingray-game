@@ -716,6 +716,23 @@ export class Background {
     // Sunken car road – single vertical strip centred on the canvas
     this.drawSunkenRoadVertical(ctx, Math.floor(CANVAS_WIDTH / 2));
 
+    // Half-buried skeletons (same layer as road so they scroll together)
+    const skelCount = 5 + Math.floor(Math.random() * 6);
+    for (let i = 0; i < skelCount; i++) {
+      const sx = 30 + Math.random() * (CANVAS_WIDTH - 60);
+      const sy = 40 + Math.random() * (this.LAYER_HEIGHT - 60);
+      const hasTruckerHat = Math.random() < 0.5;
+      this.drawBuriedSkeleton(ctx, sx, sy, hasTruckerHat);
+    }
+
+    // Half-buried tires (same layer as road; drawn small)
+    const tireCount = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < tireCount; i++) {
+      const tx = 25 + Math.random() * (CANVAS_WIDTH - 50);
+      const ty = 30 + Math.random() * (this.LAYER_HEIGHT - 50);
+      this.drawBuriedTire(ctx, tx, ty);
+    }
+
     return c;
   }
 
@@ -831,23 +848,6 @@ export class Background {
       ctx.arc(x, y, 14, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
-    }
-
-    // Half-buried skeletons (5-10 scattered, smaller scale); some wear a trucker's hat
-    const skelCount = 5 + Math.floor(Math.random() * 6);
-    for (let i = 0; i < skelCount; i++) {
-      const sx = 30 + Math.random() * (CANVAS_WIDTH - 60);
-      const sy = 40 + Math.random() * (this.LAYER_HEIGHT - 60);
-      const hasTruckerHat = Math.random() < 0.5;
-      this.drawBuriedSkeleton(ctx, sx, sy, hasTruckerHat);
-    }
-
-    // Half-buried tires (1-3 scattered)
-    const tireCount = 1 + Math.floor(Math.random() * 3);
-    for (let i = 0; i < tireCount; i++) {
-      const tx = 25 + Math.random() * (CANVAS_WIDTH - 50);
-      const ty = 30 + Math.random() * (this.LAYER_HEIGHT - 50);
-      this.drawBuriedTire(ctx, tx, ty);
     }
 
     // Half-buried road signs (1-2 scattered)
@@ -1109,7 +1109,7 @@ export class Background {
   }
 
   private drawBuriedTire(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-    const scale = 0.8 + Math.random() * 0.6;
+    const scale = 0.38 + Math.random() * 0.22;  // smaller: was 0.8–1.4, now 0.38–0.60
     const tiltAngle = (Math.random() - 0.5) * 0.5;
     ctx.save();
     ctx.translate(x, y);

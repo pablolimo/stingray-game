@@ -37,7 +37,7 @@ import {
   PEARL_ORBIT_RADIUS, PEARL_SPIN_SPEED, PEARL_HIT_RADIUS, PEARL_DRAW_RADIUS,
   EXPLOSION_PARTICLE_COUNT, SHOCKWAVE_INITIAL_RADIUS, SHOCKWAVE_MAX_RADIUS, SHOCKWAVE_DURATION,
   SPEED_BOOST_MULTIPLIER, SPEED_BOOST_DURATION,
-  NUCLEAR_BLAST_DURATION, NUCLEAR_BLAST_HALF_WIDTH, NUCLEAR_DAMAGE_MULTIPLIER,
+  NUCLEAR_BLAST_HALF_WIDTH, NUCLEAR_DAMAGE_MULTIPLIER,
   HOOK_DURATION,
   BOMB_DEATH_ANIM_DURATION, BOMB_BURST_FREQUENCY,
   SPEED_BOOST_KILL_SCORE,
@@ -342,10 +342,13 @@ export class Game {
 
         // Nuclear blast beam – stronger than laser, wider, deals multiple hits per tick
         if (this.nuclearBlastActive) {
-          const nuclearHalfWidth = NUCLEAR_BLAST_HALF_WIDTH;
+          const nuclearFireballs = this.getNuclearFireballPositions();
+          const fireballHits = (ex: number, ey: number, ew: number): boolean =>
+            nuclearFireballs.some(fb => Math.hypot(ex - fb.x, ey - fb.y) < fb.size + ew * 0.4);
+
           this.entities = this.entities.filter(e => {
             if (e instanceof SmallEnemy || e instanceof BigEnemy || e instanceof MediumEnemy || e instanceof Level3Enemy) {
-              if (Math.abs(e.x - this.player.x) < nuclearHalfWidth + e.width / 2 && e.y < this.player.y) {
+              if (fireballHits(e.x, e.y, e.width)) {
                 if (e instanceof MediumEnemy) {
                   // Nuclear does NUCLEAR_DAMAGE_MULTIPLIER× laser damage; bypass cooldown per hit
                   for (let _i = 0; _i < NUCLEAR_DAMAGE_MULTIPLIER; _i++) {
@@ -382,10 +385,7 @@ export class Game {
           });
 
           if (this.boss && !this.boss.defeated) {
-            if (
-              Math.abs(this.boss.x - this.player.x) < nuclearHalfWidth + this.boss.width / 2 &&
-              this.boss.y < this.player.y
-            ) {
+            if (fireballHits(this.boss.x, this.boss.y, this.boss.width)) {
               let dead = false;
               for (let _i = 0; _i < NUCLEAR_DAMAGE_MULTIPLIER; _i++) {
                 this.boss.laserHitCooldown = 0;
@@ -1024,6 +1024,30 @@ export class Game {
     this.baseScrollSpeed = INITIAL_SCROLL_SPEED;
     this.bombDeathAnimTimer = 0;
     this.bombDeathAnimTime = 0;
+  }
+
+  /** Returns the current world positions and sizes of all visible nuclear fireballs.
+   *  Mirrors the rendering math in renderPlaying() so collisions match visuals. */
+  private getNuclearFireballPositions(): Array<{ x: number; y: number; size: number }> {
+    const bx = this.player.x;
+    const startY = this.player.y - this.player.height / 2;
+    const spreadHalfWidth = NUCLEAR_BLAST_HALF_WIDTH * 1.8;
+    const streamHeight = CANVAS_HEIGHT + 40;
+    const numBalls = 55;
+    const heightPerBall = (streamHeight / numBalls) * 1.5;
+    const t = this.nuclearBlastAnimTime;
+    const out: Array<{ x: number; y: number; size: number }> = [];
+    for (let i = 0; i < numBalls; i++) {
+      const seed = i * 2.399;
+      const speed = 180 + (i % 9) * 55;
+      const rawY = (t * speed + seed * heightPerBall) % streamHeight;
+      const fy = startY - rawY;
+      if (fy < -50 || fy > startY + 10) continue;
+      const fx = bx + Math.sin(seed * 2.7 + t * (1.5 + (i % 5) * 0.4)) * spreadHalfWidth;
+      const size = 12 + Math.abs(Math.sin(t * (5 + i % 6) + seed * 1.3)) * 26;
+      out.push({ x: fx, y: fy, size });
+    }
+    return out;
   }
 
   private incrementLaserGauge(): void {
