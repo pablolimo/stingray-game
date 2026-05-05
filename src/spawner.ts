@@ -13,7 +13,7 @@ export class Spawner {
   private shinyChestTimer: number = 0;
   private redTreasureTimer: number = 0;
   private squidTimer: number = 0;
-  private squidInterval: number = 8.0 + Math.random() * 4.0;
+  private squidInterval: number;
   private kittenTimer: number = 0;
   private kittenInterval: number = 10.0 + Math.random() * 5.0;
   private glowingClamTimer: number = 0;
@@ -29,9 +29,11 @@ export class Spawner {
 
   constructor(config: StageSpawnConfig) {
     this.config = config;
+    const baseInterval = config.mediumEnemySpawnInterval ?? 8.0;
+    this.squidInterval = baseInterval + Math.random() * (baseInterval * 0.5);
   }
 
-  update(dt: number, _scrollSpeed: number, playerX: number, level: number = 1): Entity[] {
+  update(dt: number, _scrollSpeed: number, playerX: number, level: number = 1, score: number = 0): Entity[] {
     this.time += dt;
     const spawned: Entity[] = [];
 
@@ -114,12 +116,13 @@ export class Spawner {
       spawned.push(this.config.createRedTreasure(x, -30));
     }
 
-    // Squid: level 2+, every 8-12s
+    // Squid: level 2+, every 8-12s (configurable per stage)
     if (level >= 2) {
+      const baseInterval = this.config.mediumEnemySpawnInterval ?? 8.0;
       this.squidTimer += dt;
       if (this.squidTimer >= this.squidInterval) {
         this.squidTimer = 0;
-        this.squidInterval = 8.0 + Math.random() * 4.0;
+        this.squidInterval = baseInterval + Math.random() * (baseInterval * 0.5);
         const groupSize = this.config.mediumEnemyGroupSize ?? 1;
         for (let i = 0; i < groupSize; i++) {
           const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
@@ -137,8 +140,8 @@ export class Spawner {
       }
     }
 
-    // Scuba kitten/eel: level 3 only, every 10-15s
-    if (level >= 3) {
+    // Scuba kitten/eel: level 3 only OR score >= 2500 (mid-level 2)
+    if (level >= 3 || score >= 2500) {
       this.kittenTimer += dt;
       if (this.kittenTimer >= this.kittenInterval) {
         this.kittenTimer = 0;
@@ -213,7 +216,8 @@ export class Spawner {
     this.shinyChestTimer = 0;
     this.redTreasureTimer = 0;
     this.squidTimer = 0;
-    this.squidInterval = 8.0 + Math.random() * 4.0;
+    const baseInterval = this.config.mediumEnemySpawnInterval ?? 8.0;
+    this.squidInterval = baseInterval + Math.random() * (baseInterval * 0.5);
     this.kittenTimer = 0;
     this.kittenInterval = 10.0 + Math.random() * 5.0;
     this.glowingClamTimer = 0;
