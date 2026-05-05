@@ -528,8 +528,10 @@ export class Game {
               this.spawnParticles(e.x, e.y, glowColor, 20);
               if (this.activePowerupStyle === 'nuclear') {
                 if (this.nuclearBlastActive || this.powerupActive) {
-                  // Already have the nuclear powerup – fill the gauge completely
+                  // Already have the nuclear powerup – fill the gauge completely and start firing
                   this.nuclearGaugeLevel = 1;
+                  this.nuclearBlastActive = true;
+                  this.nuclearBlastAnimTime = 0;
                 } else {
                   // First metal chest – starts empty, must eat to charge the gauge
                   this.nuclearGaugeLevel = 0;

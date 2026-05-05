@@ -512,7 +512,7 @@ export class MutantFrogBoss extends BossEnemy {
           } else {
             // Tongue attack
             this.attackState = 'tongue';
-            this._pendingProjectiles.push(new FrogTongue(this.x, this.y + 20, this.targetX, this.targetY));
+            this._pendingProjectiles.push(new FrogTongue(this, 20, this.targetX, this.targetY));
           }
         }
         break;
