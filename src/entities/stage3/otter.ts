@@ -8,7 +8,7 @@ const OTTER_AGGRO_THRESHOLD = 0.25; // 25% HP
 const OTTER_SCROLL_FACTOR = 0.28;
 const OTTER_ROCK_SPEED = 290;
 const OTTER_AGGRO_CHASE_SPEED = 435;
-const OTTER_ERRATIC_CHANGE_INTERVAL = 0.6;
+const OTTER_ERRATIC_CHANGE_INTERVAL = 0.22;
 
 // ── Rock projectile ──────────────────────────────────────────────────────────
 
@@ -494,22 +494,22 @@ export class RockThrowingOtter extends Level3Enemy {
   }
 
   private updateAggressive(dt: number, scrollSpeed: number): void {
-    // Erratic movement: random velocity changes
+    // Erratic movement: random velocity changes at shorter intervals
     this.erraticTimer += dt;
     if (this.erraticTimer >= OTTER_ERRATIC_CHANGE_INTERVAL) {
       this.erraticTimer = 0;
       const angle = Math.random() * Math.PI * 2;
-      const speed = OTTER_AGGRO_CHASE_SPEED * (0.6 + Math.random() * 0.8);
+      const speed = OTTER_AGGRO_CHASE_SPEED * (0.8 + Math.random() * 1.4);
       this.erraticVx = Math.cos(angle) * speed;
       this.erraticVy = Math.sin(angle) * speed;
     }
 
-    // Chase player with erratic component
+    // Chase player with strong erratic component
     const dx = this.targetX - this.x;
     const dy = this.targetY - this.y;
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-    const chaseVx = (dx / dist) * OTTER_AGGRO_CHASE_SPEED * 0.7;
-    const chaseVy = (dy / dist) * OTTER_AGGRO_CHASE_SPEED * 0.7;
+    const chaseVx = (dx / dist) * OTTER_AGGRO_CHASE_SPEED * 0.4;
+    const chaseVy = (dy / dist) * OTTER_AGGRO_CHASE_SPEED * 0.4;
 
     this.x += (chaseVx + this.erraticVx) * dt;
     this.y += (chaseVy + this.erraticVy) * dt;

@@ -8,14 +8,21 @@ function createSpeedBoostSprite(): HTMLCanvasElement {
   c.height = 46;
   const ctx = c.getContext('2d')!;
 
-  // Draw 3 stacked caret-up arrows
-  const colors = [ARROW_COLORS[0], ARROW_COLORS[1], ARROW_COLORS[2]];
+  // Draw 3 stacked caret-up arrows, each with a full rainbow gradient
   const offsets = [30, 20, 10];
+  const gradientPairs: [string, string][] = [
+    [ARROW_COLORS[0], ARROW_COLORS[2]], // yellow → red
+    [ARROW_COLORS[3], ARROW_COLORS[4]], // pink → purple
+    [ARROW_COLORS[5], ARROW_COLORS[0]], // cyan → yellow
+  ];
   for (let i = 0; i < 3; i++) {
     const y = offsets[i];
-    ctx.fillStyle = colors[i];
-    ctx.shadowColor = colors[i];
-    ctx.shadowBlur = 6;
+    const grd = ctx.createLinearGradient(4, y, 52, y);
+    grd.addColorStop(0, gradientPairs[i][0]);
+    grd.addColorStop(1, gradientPairs[i][1]);
+    ctx.fillStyle = grd;
+    ctx.shadowColor = gradientPairs[i][0];
+    ctx.shadowBlur = 8;
     ctx.beginPath();
     ctx.moveTo(28, y - 10);     // top point
     ctx.lineTo(4, y + 2);       // bottom-left
@@ -68,15 +75,16 @@ export class SpeedBoostPowerup extends SpeedBoostCollectible {
 
     // Shiny rainbow glow halo
     ctx.save();
-    const haloAlpha = 0.25 + Math.abs(Math.sin(this.glowTimer)) * 0.2;
+    const haloAlpha = 0.35 + Math.abs(Math.sin(this.glowTimer)) * 0.3;
     ctx.globalAlpha = haloAlpha;
-    const hue = (this.glowTimer * 40) % 360;
-    const grd = ctx.createRadialGradient(this.x, this.y, 4, this.x, this.y, 50);
-    grd.addColorStop(0, `hsla(${hue},100%,70%,0.8)`);
-    grd.addColorStop(1, `hsla(${hue + 60},100%,50%,0)`);
+    const hue = (this.glowTimer * 60) % 360;
+    const grd = ctx.createRadialGradient(this.x, this.y, 4, this.x, this.y, 60);
+    grd.addColorStop(0, `hsla(${hue},100%,75%,0.9)`);
+    grd.addColorStop(0.5, `hsla(${(hue + 120) % 360},100%,65%,0.5)`);
+    grd.addColorStop(1, `hsla(${(hue + 240) % 360},100%,50%,0)`);
     ctx.fillStyle = grd;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, 50, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, 60, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
