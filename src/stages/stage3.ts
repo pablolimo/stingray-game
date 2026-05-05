@@ -46,7 +46,7 @@ export const stage3Definition: StageDefinition = {
     glowingClamInterval: 15.0,  // more frequent than stage 1/2's 30s
     mediumEnemyGroupSize: 10,   // black squids appear in schools of 10
     mediumEnemySpawnInterval: 5, // shorter interval – squids appear more often
-    maxLevel3EnemyCount: 2,      // at most 2 rock-throwing otters on screen at once
+    maxLevel3EnemyCount: 1,      // at most 1 rock-throwing otter on screen at once
     // Coins
     createCoin: (x, y) => new GoldenCoin(x, y),
     // Stage 3 specific obstacles
