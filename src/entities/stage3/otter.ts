@@ -393,6 +393,8 @@ export class RockThrowingOtter extends Level3Enemy {
   y: number;
   width: number = 110;
   height: number = 90;
+  private readonly halfW: number = 55;
+  private readonly halfH: number = 45;
   expired: boolean = false;
   targetX: number;
   targetY: number;
@@ -499,8 +501,7 @@ export class RockThrowingOtter extends Level3Enemy {
     const REPOSITION_SPEED = OTTER_AGGRO_CHASE_SPEED * 2.2;
     const CHARGE_SPEED = OTTER_AGGRO_CHASE_SPEED * 2.8;
     const REPOSITION_ARRIVE_DIST = 18;
-    const halfW = this.width / 2;
-    const halfH = this.height / 2;
+    const { halfW, halfH } = this;
 
     if (this.chargeState === 'repositioning') {
       // Pick the edge (top or bottom) that is furthest from the stingray
