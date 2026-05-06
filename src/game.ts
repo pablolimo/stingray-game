@@ -285,6 +285,7 @@ export class Game {
           if (e instanceof MediumEnemy && e.expired) return false;
           if (e instanceof Level3Enemy && e.expired) return false;
           if (e instanceof ProjectileEntity && !e.active) return false;
+          if (e instanceof FloatingBomb && e.dead) return false;
           return e.y > -100 && e.y < CANVAS_HEIGHT + 100;
         });
 
@@ -617,6 +618,9 @@ export class Game {
                 this.bombDeathY = this.player.y;
                 this.shakeTimer = SCREEN_SHAKE_DURATION * 5;
                 this.spawnBombDeathExplosion(this.player.x, this.player.y);
+                // Bomb also explodes at its own position
+                this.spawnBombDeathExplosion(e.x, e.y);
+                e.dead = true;
               }
             }
           } else if (e instanceof RadioactiveBarrel) {

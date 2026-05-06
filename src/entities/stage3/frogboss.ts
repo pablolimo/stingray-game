@@ -118,19 +118,28 @@ function drawFrogBody(ctx: CanvasRenderingContext2D, rage: boolean): void {
   ctx.beginPath(); ctx.arc(56, 16, 2.5, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(44, 12, 2, 0, Math.PI * 2); ctx.fill();
 
-  // 8 eyes
-  const eyeData: [number, number, number, string][] = [
-    [30, 10, 7, '#dddd00'],
-    [58, 10, 7, '#dddd00'],
+  // 8 eyes – glow red in rage mode, yellow/orange in normal mode
+  const eyeData: [number, number, number, string][] = rage ? [
+    [30, 10, 7,   '#ff0000'],
+    [58, 10, 7,   '#ff0000'],
+    [18, 22, 4.5, '#ff3300'],
+    [70, 22, 4.5, '#ff3300'],
+    [24, 33, 3.5, '#ff2200'],
+    [64, 33, 3.5, '#ff2200'],
+    [36, 6,  2.5, '#ff5500'],
+    [52, 6,  2.5, '#ff5500'],
+  ] : [
+    [30, 10, 7,   '#dddd00'],
+    [58, 10, 7,   '#dddd00'],
     [18, 22, 4.5, '#ffcc00'],
     [70, 22, 4.5, '#ffcc00'],
     [24, 33, 3.5, '#ff8800'],
     [64, 33, 3.5, '#ff8800'],
-    [36, 6, 2.5, '#ffee44'],
-    [52, 6, 2.5, '#ffee44'],
+    [36, 6,  2.5, '#ffee44'],
+    [52, 6,  2.5, '#ffee44'],
   ];
 
-  const eyeGlow = rage ? 12 : 6;
+  const eyeGlow = rage ? 20 : 6;
   for (const [ex, ey, er, ecolor] of eyeData) {
     ctx.fillStyle = '#111';
     ctx.beginPath(); ctx.arc(ex, ey, er + 1, 0, Math.PI * 2); ctx.fill();
@@ -189,8 +198,9 @@ function drawFrogLeg(
   const t = (Math.sin(phase) + 1) * 0.5;
 
   // Knee position – moves from up-and-in (folded) to out-and-down (extended)
-  const kneeX = hipX + sideSign * 62;
-  const kneeY = hipY + (-18 + t * 60);
+  // Wider vertical swing in rage mode for a more violent kick
+  const kneeX = hipX + sideSign * (rage ? 72 : 62);
+  const kneeY = hipY + (-18 + t * (rage ? 90 : 60));
 
   // Foot direction from knee: folded→points back toward body; extended→pushes far down-out
   const fdx = sideSign * (0.25 + t * 0.45);
@@ -399,9 +409,9 @@ export class MutantFrogBoss extends BossEnemy {
     if (this.hitFlash > 0) this.hitFlash -= dt;
     this.floatTime += dt;
     // Arm rotation: always spinning (slower in normal mode, faster in rage)
-    this.armAngle += (this.isRaging ? 5.0 : 1.4) * dt;
-    // Leg kick animation: faster during rage
-    const legSpeed = this.isRaging ? 4.5 : 2.8;
+    this.armAngle += (this.isRaging ? 9.5 : 1.4) * dt;
+    // Leg kick animation: faster and more violent during rage
+    const legSpeed = this.isRaging ? 8.0 : 2.8;
     this.legPhaseLeft  = (this.legPhaseLeft  + legSpeed * dt) % (Math.PI * 2);
     this.legPhaseRight = (this.legPhaseRight + legSpeed * dt) % (Math.PI * 2);
 
@@ -623,10 +633,11 @@ export class MutantFrogBoss extends BossEnemy {
     const darkColor = this.isRaging ? '#4a7a00' : '#2a5800';
 
     // ── Draw spinning arms (BEHIND body so shoulder is buried in the torso) ────
-    const drawArm = (pivotX: number, pivotY: number, angle: number) => {
+    const drawArm = (pivotX: number, pivotY: number, angle: number, scale: number = 1) => {
       ctx.save();
       ctx.translate(pivotX, pivotY);
       ctx.rotate(angle);
+      if (scale !== 1) ctx.scale(scale, scale);
 
       // Upper arm
       ctx.strokeStyle = darkColor;
@@ -650,6 +661,11 @@ export class MutantFrogBoss extends BossEnemy {
     };
 
     if (this.hitFlash <= 0) {
+      // Extra 2 muscular long arms that grow during rage mode
+      if (this.isRaging) {
+        drawArm(leftPivotX  - 30, leftPivotY + 18,  this.armAngle + Math.PI * 0.45, 1.45);
+        drawArm(rightPivotX + 30, rightPivotY + 18, -this.armAngle - Math.PI * 0.45, 1.45);
+      }
       drawArm(leftPivotX, leftPivotY, this.armAngle);
       drawArm(rightPivotX, rightPivotY, -this.armAngle);
     }

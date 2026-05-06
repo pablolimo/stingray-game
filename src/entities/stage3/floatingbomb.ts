@@ -47,6 +47,7 @@ export class FloatingBomb extends SmallEnemy {
   y: number;
   width: number = 84;
   height: number = 84;
+  dead: boolean = false;
 
   private sprite: HTMLCanvasElement;
   private vx: number;
