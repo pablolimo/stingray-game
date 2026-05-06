@@ -4,7 +4,7 @@ import { Level3Enemy, ProjectileEntity } from '../entityRoles';
 
 const OTTER_THROW_INTERVAL_CALM = 2.4;
 const OTTER_THROW_INTERVAL_AGGRO = 0.85;
-const OTTER_AGGRO_THRESHOLD = 0.25; // 25% HP
+const OTTER_AGGRO_THRESHOLD = 0.5; // 50% HP
 const OTTER_SCROLL_FACTOR = 0.28;
 const OTTER_ROCK_SPEED = 290;
 const OTTER_AGGRO_CHASE_SPEED = 435;
@@ -442,7 +442,7 @@ export class RockThrowingOtter extends Level3Enemy {
 
     this.floatPhase += dt * 0.9;
 
-    // Transition to aggressive when HP drops to 25%
+    // Transition to aggressive when HP drops to 50%
     if (!this.isAggressive && this.hp <= Math.ceil(OTTER_MAX_HP * OTTER_AGGRO_THRESHOLD)) {
       this.isAggressive = true;
       this.animFrame = 0;
@@ -499,6 +499,8 @@ export class RockThrowingOtter extends Level3Enemy {
     const REPOSITION_SPEED = OTTER_AGGRO_CHASE_SPEED * 2.2;
     const CHARGE_SPEED = OTTER_AGGRO_CHASE_SPEED * 2.8;
     const REPOSITION_ARRIVE_DIST = 18;
+    const halfW = this.width / 2;
+    const halfH = this.height / 2;
 
     if (this.chargeState === 'repositioning') {
       // Pick the edge (top or bottom) that is furthest from the stingray
@@ -506,8 +508,9 @@ export class RockThrowingOtter extends Level3Enemy {
       const distToBottom = CANVAS_HEIGHT - this.targetY;
       const goToTop = distToTop >= distToBottom;
 
-      const spawnX = this.targetX;
-      const spawnY = goToTop ? -this.height : CANVAS_HEIGHT + this.height;
+      // Reposition to the nearest on-screen edge, not off-screen
+      const spawnX = Math.max(halfW, Math.min(CANVAS_WIDTH - halfW, this.targetX));
+      const spawnY = goToTop ? halfH : CANVAS_HEIGHT - halfH;
 
       const dxR = spawnX - this.x;
       const dyR = spawnY - this.y;
@@ -528,20 +531,22 @@ export class RockThrowingOtter extends Level3Enemy {
       } else {
         this.x += (dxR / distR) * REPOSITION_SPEED * dt;
         this.y += (dyR / distR) * REPOSITION_SPEED * dt;
+        // Keep on-screen during repositioning movement
+        this.x = Math.max(halfW, Math.min(CANVAS_WIDTH - halfW, this.x));
+        this.y = Math.max(halfH, Math.min(CANVAS_HEIGHT - halfH, this.y));
       }
 
     } else {
-      // Charging: move in a straight line using pre-computed direction (so it never stalls at the aim point)
+      // Charging: move in a straight line using pre-computed direction
       this.x += this.chargeDirX * CHARGE_SPEED * dt;
       this.y += this.chargeDirY * CHARGE_SPEED * dt;
 
-      // Detect when the otter has gone off-screen after the charge
-      const offScreen =
-        this.x < -this.width * 2 || this.x > CANVAS_WIDTH + this.width * 2 ||
-        this.y < -this.height * 2 || this.y > CANVAS_HEIGHT + this.height * 2;
-
-      if (offScreen) {
-        // Return to repositioning – will again pick the furthest edge from the stingray
+      // Clamp to screen bounds – if the otter hits an edge, switch back to repositioning
+      const clampedX = Math.max(halfW, Math.min(CANVAS_WIDTH - halfW, this.x));
+      const clampedY = Math.max(halfH, Math.min(CANVAS_HEIGHT - halfH, this.y));
+      if (clampedX !== this.x || clampedY !== this.y) {
+        this.x = clampedX;
+        this.y = clampedY;
         this.chargeState = 'repositioning';
       }
     }
