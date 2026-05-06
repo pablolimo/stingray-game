@@ -410,7 +410,6 @@ export class RockThrowingOtter extends Level3Enemy {
   private floatX: number;
 
   // Aggressive directional charge movement
-  private chargePhase: number = 0; // 0=top, 1=right, 2=left, 3=bottom
   private chargeState: 'repositioning' | 'charging' = 'repositioning';
   private chargeAimX: number = 0;
   private chargeAimY: number = 0;
@@ -502,15 +501,13 @@ export class RockThrowingOtter extends Level3Enemy {
     const REPOSITION_ARRIVE_DIST = 18;
 
     if (this.chargeState === 'repositioning') {
-      // Compute the off-screen spawn point for this phase
-      let spawnX = this.x;
-      let spawnY = this.y;
-      switch (this.chargePhase) {
-        case 0: spawnX = this.targetX; spawnY = -this.height;            break; // top
-        case 1: spawnX = CANVAS_WIDTH + this.width; spawnY = this.targetY; break; // right
-        case 2: spawnX = -this.width; spawnY = this.targetY;              break; // left
-        case 3: spawnX = this.targetX; spawnY = CANVAS_HEIGHT + this.height; break; // bottom
-      }
+      // Pick the edge (top or bottom) that is furthest from the stingray
+      const distToTop = this.targetY;
+      const distToBottom = CANVAS_HEIGHT - this.targetY;
+      const goToTop = distToTop >= distToBottom;
+
+      const spawnX = this.targetX;
+      const spawnY = goToTop ? -this.height : CANVAS_HEIGHT + this.height;
 
       const dxR = spawnX - this.x;
       const dyR = spawnY - this.y;
@@ -544,8 +541,7 @@ export class RockThrowingOtter extends Level3Enemy {
         this.y < -this.height * 2 || this.y > CANVAS_HEIGHT + this.height * 2;
 
       if (offScreen) {
-        // Advance to the next phase and start repositioning
-        this.chargePhase = (this.chargePhase + 1) % 4;
+        // Return to repositioning – will again pick the furthest edge from the stingray
         this.chargeState = 'repositioning';
       }
     }
