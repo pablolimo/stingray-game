@@ -23,6 +23,10 @@ export class Background {
       this.layer1 = this.createLayer1_s3();
       this.layer2 = this.createLayer2_s3();
       this.layer3 = this.createLayer3_s3();
+    } else if (stageId === 4) {
+      this.layer1 = this.createLayer1_s4();
+      this.layer2 = this.createLayer2_s4();
+      this.layer3 = this.createLayer3_s4();
     } else {
       this.layer1 = this.createLayer1();
       this.layer2 = this.createLayer2();
@@ -525,6 +529,18 @@ export class Background {
       }
       return;
     }
+    if (this.stageId === 4) {
+      // Sparse, small, icy-white bubbles for the frozen graveyard
+      for (let i = 0; i < 4; i++) {
+        this.bubbles.push({
+          x: Math.random() * CANVAS_WIDTH,
+          y: Math.random() * CANVAS_HEIGHT,
+          radius: 1 + Math.random() * 3,
+          speed: 12 + Math.random() * 18,
+        });
+      }
+      return;
+    }
     for (let i = 0; i < 8; i++) {
       this.bubbles.push({
         x: Math.random() * CANVAS_WIDTH,
@@ -565,6 +581,8 @@ export class Background {
       this.renderStage2Water(ctx);
     } else if (this.stageId === 3) {
       this.renderStage3Water(ctx);
+    } else if (this.stageId === 4) {
+      this.renderStage4Water(ctx);
     } else {
       this.renderStage1Water(ctx);
     }
@@ -1673,5 +1691,438 @@ export class Background {
       ctx.fill();
     }
     ctx.restore();
+  }
+
+  // ─── Stage 4 layer creators ────────────────────────────────────────────────
+
+  private createLayer1_s4(): HTMLCanvasElement {
+    const c = document.createElement('canvas');
+    c.width = CANVAS_WIDTH;
+    c.height = this.LAYER_HEIGHT;
+    const ctx = c.getContext('2d')!;
+
+    // Dark, cold sea floor – near-black with faint blue-grey tones
+    ctx.fillStyle = '#0e1520';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, this.LAYER_HEIGHT);
+
+    // Fine cold sand texture
+    for (let i = 0; i < 1400; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      ctx.fillStyle = Math.random() > 0.5 ? 'rgba(60,80,110,0.28)' : 'rgba(20,30,50,0.22)';
+      ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
+    }
+
+    // Cold blue bands
+    for (let y = 0; y < this.LAYER_HEIGHT; y += 60) {
+      const alpha = (Math.sin(y * 0.04) + 1) * 0.025;
+      ctx.fillStyle = `rgba(30,60,110,${alpha})`;
+      ctx.fillRect(0, y, CANVAS_WIDTH, 28);
+    }
+
+    // Sunken pirate ships (large hull silhouettes)
+    const shipCount = 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < shipCount; i++) {
+      const sx = 30 + Math.random() * (CANVAS_WIDTH - 100);
+      const sy = 60 + Math.random() * (this.LAYER_HEIGHT - 120);
+      const tilt = (Math.random() - 0.5) * 0.5;
+      const sizeFactor = 0.6 + Math.random() * 0.7;
+      const glowColor = ['#ffaa00', '#ff6600', '#aaddff', '#88ffcc'][Math.floor(Math.random() * 4)];
+      this.drawSunkenPirateShip(ctx, sx, sy, tilt, sizeFactor, glowColor);
+    }
+
+    return c;
+  }
+
+  private createLayer2_s4(): HTMLCanvasElement {
+    const c = document.createElement('canvas');
+    c.width = CANVAS_WIDTH;
+    c.height = this.LAYER_HEIGHT;
+    const ctx = c.getContext('2d')!;
+
+    // Scattered dark rocks / boulders on sea floor
+    for (let i = 0; i < 14; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      const r = 5 + Math.random() * 12;
+      const shade = Math.floor(18 + Math.random() * 25);
+      ctx.fillStyle = `rgb(${shade},${shade + 5},${shade + 14})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.65, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Ship debris: planks, barrels, ropes
+    for (let i = 0; i < 8; i++) {
+      const x = 20 + Math.random() * (CANVAS_WIDTH - 40);
+      const y = 20 + Math.random() * (this.LAYER_HEIGHT - 40);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((Math.random() - 0.5) * Math.PI);
+      ctx.globalAlpha = 0.6;
+      // Plank
+      ctx.fillStyle = '#3a2a18';
+      ctx.fillRect(-18, -3, 36, 6);
+      ctx.strokeStyle = '#5a4030';
+      ctx.lineWidth = 0.7;
+      ctx.strokeRect(-18, -3, 36, 6);
+      // Grain lines
+      ctx.strokeStyle = '#2a1a08';
+      ctx.lineWidth = 0.5;
+      for (let ln = -12; ln < 18; ln += 6) {
+        ctx.beginPath();
+        ctx.moveTo(ln, -3);
+        ctx.lineTo(ln + 2, 3);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Anchor silhouettes
+    for (let i = 0; i < 2; i++) {
+      const x = 30 + Math.random() * (CANVAS_WIDTH - 60);
+      const y = 30 + Math.random() * (this.LAYER_HEIGHT - 60);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((Math.random() - 0.5) * 0.5);
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = '#666677';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+      // Shank
+      ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(0, 22); ctx.stroke();
+      // Ring
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(0, -22, 6, 0, Math.PI * 2); ctx.stroke();
+      // Arms
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-18, 14); ctx.lineTo(18, 14); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-18, 14); ctx.lineTo(-18, 20); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(18, 14); ctx.lineTo(18, 20); ctx.stroke();
+      ctx.restore();
+    }
+
+    // Scattered gold coins and treasure (partially buried)
+    for (let i = 0; i < 10; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * this.LAYER_HEIGHT;
+      ctx.fillStyle = 'rgba(200,160,30,0.45)';
+      ctx.beginPath();
+      ctx.ellipse(x, y, 4 + Math.random() * 3, 2 + Math.random() * 2, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Cold seaweed (sparse, dark)
+    for (let i = 0; i < 5; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const baseY = Math.random() * this.LAYER_HEIGHT;
+      ctx.strokeStyle = `rgba(${20 + Math.random() * 20},${40 + Math.random() * 30},${60 + Math.random() * 20},0.7)`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x, baseY);
+      const height = 15 + Math.random() * 22;
+      for (let seg = 0; seg < 4; seg++) {
+        const sy = baseY - (seg / 4) * height;
+        ctx.quadraticCurveTo(
+          x + (seg % 2 === 0 ? 6 : -6), sy - height / 8,
+          x + (seg % 2 === 0 ? 3 : -3), sy - height / 4,
+        );
+      }
+      ctx.stroke();
+    }
+
+    return c;
+  }
+
+  private createLayer3_s4(): HTMLCanvasElement {
+    const c = document.createElement('canvas');
+    c.width = CANVAS_WIDTH;
+    c.height = this.LAYER_HEIGHT;
+    const ctx = c.getContext('2d')!;
+
+    // Ship masts (tall vertical poles, broken at various heights)
+    for (let i = 0; i < 4; i++) {
+      const mx = 30 + Math.random() * (CANVAS_WIDTH - 60);
+      const baseY = 40 + Math.random() * (this.LAYER_HEIGHT - 80);
+      const mh = 40 + Math.random() * 60;
+      const lean = (Math.random() - 0.5) * 0.4;
+      ctx.save();
+      ctx.translate(mx, baseY);
+      ctx.rotate(lean);
+      ctx.globalAlpha = 0.55;
+
+      // Mast pole
+      ctx.strokeStyle = '#3a2a18';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, -mh);
+      ctx.stroke();
+
+      // Crossbar (yard)
+      const yardY = -mh * 0.65;
+      const yardW = 20 + Math.random() * 20;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(-yardW, yardY);
+      ctx.lineTo(yardW, yardY);
+      ctx.stroke();
+
+      // Tattered sail remnant
+      ctx.fillStyle = 'rgba(60,50,35,0.3)';
+      ctx.beginPath();
+      ctx.moveTo(-yardW * 0.9, yardY);
+      ctx.lineTo(yardW * 0.6, yardY);
+      ctx.lineTo(yardW * 0.3, yardY + 18);
+      ctx.lineTo(-yardW * 0.5, yardY + 14);
+      ctx.closePath();
+      ctx.fill();
+
+      // Rigging lines
+      ctx.strokeStyle = 'rgba(60,50,35,0.45)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-yardW, yardY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(yardW, yardY); ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Ship wheels (steering wheel)
+    for (let i = 0; i < 2; i++) {
+      const wx = 25 + Math.random() * (CANVAS_WIDTH - 50);
+      const wy = 25 + Math.random() * (this.LAYER_HEIGHT - 50);
+      const wr = 14 + Math.random() * 8;
+      const tilt = (Math.random() - 0.5) * 0.6;
+      ctx.save();
+      ctx.translate(wx, wy);
+      ctx.rotate(tilt);
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = '#4a3520';
+      ctx.lineWidth = 3;
+      // Outer rim
+      ctx.beginPath(); ctx.arc(0, 0, wr, 0, Math.PI * 2); ctx.stroke();
+      // Inner hub
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, wr * 0.25, 0, Math.PI * 2); ctx.stroke();
+      // Spokes
+      ctx.lineWidth = 2;
+      for (let s = 0; s < 8; s++) {
+        const a = (s / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * wr * 0.25, Math.sin(a) * wr * 0.25);
+        ctx.lineTo(Math.cos(a) * wr, Math.sin(a) * wr);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Glowing ship portholes / lanterns (different colors per ship)
+    const lightColors = ['#ffaa22', '#ff6611', '#aaddff', '#88ffaa', '#ffee44'];
+    for (let i = 0; i < 12; i++) {
+      const lx = Math.random() * CANVAS_WIDTH;
+      const ly = Math.random() * this.LAYER_HEIGHT;
+      const lc = lightColors[Math.floor(Math.random() * lightColors.length)];
+      const lr = 3 + Math.random() * 5;
+      ctx.save();
+      ctx.shadowColor = lc;
+      ctx.shadowBlur = 16;
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = lc;
+      ctx.beginPath();
+      ctx.arc(lx, ly, lr, 0, Math.PI * 2);
+      ctx.fill();
+      // Porthole ring
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#5a4a30';
+      ctx.lineWidth = 1.2;
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.arc(lx, ly, lr + 2.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Barnacle clusters on ship hulls
+    for (let i = 0; i < 6; i++) {
+      const bx = Math.random() * CANVAS_WIDTH;
+      const by = Math.random() * this.LAYER_HEIGHT;
+      ctx.globalAlpha = 0.5;
+      for (let b = 0; b < 5; b++) {
+        const ox = (Math.random() - 0.5) * 16;
+        const oy = (Math.random() - 0.5) * 10;
+        ctx.fillStyle = `rgba(${70 + Math.random() * 30},${70 + Math.random() * 20},${80 + Math.random() * 20},0.8)`;
+        ctx.beginPath();
+        ctx.arc(bx + ox, by + oy, 2 + Math.random() * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    ctx.globalAlpha = 1;
+    return c;
+  }
+
+  private drawSunkenPirateShip(
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number,
+    tilt: number,
+    scale: number,
+    glowColor: string,
+  ): void {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(tilt);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = 0.65;
+
+    const hullColor = '#2a1a0a';
+    const woodColor = '#3a2a10';
+    const planksColor = '#4a3418';
+
+    // Hull silhouette (large – pirate galleon)
+    ctx.fillStyle = hullColor;
+    ctx.beginPath();
+    ctx.moveTo(-60, 0);
+    ctx.bezierCurveTo(-60, -30, -50, -44, -30, -46);
+    ctx.lineTo(30, -46);
+    ctx.bezierCurveTo(50, -44, 60, -30, 60, 0);
+    ctx.bezierCurveTo(50, 18, -50, 18, -60, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Hull plank lines
+    ctx.strokeStyle = planksColor;
+    ctx.lineWidth = 1.2;
+    for (let pl = -36; pl <= -10; pl += 8) {
+      ctx.beginPath();
+      ctx.moveTo(-55, pl);
+      ctx.bezierCurveTo(-40, pl - 2, 40, pl - 2, 55, pl);
+      ctx.stroke();
+    }
+
+    // Stern castle (raised rear section)
+    ctx.fillStyle = woodColor;
+    ctx.beginPath();
+    ctx.rect(30, -60, 28, 18);
+    ctx.fill();
+    // Stern railing
+    ctx.strokeStyle = planksColor;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(30, -60); ctx.lineTo(58, -60); ctx.stroke();
+    for (let rail = 34; rail < 58; rail += 6) {
+      ctx.beginPath(); ctx.moveTo(rail, -60); ctx.lineTo(rail, -46); ctx.stroke();
+    }
+
+    // Bow (pointed front)
+    ctx.fillStyle = woodColor;
+    ctx.beginPath();
+    ctx.moveTo(-58, -8);
+    ctx.lineTo(-80, -14);
+    ctx.lineTo(-58, -20);
+    ctx.closePath();
+    ctx.fill();
+
+    // Bowsprit (diagonal forward mast)
+    ctx.strokeStyle = hullColor;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-58, -26);
+    ctx.lineTo(-96, -48);
+    ctx.stroke();
+
+    // Glowing portholes – different colors make each ship unique
+    const portHoles = [-30, -10, 10, 30];
+    for (const px of portHoles) {
+      if (Math.random() > 0.3) {
+        ctx.save();
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        ctx.arc(px, -28, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = '#6a5a30';
+        ctx.lineWidth = 1.2;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.arc(px, -28, 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // Mast stumps (broken off)
+    ctx.strokeStyle = hullColor;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    const mastX = [-20, 10];
+    for (const mx of mastX) {
+      const mh = 25 + Math.random() * 20;
+      ctx.beginPath();
+      ctx.moveTo(mx, -46);
+      ctx.lineTo(mx + (Math.random() - 0.5) * 8, -46 - mh);
+      ctx.stroke();
+    }
+
+    // Cannon ports (dark rectangles along hull sides)
+    ctx.fillStyle = '#111108';
+    for (let cp = -40; cp <= 30; cp += 20) {
+      ctx.beginPath();
+      ctx.rect(cp - 5, -18, 10, 7);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  private renderStage4Water(ctx: CanvasRenderingContext2D): void {
+    // Very cold, dark, teal-black tint
+    ctx.fillStyle = 'rgba(5, 20, 40, 0.38)';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    gradient.addColorStop(0, 'rgba(5, 18, 40, 0.30)');
+    gradient.addColorStop(0.5, 'rgba(0, 10, 25, 0.14)');
+    gradient.addColorStop(1, 'rgba(0, 5, 12, 0.04)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // Faint cold light shafts (thinner, bluer than stage 2)
+    ctx.save();
+    ctx.globalAlpha = 0.03;
+    for (let i = 0; i < 4; i++) {
+      const t = this.time * 0.12 + i * 1.7;
+      const cx = (Math.sin(t * 0.4) * 0.4 + 0.5) * CANVAS_WIDTH;
+      const shaftW = 18 + Math.sin(t * 1.1) * 7;
+      const shaftGrad = ctx.createLinearGradient(cx - shaftW, 0, cx + shaftW, 0);
+      shaftGrad.addColorStop(0, 'transparent');
+      shaftGrad.addColorStop(0.5, 'rgba(150, 210, 255, 0.9)');
+      shaftGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = shaftGrad;
+      ctx.fillRect(cx - shaftW, 0, shaftW * 2, CANVAS_HEIGHT);
+    }
+    ctx.restore();
+
+    // Icy-white bubbles with faint blue tint
+    for (const b of this.bubbles) {
+      ctx.save();
+      ctx.shadowColor = '#aaddff';
+      ctx.shadowBlur = b.radius * 2;
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = 'rgba(200,230,255,0.75)';
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.beginPath();
+      ctx.arc(b.x - b.radius * 0.3, b.y - b.radius * 0.3, b.radius * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 }
