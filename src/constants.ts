@@ -60,6 +60,16 @@ export const OTTER_LASER_HIT_INTERVAL = 0.22; // seconds between laser ticks on 
 export const TOXIC_CLOUD_DURATION = 4; // seconds toxic cloud chases player
 export const SPEED_BOOST_KILL_SCORE = 20; // points per enemy killed during speed boost
 
+// ─── Stage 4 constants ────────────────────────────────────────────────────────
+export const SALMON_SCORE = 8;
+export const CRAB_SCORE = 15;
+export const OYSTER_SCORE = 20;
+export const SKELETON_FISH_MAX_HP = SQUID_MAX_HP * 20;
+export const SKELETON_FISH_LASER_HIT_INTERVAL = 0.25;
+export const KILLER_WHALE_MAX_HP = OTTER_MAX_HP;              // same tough pool as otter
+export const KILLER_WHALE_LASER_HIT_INTERVAL = 0.22;
+export const SKELETON_BOSS_MAX_HP = BOSS_MAX_HP;
+
 // ─── Black Pearl Clam constants ───────────────────────────────────────────────
 export const BLACK_PEARL_COUNT = 6;               // pearls granted by the black clam
 export const BLACK_PEARL_ORBIT_RADIUS = 120;      // larger orbit so pearls clear the stingray

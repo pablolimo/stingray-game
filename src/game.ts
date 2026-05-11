@@ -23,11 +23,13 @@ import { StageDefinition } from './stages/stageDefinition';
 import { stage1Definition } from './stages/stage1';
 import { stage2Definition } from './stages/stage2';
 import { stage3Definition } from './stages/stage3';
+import { stage4Definition } from './stages/stage4';
 import { PlayerArcBall } from './entities/playerarcball';
 import { FloatingBomb } from './entities/stage3/floatingbomb';
 import { RadioactiveBarrel } from './entities/stage3/radioactivebarrel';
 import { FrogTongue } from './entities/stage3/frogtongue';
 import { ToxicCloud } from './entities/stage3/toxiccloud';
+import { PirateCannonball } from './entities/stage4/skeletonboss';
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   INITIAL_SCROLL_SPEED, MAX_SCROLL_SPEED, SCROLL_SPEED_INCREMENT,
@@ -130,7 +132,9 @@ export class Game {
 
   setStage(stageId: number): void {
     this.currentStageId = stageId;
-    if (stageId === 3) {
+    if (stageId === 4) {
+      this.stageDef = stage4Definition;
+    } else if (stageId === 3) {
       this.stageDef = stage3Definition;
     } else if (stageId === 2) {
       this.stageDef = stage2Definition;
