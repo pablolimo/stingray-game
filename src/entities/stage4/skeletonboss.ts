@@ -116,7 +116,7 @@ function drawSkullAndJaw(
   ctx.shadowBlur = 0;
 
   // Skull surface markings
-  ctx.strokeStyle = rage ? '#cc8888' : '#b8b09888';
+  ctx.strokeStyle = rage ? '#cc8888' : '#b8b098';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.arc(0, -14, 32, Math.PI * 0.9, Math.PI * 1.6);
