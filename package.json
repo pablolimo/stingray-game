@@ -2,9 +2,15 @@
   "name": "stingray-game",
   "version": "1.0.0",
   "type": "module",
+  "main": "./dist/stingray-game.js",
+  "module": "./dist/stingray-game.js",
+  "exports": {
+    ".": "./dist/stingray-game.js"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:lib": "tsc && vite build --mode lib",
     "preview": "vite preview"
   },
   "devDependencies": {
