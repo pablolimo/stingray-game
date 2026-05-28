@@ -7,7 +7,8 @@ export class Player {
   y: number;
   vx: number = 0;
   vy: number = 0;
-  hp: number = PLAYER_MAX_HP;
+  hp: number;
+  maxHp: number;
   invincibleTimer: number = 0;
   shieldActive: boolean = false;
   shieldTimer: number = 0;
@@ -24,7 +25,9 @@ export class Player {
 
   private sprites: HTMLCanvasElement[];
 
-  constructor() {
+  constructor(initialHp: number = PLAYER_MAX_HP) {
+    this.maxHp = initialHp;
+    this.hp = initialHp;
     this.x = CANVAS_WIDTH / 2;
     this.y = CANVAS_HEIGHT * 0.65;
     this.sprites = createStingraySprites();
@@ -111,7 +114,7 @@ export class Player {
   }
 
   healHp(): void {
-    this.hp = Math.min(this.hp + 1, PLAYER_MAX_HP);
+    this.hp = Math.min(this.hp + 1, this.maxHp);
   }
 
   isInvincible(): boolean {

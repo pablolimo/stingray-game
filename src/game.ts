@@ -118,6 +118,11 @@ export class Game {
   private bombDeathAnimTime: number = 0;
   private bombDeathX: number = 0;
   private bombDeathY: number = 0;
+  // Custom initial lives (set via startGame params)
+  private customLives: number | undefined = undefined;
+  // Callbacks
+  private onStageClearCallback: ((params: { lives: number; score: number; goldCoins: number }) => void) | null = null;
+  private onGameOverCallback: ((params: { score: number; goldCoins: number }) => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     this.canvas = canvas;
@@ -893,6 +898,9 @@ export class Game {
           this.bossDefeatedTimer -= dt;
           if (this.bossDefeatedTimer <= 0) {
             this.state = GameState.StageClear;
+            if (this.onStageClearCallback) {
+              this.onStageClearCallback({ lives: this.player.hp, score: this.score, goldCoins: this.goldScore });
+            }
           }
         }
 
@@ -956,6 +964,9 @@ export class Game {
         // Game over
         if (this.player.hp <= 0 && this.bombDeathAnimTimer <= 0) {
           this.state = GameState.GameOver;
+          if (this.onGameOverCallback) {
+            this.onGameOverCallback({ score: this.score, goldCoins: this.goldScore });
+          }
         }
         break;
 
@@ -997,10 +1008,13 @@ export class Game {
     }
   }
 
-  private startGame(): void {
+  startGame(params?: { lives?: number }): void {
+    if (params?.lives !== undefined) {
+      this.customLives = params.lives;
+    }
     this.state = GameState.Playing;
     this.background = new Background(this.currentStageId);
-    this.player = new Player();
+    this.player = new Player(this.customLives);
     this.entities = [];
     this.particles = [];
     this.disintegrationParticles = [];
@@ -1034,6 +1048,14 @@ export class Game {
     this.baseScrollSpeed = INITIAL_SCROLL_SPEED;
     this.bombDeathAnimTimer = 0;
     this.bombDeathAnimTime = 0;
+  }
+
+  setOnStageClearCallback(cb: (params: { lives: number; score: number; goldCoins: number }) => void): void {
+    this.onStageClearCallback = cb;
+  }
+
+  setOnGameOverCallback(cb: (params: { score: number; goldCoins: number }) => void): void {
+    this.onGameOverCallback = cb;
   }
 
   /** Returns the current world positions and sizes of all visible nuclear fireballs.
