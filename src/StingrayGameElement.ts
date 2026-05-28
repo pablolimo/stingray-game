@@ -64,9 +64,9 @@ export class StingrayGameElement {
 
   /**
    * Start (or restart) the game.
-   * @param params.lives — number of hearts the stingray begins with
+   * @param params.lives — number of hearts the stingray begins with (defaults to 4)
    */
-  startGame(params: StartGameParams): void {
+  startGame(params?: StartGameParams): void {
     this._game.startGame(params);
   }
 
