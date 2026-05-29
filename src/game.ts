@@ -129,10 +129,11 @@ export class Game {
     this.ctx = ctx;
     this.background = new Background(this.currentStageId);
     this.player = new Player();
-    this.input = new InputHandler();
+    this.input = new InputHandler(canvas);
     this.spawner = new Spawner(this.stageDef.spawnConfig);
     this.hud = new HUD();
     canvas.addEventListener('click', (e) => this.handleClick(e));
+    canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
   }
 
   setStage(stageId: number): void {
@@ -996,16 +997,58 @@ export class Game {
   }
 
   private handleClick(e: MouseEvent): void {
-    if (this.state !== GameState.Playing && this.state !== GameState.Paused) return;
+    const { x, y } = this.getCanvasPoint(e.clientX, e.clientY);
+    this.handleCanvasInteraction(x, y);
+  }
+
+  private handleTouchStart(e: TouchEvent): void {
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    const { x, y } = this.getCanvasPoint(touch.clientX, touch.clientY);
+    if (this.handleCanvasInteraction(x, y)) {
+      e.preventDefault();
+    }
+  }
+
+  private handleCanvasInteraction(x: number, y: number): boolean {
+    if (this.state === GameState.Title || this.state === GameState.GameOver || this.state === GameState.StageClear) {
+      this.input.clearPointer();
+      this.startGame();
+      return true;
+    }
+
+    if (this.state === GameState.Paused) {
+      this.input.clearPointer();
+      if (this.isInsidePauseButton(x, y)) {
+        this.state = GameState.Playing;
+      }
+      return true;
+    }
+
+    if (this.state === GameState.Playing && this.isInsidePauseButton(x, y)) {
+      this.input.clearPointer();
+      this.state = GameState.Paused;
+      return true;
+    }
+
+    return false;
+  }
+
+  private getCanvasPoint(clientX: number, clientY: number): { x: number; y: number } {
     const rect = this.canvas.getBoundingClientRect();
     const scaleX = CANVAS_WIDTH / rect.width;
     const scaleY = CANVAS_HEIGHT / rect.height;
-    const cx = (e.clientX - rect.left) * scaleX;
-    const cy = (e.clientY - rect.top) * scaleY;
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  }
+
+  private isInsidePauseButton(x: number, y: number): boolean {
     const b = this.pauseButtonBounds;
-    if (cx >= b.x && cx <= b.x + b.width && cy >= b.y && cy <= b.y + b.height) {
-      this.state = this.state === GameState.Paused ? GameState.Playing : GameState.Paused;
-    }
+    return x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + b.height;
   }
 
   startGame(params?: { lives?: number }): void {
@@ -1043,6 +1086,7 @@ export class Game {
     this.nuclearBlastActive = false;
     this.nuclearBlastTimer = 0;
     this.nuclearBlastAnimTime = 0;
+    this.input.clearPointer();
     this.nuclearHitCount = 0;
     this.speedBoostTimer = 0;
     this.baseScrollSpeed = INITIAL_SCROLL_SPEED;
@@ -1385,7 +1429,7 @@ export class Game {
     if (blink) {
       ctx.fillStyle = '#fff';
       ctx.font = '14px monospace';
-      ctx.fillText('Press SPACE to Play', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
+      ctx.fillText('Press SPACE or tap to play', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
     }
 
     ctx.font = '12px monospace';
@@ -1827,7 +1871,7 @@ export class Game {
     ctx.font = '14px monospace';
     ctx.fillStyle = '#adf';
     ctx.shadowBlur = 5;
-    ctx.fillText('Press SPACE or click ⏸ to resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 24);
+    ctx.fillText('Press SPACE or tap ⏸ to resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 24);
     ctx.restore();
   }
 
@@ -1862,7 +1906,7 @@ export class Game {
     if (blink) {
       ctx.font = '14px monospace';
       ctx.fillStyle = '#adf';
-      ctx.fillText('Press SPACE to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60 + (this.goldScore > 0 ? 20 : 0));
+      ctx.fillText('Press SPACE or tap to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60 + (this.goldScore > 0 ? 20 : 0));
     }
     ctx.restore();
   }
@@ -1908,7 +1952,7 @@ export class Game {
       ctx.font = '14px monospace';
       ctx.fillStyle = '#adf';
       ctx.shadowBlur = 4;
-      ctx.fillText('Press SPACE to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70 + (this.goldScore > 0 ? 20 : 0));
+      ctx.fillText('Press SPACE or tap to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70 + (this.goldScore > 0 ? 20 : 0));
     }
     ctx.restore();
   }
