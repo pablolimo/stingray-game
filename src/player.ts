@@ -37,15 +37,12 @@ export class Player {
     // Green glow timer
     if (this.greenGlowTimer > 0) this.greenGlowTimer -= dt;
 
-    let dragging = false;
-
     // Hooked state – override movement
     if (this.hookedTimer > 0) {
       this.hookedTimer -= dt;
       this.vx = this.hookVx;
       this.vy = this.hookVy;
     } else if (input.dragging) {
-      dragging = true;
       this.vx = 0;
       this.vy = 0;
       this.moveTo(input.pointerX, input.pointerY);
@@ -57,7 +54,7 @@ export class Player {
       if (input.down) this.vy += PLAYER_ACCELERATION * dt;
     }
 
-    if (!dragging) {
+    if (!input.dragging || this.hookedTimer > 0) {
       // Damping
       const dampFactor = Math.pow(PLAYER_DAMPING, dt * 10);
       this.vx *= dampFactor;
