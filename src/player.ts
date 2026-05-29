@@ -42,6 +42,10 @@ export class Player {
       this.hookedTimer -= dt;
       this.vx = this.hookVx;
       this.vy = this.hookVy;
+    } else if (input.dragging) {
+      this.vx = 0;
+      this.vy = 0;
+      this.moveTo(input.pointerX, input.pointerY);
     } else {
       // Apply acceleration
       if (input.left) this.vx -= PLAYER_ACCELERATION * dt;
@@ -50,25 +54,25 @@ export class Player {
       if (input.down) this.vy += PLAYER_ACCELERATION * dt;
     }
 
-    // Damping
-    const dampFactor = Math.pow(PLAYER_DAMPING, dt * 10);
-    this.vx *= dampFactor;
-    this.vy *= dampFactor;
+    if (!input.dragging || this.hookedTimer > 0) {
+      // Damping
+      const dampFactor = Math.pow(PLAYER_DAMPING, dt * 10);
+      this.vx *= dampFactor;
+      this.vy *= dampFactor;
 
-    // Clamp speed
-    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-    if (speed > PLAYER_MAX_SPEED) {
-      this.vx = (this.vx / speed) * PLAYER_MAX_SPEED;
-      this.vy = (this.vy / speed) * PLAYER_MAX_SPEED;
+      // Clamp speed
+      const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+      if (speed > PLAYER_MAX_SPEED) {
+        this.vx = (this.vx / speed) * PLAYER_MAX_SPEED;
+        this.vy = (this.vy / speed) * PLAYER_MAX_SPEED;
+      }
+
+      // Update position
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
     }
 
-    // Update position
-    this.x += this.vx * dt;
-    this.y += this.vy * dt;
-
-    // Clamp to canvas
-    this.x = Math.max(this.width / 2, Math.min(CANVAS_WIDTH - this.width / 2, this.x));
-    this.y = Math.max(this.height / 2, Math.min(CANVAS_HEIGHT - this.height / 2, this.y));
+    this.clampPosition();
 
     // Animation
     this.animTimer += dt;
@@ -217,5 +221,16 @@ export class Player {
       const sprite = this.sprites[this.animFrame];
       ctx.drawImage(sprite, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
     }
+  }
+
+  moveTo(x: number, y: number): void {
+    this.x = x;
+    this.y = y;
+    this.clampPosition();
+  }
+
+  private clampPosition(): void {
+    this.x = Math.max(this.width / 2, Math.min(CANVAS_WIDTH - this.width / 2, this.x));
+    this.y = Math.max(this.height / 2, Math.min(CANVAS_HEIGHT - this.height / 2, this.y));
   }
 }
