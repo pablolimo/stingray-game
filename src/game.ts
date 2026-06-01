@@ -96,8 +96,6 @@ export class Game {
   private shockwaveRings: ShockwaveRing[] = [];
   private goldScore: number = 0;
   private disintegrationParticles: DisintegrationParticle[] = [];
-  // Pause button bounds (canvas coordinates, updated each render)
-  private pauseButtonBounds = { x: 0, y: 0, width: 28, height: 20 };
   private boss: BossEnemy | null = null;
   private bossDefeatedTimer: number = 0;
   private level4BlueChestTimer: number = 0;
@@ -1008,6 +1006,12 @@ export class Game {
     const { x, y } = this.getCanvasPoint(touch.clientX, touch.clientY);
     if (this.handleCanvasInteraction(x, y)) {
       e.preventDefault();
+      return;
+    }
+
+    if (this.state === GameState.Playing && this.isInsidePlayerDragArea(x, y)) {
+      e.preventDefault();
+      this.input.startTouchDrag(touch, this.player.x, this.player.y);
     }
   }
 
@@ -1020,7 +1024,7 @@ export class Game {
 
     if (this.state === GameState.Paused) {
       this.input.clearPointer();
-      if (this.isInsidePauseButton(x, y)) {
+      if (this.isInsidePauseButton(x, y) || this.isInsidePauseOverlayPlayButton(x, y)) {
         this.state = GameState.Playing;
       }
       return true;
@@ -1047,8 +1051,41 @@ export class Game {
   }
 
   private isInsidePauseButton(x: number, y: number): boolean {
-    const b = this.pauseButtonBounds;
-    return x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + b.height;
+    return this.isInsideBounds(this.getPauseButtonBounds(), x, y);
+  }
+
+  private isInsidePauseOverlayPlayButton(x: number, y: number): boolean {
+    return this.isInsideBounds(this.getPauseOverlayPlayButtonBounds(), x, y);
+  }
+
+  private isInsidePlayerDragArea(x: number, y: number): boolean {
+    const dx = x - this.player.x;
+    const dy = y - this.player.y;
+    const maxDragDistance = Math.max(this.player.width, this.player.height) * 1.5;
+    return dx * dx + dy * dy <= maxDragDistance * maxDragDistance;
+  }
+
+  private isInsideBounds(
+    bounds: { x: number; y: number; width: number; height: number },
+    x: number,
+    y: number,
+  ): boolean {
+    return x >= bounds.x && x <= bounds.x + bounds.width && y >= bounds.y && y <= bounds.y + bounds.height;
+  }
+
+  private getPauseButtonBounds(): { x: number; y: number; width: number; height: number } {
+    return { x: 120, y: 8, width: 28, height: 20 };
+  }
+
+  private getPauseOverlayPlayButtonBounds(): { x: number; y: number; width: number; height: number } {
+    const width = 84;
+    const height = 60;
+    return {
+      x: CANVAS_WIDTH / 2 - width / 2,
+      y: CANVAS_HEIGHT / 2 + 40,
+      width,
+      height,
+    };
   }
 
   startGame(params?: { lives?: number }): void {
@@ -1782,11 +1819,7 @@ export class Game {
     this.hud.render(ctx, this.score, this.player.hp, this.powerupActive, displayGauge, displayLaserActive, this.player.shieldActive, this.player.shieldTimer, this.goldScore, this.activePowerupStyle, this.speedBoostTimer);
 
     // Pause button next to score (top-left area)
-    const pbX = 120;
-    const pbY = 8;
-    const pbW = 28;
-    const pbH = 20;
-    this.pauseButtonBounds = { x: pbX, y: pbY, width: pbW, height: pbH };
+    const { x: pbX, y: pbY, width: pbW, height: pbH } = this.getPauseButtonBounds();
     ctx.save();
     ctx.globalAlpha = 0.75;
     ctx.fillStyle = this.state === GameState.Paused ? '#4af' : '#336';
@@ -1871,7 +1904,30 @@ export class Game {
     ctx.font = '14px monospace';
     ctx.fillStyle = '#adf';
     ctx.shadowBlur = 5;
-    ctx.fillText('Press SPACE or tap ⏸ to resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 24);
+    const playButtonBounds = this.getPauseOverlayPlayButtonBounds();
+    const textY = playButtonBounds.y + playButtonBounds.height / 2 + 6;
+    ctx.textAlign = 'right';
+    ctx.fillText('Press SPACE or tap', playButtonBounds.x - 12, textY);
+    ctx.textAlign = 'left';
+    ctx.fillText('to resume', playButtonBounds.x + playButtonBounds.width + 12, textY);
+    ctx.save();
+    ctx.fillStyle = '#2d7cff';
+    ctx.strokeStyle = '#d9f4ff';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#4af';
+    ctx.shadowBlur = 18;
+    ctx.beginPath();
+    ctx.roundRect(playButtonBounds.x, playButtonBounds.y, playButtonBounds.width, playButtonBounds.height, 14);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(playButtonBounds.x + 30, playButtonBounds.y + 15);
+    ctx.lineTo(playButtonBounds.x + 30, playButtonBounds.y + playButtonBounds.height - 15);
+    ctx.lineTo(playButtonBounds.x + playButtonBounds.width - 24, playButtonBounds.y + playButtonBounds.height / 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
     ctx.restore();
   }
 
