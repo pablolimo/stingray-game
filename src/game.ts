@@ -1061,8 +1061,8 @@ export class Game {
   private isInsidePlayerDragArea(x: number, y: number): boolean {
     const dx = x - this.player.x;
     const dy = y - this.player.y;
-    const dragRadius = Math.max(this.player.width, this.player.height) * 1.5;
-    return dx * dx + dy * dy <= dragRadius * dragRadius;
+    const maxDragDistance = Math.max(this.player.width, this.player.height) * 1.5;
+    return dx * dx + dy * dy <= maxDragDistance * maxDragDistance;
   }
 
   private isInsideBounds(
