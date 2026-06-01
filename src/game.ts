@@ -1004,12 +1004,13 @@ export class Game {
     if (!touch) return;
 
     const { x, y } = this.getCanvasPoint(touch.clientX, touch.clientY);
-    e.preventDefault();
     if (this.handleCanvasInteraction(x, y)) {
+      e.preventDefault();
       return;
     }
 
     if (this.state === GameState.Playing && this.isInsidePlayerDragArea(x, y)) {
+      e.preventDefault();
       this.input.startTouchDrag(touch, this.player.x, this.player.y);
     }
   }
