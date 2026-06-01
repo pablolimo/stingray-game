@@ -3,6 +3,8 @@ import { CANVAS_HEIGHT, CANVAS_WIDTH } from './constants';
 export class InputHandler {
   private keys: Set<string> = new Set();
   private touchPoint: { x: number; y: number } | null = null;
+  private activeTouchId: number | null = null;
+  private dragOffset: { x: number; y: number } = { x: 0, y: 0 };
 
   constructor(private canvas: HTMLCanvasElement) {
     window.addEventListener('keydown', (e) => {
@@ -13,19 +15,21 @@ export class InputHandler {
       this.keys.delete(e.code);
     });
 
-    canvas.addEventListener('touchstart', (e) => {
-      this.updateTouchPoint(e.touches[0]);
-      e.preventDefault();
-    }, { passive: false });
     canvas.addEventListener('touchmove', (e) => {
-      this.updateTouchPoint(e.touches[0]);
+      const touch = this.getTrackedTouch(e.touches);
+      if (!touch) return;
+      this.updateTouchPoint(touch);
       e.preventDefault();
     }, { passive: false });
-    canvas.addEventListener('touchend', () => {
-      this.clearPointer();
+    canvas.addEventListener('touchend', (e) => {
+      if (!this.getTrackedTouch(e.touches)) {
+        this.clearPointer();
+      }
     });
-    canvas.addEventListener('touchcancel', () => {
-      this.clearPointer();
+    canvas.addEventListener('touchcancel', (e) => {
+      if (!this.getTrackedTouch(e.touches)) {
+        this.clearPointer();
+      }
     });
   }
 
@@ -35,6 +39,18 @@ export class InputHandler {
 
   clearPointer(): void {
     this.touchPoint = null;
+    this.activeTouchId = null;
+    this.dragOffset = { x: 0, y: 0 };
+  }
+
+  startTouchDrag(touch: Touch, anchorX: number, anchorY: number): void {
+    const canvasPoint = this.getCanvasPoint(touch);
+    this.activeTouchId = touch.identifier;
+    this.dragOffset = {
+      x: canvasPoint.x - anchorX,
+      y: canvasPoint.y - anchorY,
+    };
+    this.touchPoint = { x: anchorX, y: anchorY };
   }
 
   get dragging(): boolean {
@@ -65,19 +81,37 @@ export class InputHandler {
     return this.isDown('Space');
   }
 
-  private updateTouchPoint(touch?: Touch): void {
-    if (!touch) {
-      this.clearPointer();
-      return;
-    }
+  private updateTouchPoint(touch: Touch): void {
+    const canvasPoint = this.getCanvasPoint(touch);
+    this.touchPoint = {
+      x: canvasPoint.x - this.dragOffset.x,
+      y: canvasPoint.y - this.dragOffset.y,
+    };
+  }
 
+  private getCanvasPoint(touch: Touch): { x: number; y: number } {
     const rect = this.canvas.getBoundingClientRect();
     const scaleX = CANVAS_WIDTH / rect.width;
     const scaleY = CANVAS_HEIGHT / rect.height;
 
-    this.touchPoint = {
+    return {
       x: (touch.clientX - rect.left) * scaleX,
       y: (touch.clientY - rect.top) * scaleY,
     };
+  }
+
+  private getTrackedTouch(touches?: TouchList): Touch | null {
+    if (this.activeTouchId === null || !touches) {
+      return null;
+    }
+
+    for (let i = 0; i < touches.length; i += 1) {
+      const touch = touches[i];
+      if (touch.identifier === this.activeTouchId) {
+        return touch;
+      }
+    }
+
+    return null;
   }
 }
